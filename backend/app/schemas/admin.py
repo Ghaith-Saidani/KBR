@@ -6,6 +6,19 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from backend.app.models.user import UserRole, UserStatus
 
 
+class AdminIdentityResponse(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
+
+    user_id: uuid.UUID
+    email: EmailStr
+    role: UserRole
+    status: UserStatus
+    is_email_verified: bool
+    created_at: datetime
+
+
 class AdminMemberResponse(BaseModel):
     model_config = ConfigDict(
         from_attributes=True,
@@ -68,3 +81,24 @@ class AdminRoleUpdateRequest(BaseModel):
 class AdminMemberListResponse(BaseModel):
     items: list[AdminMemberResponse]
     total: int
+    skip: int
+    limit: int
+
+
+class AdminMemberStats(BaseModel):
+    total: int
+    pending: int
+    active: int
+    suspended: int
+
+
+class AdminUserStats(BaseModel):
+    total: int
+    members: int
+    staff: int
+    admins: int
+
+
+class AdminDashboardResponse(BaseModel):
+    members: AdminMemberStats
+    users: AdminUserStats

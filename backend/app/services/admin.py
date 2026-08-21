@@ -1,23 +1,23 @@
 import uuid
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from backend.app.models.member import Member
 from backend.app.models.user import User, UserRole, UserStatus
-from backend.app.schemas.admin import AdminMemberUpdateRequest
+from backend.app.schemas.admin import (
+    AdminDashboardResponse,
+    AdminMemberStats,
+    AdminMemberUpdateRequest,
+    AdminUserStats,
+)
 
 
 def get_admin_member(
     db: Session,
     member_id: uuid.UUID,
 ) -> tuple[User, Member]:
-    """
-    Retrieve a user and their member profile by member ID.
-    """
-
     statement = (
         select(User, Member)
         .join(
@@ -46,17 +46,54 @@ def list_members(
     db: Session,
     skip: int = 0,
     limit: int = 50,
+    search: str | None = None,
+    role: UserRole | None = None,
+    status_filter: UserStatus | None = None,
 ) -> tuple[list[tuple[User, Member]], int]:
     """
-    Return paginated members and the total member count.
+    List members with optional search, role and status filters.
     """
 
-    count_statement = select(
-        func.count(Member.id)
+    conditions = []
+
+    if search:
+        search_value = f"%{search.strip()}%"
+
+        conditions.append(
+            or_(
+                User.email.ilike(search_value),
+                Member.first_name.ilike(search_value),
+                Member.last_name.ilike(search_value),
+            )
+        )
+
+    if role is not None:
+        conditions.append(
+            User.role == role,
+        )
+
+    if status_filter is not None:
+        conditions.append(
+            User.status == status_filter,
+        )
+
+    count_statement = (
+        select(
+            func.count(Member.id),
+        )
+        .join(
+            User,
+            Member.user_id == User.id,
+        )
     )
 
+    if conditions:
+        count_statement = count_statement.where(
+            *conditions,
+        )
+
     total = db.scalar(
-        count_statement
+        count_statement,
     ) or 0
 
     statement = (
@@ -65,8 +102,17 @@ def list_members(
             Member,
             Member.user_id == User.id,
         )
+    )
+
+    if conditions:
+        statement = statement.where(
+            *conditions,
+        )
+
+    statement = (
+        statement
         .order_by(
-            Member.created_at.desc()
+            Member.created_at.desc(),
         )
         .offset(skip)
         .limit(limit)
@@ -79,15 +125,116 @@ def list_members(
     return items, total
 
 
+def get_dashboard_stats(
+    db: Session,
+) -> AdminDashboardResponse:
+    total_members = (
+        db.scalar(
+            select(func.count(Member.id))
+        )
+        or 0
+    )
+
+    pending_members = (
+        db.scalar(
+            select(func.count(Member.id))
+            .join(
+                User,
+                Member.user_id == User.id,
+            )
+            .where(
+                User.status == UserStatus.PENDING
+            )
+        )
+        or 0
+    )
+
+    active_members = (
+        db.scalar(
+            select(func.count(Member.id))
+            .join(
+                User,
+                Member.user_id == User.id,
+            )
+            .where(
+                User.status == UserStatus.ACTIVE
+            )
+        )
+        or 0
+    )
+
+    suspended_members = (
+        db.scalar(
+            select(func.count(Member.id))
+            .join(
+                User,
+                Member.user_id == User.id,
+            )
+            .where(
+                User.status == UserStatus.SUSPENDED
+            )
+        )
+        or 0
+    )
+
+    total_users = (
+        db.scalar(
+            select(func.count(User.id))
+        )
+        or 0
+    )
+
+    member_users = (
+        db.scalar(
+            select(func.count(User.id))
+            .where(
+                User.role == UserRole.MEMBER
+            )
+        )
+        or 0
+    )
+
+    staff_users = (
+        db.scalar(
+            select(func.count(User.id))
+            .where(
+                User.role == UserRole.STAFF
+            )
+        )
+        or 0
+    )
+
+    admin_users = (
+        db.scalar(
+            select(func.count(User.id))
+            .where(
+                User.role == UserRole.ADMIN
+            )
+        )
+        or 0
+    )
+
+    return AdminDashboardResponse(
+        members=AdminMemberStats(
+            total=total_members,
+            pending=pending_members,
+            active=active_members,
+            suspended=suspended_members,
+        ),
+        users=AdminUserStats(
+            total=total_users,
+            members=member_users,
+            staff=staff_users,
+            admins=admin_users,
+        ),
+    )
+
+
 def update_member(
     db: Session,
     member_id: uuid.UUID,
     data: AdminMemberUpdateRequest,
 ) -> tuple[User, Member]:
-    """
-    Update a member's profile as an administrator.
-    """
-
     user, member = get_admin_member(
         db,
         member_id,
@@ -107,16 +254,7 @@ def update_member(
             value,
         )
 
-    try:
-        db.commit()
-
-    except SQLAlchemyError:
-        db.rollback()
-
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Unable to update member profile.",
-        )
+    db.commit()
 
     db.refresh(user)
     db.refresh(member)
@@ -128,10 +266,6 @@ def activate_member(
     db: Session,
     member_id: uuid.UUID,
 ) -> tuple[User, Member]:
-    """
-    Activate a member account.
-    """
-
     user, member = get_admin_member(
         db,
         member_id,
@@ -142,16 +276,7 @@ def activate_member(
 
     user.status = UserStatus.ACTIVE
 
-    try:
-        db.commit()
-
-    except SQLAlchemyError:
-        db.rollback()
-
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Unable to activate member account.",
-        )
+    db.commit()
 
     db.refresh(user)
     db.refresh(member)
@@ -162,47 +287,15 @@ def activate_member(
 def suspend_member(
     db: Session,
     member_id: uuid.UUID,
-    current_admin: User,
 ) -> tuple[User, Member]:
-    """
-    Suspend a member account.
-
-    Administrators cannot suspend themselves
-    or another administrator.
-    """
-
     user, member = get_admin_member(
         db,
         member_id,
     )
 
-    if user.id == current_admin.id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You cannot suspend your own account.",
-        )
-
-    if user.role == UserRole.ADMIN:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Administrator accounts cannot be suspended.",
-        )
-
-    if user.status == UserStatus.SUSPENDED:
-        return user, member
-
     user.status = UserStatus.SUSPENDED
 
-    try:
-        db.commit()
-
-    except SQLAlchemyError:
-        db.rollback()
-
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Unable to suspend member account.",
-        )
+    db.commit()
 
     db.refresh(user)
     db.refresh(member)
@@ -210,73 +303,19 @@ def suspend_member(
     return user, member
 
 
-def count_admins(
-    db: Session,
-) -> int:
-    """
-    Count the number of administrator accounts.
-    """
-
-    statement = select(
-        func.count(User.id)
-    ).where(
-        User.role == UserRole.ADMIN
-    )
-
-    return db.scalar(statement) or 0
-
-
 def update_member_role(
     db: Session,
     member_id: uuid.UUID,
     role: UserRole,
-    current_admin: User,
 ) -> tuple[User, Member]:
-    """
-    Change a member's role.
-
-    Administrators cannot change their own role.
-    The last administrator cannot be removed.
-    """
-
     user, member = get_admin_member(
         db,
         member_id,
     )
 
-    if user.id == current_admin.id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You cannot change your own role.",
-        )
-
-    if user.role == role:
-        return user, member
-
-    if (
-        user.role == UserRole.ADMIN
-        and role != UserRole.ADMIN
-    ):
-        admin_count = count_admins(db)
-
-        if admin_count <= 1:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="The last administrator cannot be removed.",
-            )
-
     user.role = role
 
-    try:
-        db.commit()
-
-    except SQLAlchemyError:
-        db.rollback()
-
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Unable to change member role.",
-        )
+    db.commit()
 
     db.refresh(user)
     db.refresh(member)

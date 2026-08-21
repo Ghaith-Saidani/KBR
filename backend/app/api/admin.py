@@ -5,8 +5,10 @@ from sqlalchemy.orm import Session
 
 from backend.app.core.database import get_db
 from backend.app.core.permissions import require_admin
-from backend.app.models.user import User
+from backend.app.models.user import User, UserRole, UserStatus
 from backend.app.schemas.admin import (
+    AdminDashboardResponse,
+    AdminIdentityResponse,
     AdminMemberListResponse,
     AdminMemberResponse,
     AdminMemberUpdateRequest,
@@ -15,6 +17,7 @@ from backend.app.schemas.admin import (
 from backend.app.services.admin import (
     activate_member,
     get_admin_member,
+    get_dashboard_stats,
     list_members,
     suspend_member,
     update_member,
@@ -32,10 +35,6 @@ def build_member_response(
     user: User,
     member,
 ) -> AdminMemberResponse:
-    """
-    Build the administrative member response.
-    """
-
     return AdminMemberResponse(
         user_id=user.id,
         member_id=member.id,
@@ -55,6 +54,38 @@ def build_member_response(
 
 
 @router.get(
+    "/me",
+    response_model=AdminIdentityResponse,
+)
+def get_admin_identity(
+    current_user: User = Depends(require_admin),
+) -> AdminIdentityResponse:
+    """Return the authenticated administrator's identity."""
+
+    return AdminIdentityResponse(
+        user_id=current_user.id,
+        email=current_user.email,
+        role=current_user.role,
+        status=current_user.status,
+        is_email_verified=current_user.is_email_verified,
+        created_at=current_user.created_at,
+    )
+
+
+@router.get(
+    "/dashboard",
+    response_model=AdminDashboardResponse,
+)
+def get_admin_dashboard(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> AdminDashboardResponse:
+    """Return administrative dashboard statistics."""
+
+    return get_dashboard_stats(db)
+
+
+@router.get(
     "/members",
     response_model=AdminMemberListResponse,
 )
@@ -62,23 +93,41 @@ def get_members(
     skip: int = Query(
         default=0,
         ge=0,
+        description="Number of members to skip.",
     ),
     limit: int = Query(
         default=50,
         ge=1,
         le=100,
+        description="Maximum number of members to return.",
+    ),
+    search: str | None = Query(
+        default=None,
+        min_length=1,
+        max_length=100,
+        description="Search by email, first name or last name.",
+    ),
+    role: UserRole | None = Query(
+        default=None,
+        description="Filter members by role.",
+    ),
+    status_filter: UserStatus | None = Query(
+        default=None,
+        alias="status",
+        description="Filter members by account status.",
     ),
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> AdminMemberListResponse:
-    """
-    List all KBR members.
-    """
+    """List and filter KBR members."""
 
     items, total = list_members(
         db,
         skip=skip,
         limit=limit,
+        search=search,
+        role=role,
+        status_filter=status_filter,
     )
 
     return AdminMemberListResponse(
@@ -90,6 +139,8 @@ def get_members(
             for user, member in items
         ],
         total=total,
+        skip=skip,
+        limit=limit,
     )
 
 
@@ -102,9 +153,7 @@ def get_member(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> AdminMemberResponse:
-    """
-    Get a member with administrative information.
-    """
+    """Get a member with administrative information."""
 
     user, member = get_admin_member(
         db,
@@ -127,9 +176,7 @@ def update_member_profile(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> AdminMemberResponse:
-    """
-    Update a member profile as an administrator.
-    """
+    """Update a member profile as an administrator."""
 
     user, member = update_member(
         db,
@@ -152,9 +199,7 @@ def activate_member_account(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> AdminMemberResponse:
-    """
-    Activate a member account.
-    """
+    """Activate a member account."""
 
     user, member = activate_member(
         db,
@@ -176,14 +221,11 @@ def suspend_member_account(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> AdminMemberResponse:
-    """
-    Suspend a member account.
-    """
+    """Suspend a member account."""
 
     user, member = suspend_member(
         db,
         member_id,
-        current_admin=current_user,
     )
 
     return build_member_response(
@@ -202,15 +244,12 @@ def change_member_role(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> AdminMemberResponse:
-    """
-    Change a member's role.
-    """
+    """Change a member's role."""
 
     user, member = update_member_role(
         db,
         member_id,
         data.role,
-        current_admin=current_user,
     )
 
     return build_member_response(
