@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from backend.app.api import dev
@@ -21,6 +22,15 @@ app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
     description="Backend API for Knights of Bizertin Rise",
+)
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
