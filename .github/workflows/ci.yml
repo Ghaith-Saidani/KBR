@@ -1,0 +1,70 @@
+name: KBR CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  backend:
+    name: Backend CI
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: kbr_test
+          POSTGRES_USER: kbr_user
+          POSTGRES_PASSWORD: kbr_ci_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U kbr_user -d kbr_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      POSTGRES_DB: kbr_test
+      POSTGRES_USER: kbr_user
+      POSTGRES_PASSWORD: kbr_ci_password
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      JWT_SECRET_KEY: ci-only-test-secret-key-that-is-long-enough
+      APP_ENV: test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Verify PostgreSQL
+        run: |
+          pg_isready -h localhost -p 5432 -U kbr_user -d kbr_test
+
+      - name: Compile backend
+        run: |
+          python -m compileall backend
+
+      - name: Run database migrations
+        run: |
+          alembic -c alembic.ini upgrade head
+
+      - name: Run tests
+        run: |
+          pytest backend/tests -v
