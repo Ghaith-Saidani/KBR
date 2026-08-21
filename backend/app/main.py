@@ -6,6 +6,7 @@ from backend.app.api.admin import router as admin_router
 from backend.app.api.auth import router as auth_router
 from backend.app.api.events import router as events_router
 from backend.app.api.members import router as members_router
+from backend.app.api.news import router as news_router
 from backend.app.core.config import get_settings
 from backend.app.core.database import engine
 
@@ -23,6 +24,7 @@ app.include_router(auth_router)
 app.include_router(members_router)
 app.include_router(admin_router)
 app.include_router(events_router)
+app.include_router(news_router)
 app.include_router(dev.router)
 
 
