@@ -1,5 +1,5 @@
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
@@ -142,6 +142,7 @@ def dev_activate_user(
         )
 
     user.status = UserStatus.ACTIVE
+
     db.commit()
     db.refresh(user)
 
@@ -152,11 +153,29 @@ def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(
         security
     ),
+    authorization: str | None = Header(
+        default=None,
+    ),
     db: Session = Depends(get_db),
 ) -> User:
     """Resolve the authenticated user from the JWT."""
 
     if credentials is None:
+        if authorization is not None:
+            scheme = authorization.split(
+                " ",
+                1,
+            )[0]
+
+            if scheme.lower() != "bearer":
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid authentication scheme.",
+                    headers={
+                        "WWW-Authenticate": "Bearer",
+                    },
+                )
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication required.",

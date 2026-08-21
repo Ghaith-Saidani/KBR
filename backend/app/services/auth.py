@@ -11,6 +11,7 @@ from backend.app.core.security import (
 from backend.app.models.member import Member
 from backend.app.models.user import User
 from backend.app.schemas.auth import RegisterRequest
+from backend.app.services.member import generate_unique_slug
 
 
 class AuthError(Exception):
@@ -94,6 +95,11 @@ def register_user(
         user_id=user.id,
         first_name=first_name,
         last_name=last_name,
+        slug=generate_unique_slug(
+            db,
+            first_name,
+            last_name,
+        ),
         phone=(
             data.phone.strip()
             if data.phone
