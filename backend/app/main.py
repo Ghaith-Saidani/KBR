@@ -9,11 +9,13 @@ from backend.app.api.contact import router as contact_router
 from backend.app.api.events import router as events_router
 from backend.app.api.members import router as members_router
 from backend.app.api.news import router as news_router
+from backend.app.api.notifications import router as notifications_router
 from backend.app.core.config import get_settings
 from backend.app.core.database import engine
 
 
 settings = get_settings()
+
 
 app = FastAPI(
     title=settings.app_name,
@@ -29,6 +31,7 @@ app.include_router(events_router)
 app.include_router(news_router)
 app.include_router(activities_router)
 app.include_router(contact_router)
+app.include_router(notifications_router)
 app.include_router(dev.router)
 
 

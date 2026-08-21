@@ -4,6 +4,7 @@ from backend.app.models.contact import ContactMessage, ContactMessageStatus
 from backend.app.models.event import Event, EventStatus
 from backend.app.models.member import Member, MemberStatus
 from backend.app.models.news import News, NewsStatus
+from backend.app.models.notification import Notification, NotificationType
 from backend.app.models.user import User, UserRole, UserStatus
 
 __all__ = [
@@ -18,6 +19,8 @@ __all__ = [
     "MemberStatus",
     "News",
     "NewsStatus",
+    "Notification",
+    "NotificationType",
     "User",
     "UserRole",
     "UserStatus",
