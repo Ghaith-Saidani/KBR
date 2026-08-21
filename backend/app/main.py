@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from sqlalchemy import text
 
 from backend.app.api import dev
+from backend.app.api.activities import router as activities_router
 from backend.app.api.admin import router as admin_router
 from backend.app.api.auth import router as auth_router
 from backend.app.api.events import router as events_router
@@ -25,6 +26,7 @@ app.include_router(members_router)
 app.include_router(admin_router)
 app.include_router(events_router)
 app.include_router(news_router)
+app.include_router(activities_router)
 app.include_router(dev.router)
 
 
