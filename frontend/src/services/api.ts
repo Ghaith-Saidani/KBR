@@ -37,9 +37,27 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      useAuthStore
-        .getState()
-        .clearAuthentication();
+      const requestUrl = error.config?.url ?? "";
+
+      const isAuthRequest =
+        requestUrl.includes("/auth/login") ||
+        requestUrl.includes("/auth/register");
+
+      if (!isAuthRequest) {
+        useAuthStore
+          .getState()
+          .clearAuthentication();
+
+        const currentPath =
+          window.location.pathname;
+
+        if (
+          currentPath !== "/login" &&
+          currentPath !== "/register"
+        ) {
+          window.location.href = "/login";
+        }
+      }
     }
 
     return Promise.reject(error);
