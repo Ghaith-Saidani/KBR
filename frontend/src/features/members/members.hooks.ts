@@ -1,16 +1,21 @@
 import {
   keepPreviousData,
+  useMutation,
   useQuery,
+  useQueryClient,
 } from "@tanstack/react-query";
 
 import {
   getMemberById,
   getMemberBySlug,
   getMembers,
+  getMyMemberProfile,
+  updateMyMemberProfile,
 } from "./members.api";
 
 import type {
   MemberListParams,
+  MemberUpdateRequest,
 } from "./members.types";
 
 export const memberKeys = {
@@ -27,6 +32,9 @@ export const memberKeys = {
 
   detail: (slug: string) =>
     [...memberKeys.details(), slug] as const,
+
+  me: () =>
+    [...memberKeys.all, "me"] as const,
 };
 
 export function useMembers(
@@ -60,5 +68,41 @@ export function useMemberById(
     ],
     queryFn: () => getMemberById(memberId!),
     enabled: Boolean(memberId),
+  });
+}
+
+export function useMyMemberProfile(
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: memberKeys.me(),
+    queryFn: getMyMemberProfile,
+    enabled,
+    retry: false,
+  });
+}
+
+export function useUpdateMyMemberProfile() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (
+      data: MemberUpdateRequest,
+    ) => updateMyMemberProfile(data),
+
+    onSuccess: async (updatedMember) => {
+      queryClient.setQueryData(
+        memberKeys.me(),
+        updatedMember,
+      );
+
+      await queryClient.invalidateQueries({
+        queryKey: memberKeys.lists(),
+      });
+
+      await queryClient.invalidateQueries({
+        queryKey: memberKeys.details(),
+      });
+    },
   });
 }

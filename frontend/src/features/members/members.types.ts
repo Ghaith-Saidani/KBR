@@ -17,6 +17,11 @@ export interface PublicMember {
   updated_at: string;
 }
 
+export interface MemberProfile extends PublicMember {
+  user_id: string;
+  phone: string | null;
+}
+
 export interface MemberListResponse {
   items: PublicMember[];
   total: number;
@@ -29,4 +34,13 @@ export interface MemberListParams {
   status?: MemberStatus;
   skip?: number;
   limit?: number;
+}
+
+export interface MemberUpdateRequest {
+  first_name?: string;
+  last_name?: string;
+  position?: string | null;
+  phone?: string | null;
+  profile_image?: string | null;
+  bio?: string | null;
 }

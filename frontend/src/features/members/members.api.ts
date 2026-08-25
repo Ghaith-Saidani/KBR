@@ -3,6 +3,8 @@ import api from "../../services/api";
 import type {
   MemberListParams,
   MemberListResponse,
+  MemberProfile,
+  MemberUpdateRequest,
   PublicMember,
 } from "./members.types";
 
@@ -34,6 +36,25 @@ export async function getMemberById(
 ): Promise<PublicMember> {
   const response = await api.get<PublicMember>(
     `/members/${memberId}`,
+  );
+
+  return response.data;
+}
+
+export async function getMyMemberProfile(): Promise<MemberProfile> {
+  const response = await api.get<MemberProfile>(
+    "/members/me",
+  );
+
+  return response.data;
+}
+
+export async function updateMyMemberProfile(
+  data: MemberUpdateRequest,
+): Promise<MemberProfile> {
+  const response = await api.patch<MemberProfile>(
+    "/members/me",
+    data,
   );
 
   return response.data;
