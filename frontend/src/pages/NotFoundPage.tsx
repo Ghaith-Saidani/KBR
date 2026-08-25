@@ -13,7 +13,8 @@ export default function NotFoundPage() {
         </h1>
 
         <p className="mx-auto mt-4 max-w-md text-slate-600">
-          La page que vous recherchez n'existe pas ou a été déplacée.
+          La page que vous recherchez n'existe pas
+          ou a été déplacée.
         </p>
 
         <Link

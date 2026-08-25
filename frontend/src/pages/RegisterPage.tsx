@@ -1,51 +1,84 @@
-import { useState } from "react";
-import type { FormEvent } from "react";
+import {
+  useState,
+} from "react";
 
-import { Link, useNavigate } from "react-router-dom";
+import type {
+  FormEvent,
+} from "react";
+
+import {
+  Link,
+  useNavigate,
+} from "react-router-dom";
 
 import AuthLayout from "../components/auth/AuthLayout";
 import { useRegister } from "../features/auth/auth.hooks";
 
-function getErrorMessage(error: unknown): string {
-  const axiosError = error as {
-    response?: {
-      data?: {
-        detail?: string;
+
+function getErrorMessage(
+  error: unknown,
+): string {
+  const axiosError =
+    error as {
+      response?: {
+        data?: {
+          detail?: string;
+        };
       };
     };
-  };
 
   return (
     axiosError.response?.data?.detail ??
-    "Unable to create your account."
+    "Impossible de créer votre compte."
   );
 }
 
+
 export default function RegisterPage() {
-  const navigate = useNavigate();
+  const navigate =
+    useNavigate();
 
-  const registerMutation = useRegister();
+  const registerMutation =
+    useRegister();
 
-  const [firstName, setFirstName] =
-    useState("");
 
-  const [lastName, setLastName] =
-    useState("");
+  const [
+    firstName,
+    setFirstName,
+  ] = useState("");
 
-  const [email, setEmail] =
-    useState("");
+  const [
+    lastName,
+    setLastName,
+  ] = useState("");
 
-  const [password, setPassword] =
-    useState("");
+  const [
+    email,
+    setEmail,
+  ] = useState("");
 
-  const [confirmPassword, setConfirmPassword] =
-    useState("");
+  const [
+    password,
+    setPassword,
+  ] = useState("");
 
-  const [phone, setPhone] =
-    useState("");
+  const [
+    confirmPassword,
+    setConfirmPassword,
+  ] = useState("");
 
-  const [validationError, setValidationError] =
-    useState<string | null>(null);
+  const [
+    phone,
+    setPhone,
+  ] = useState("");
+
+  const [
+    validationError,
+    setValidationError,
+  ] = useState<string | null>(
+    null,
+  );
+
 
   function handleSubmit(
     event: FormEvent<HTMLFormElement>,
@@ -54,39 +87,70 @@ export default function RegisterPage() {
 
     setValidationError(null);
 
-    if (password !== confirmPassword) {
+
+    if (
+      password !==
+      confirmPassword
+    ) {
       setValidationError(
-        "Passwords do not match.",
+        "Les mots de passe ne correspondent pas.",
       );
 
       return;
     }
 
+
+    if (
+      firstName.trim().length === 0 ||
+      lastName.trim().length === 0
+    ) {
+      setValidationError(
+        "Veuillez renseigner votre prénom et votre nom.",
+      );
+
+      return;
+    }
+
+
     registerMutation.mutate(
       {
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        email: email.trim(),
+        first_name:
+          firstName.trim(),
+
+        last_name:
+          lastName.trim(),
+
+        email:
+          email.trim(),
+
         password,
-        phone: phone.trim() || undefined,
+
+        phone:
+          phone.trim() ||
+          undefined,
       },
       {
         onSuccess: () => {
-          navigate("/login", {
-            replace: true,
-            state: {
-              registered: true,
+          navigate(
+            "/login",
+            {
+              replace: true,
+
+              state: {
+                registered: true,
+              },
             },
-          });
+          );
         },
       },
     );
   }
 
+
   return (
     <AuthLayout
-      title="Join KBR"
-      subtitle="Create your KBR member account."
+      title="Rejoindre KBR"
+      subtitle="Créez votre compte membre KBR."
     >
       <form
         onSubmit={handleSubmit}
@@ -98,7 +162,7 @@ export default function RegisterPage() {
               htmlFor="firstName"
               className="mb-2 block text-sm font-medium text-slate-200"
             >
-              First name
+              Prénom
             </label>
 
             <input
@@ -106,21 +170,25 @@ export default function RegisterPage() {
               type="text"
               autoComplete="given-name"
               required
-              minLength={2}
+              minLength={1}
+              maxLength={100}
               value={firstName}
               onChange={(event) =>
-                setFirstName(event.target.value)
+                setFirstName(
+                  event.target.value,
+                )
               }
               className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition focus:border-[#f5c400]/60 focus:ring-2 focus:ring-[#f5c400]/10"
             />
           </div>
+
 
           <div>
             <label
               htmlFor="lastName"
               className="mb-2 block text-sm font-medium text-slate-200"
             >
-              Last name
+              Nom
             </label>
 
             <input
@@ -128,22 +196,26 @@ export default function RegisterPage() {
               type="text"
               autoComplete="family-name"
               required
-              minLength={2}
+              minLength={1}
+              maxLength={100}
               value={lastName}
               onChange={(event) =>
-                setLastName(event.target.value)
+                setLastName(
+                  event.target.value,
+                )
               }
               className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition focus:border-[#f5c400]/60 focus:ring-2 focus:ring-[#f5c400]/10"
             />
           </div>
         </div>
 
+
         <div>
           <label
             htmlFor="email"
             className="mb-2 block text-sm font-medium text-slate-200"
           >
-            Email
+            Adresse e-mail
           </label>
 
           <input
@@ -153,21 +225,25 @@ export default function RegisterPage() {
             required
             value={email}
             onChange={(event) =>
-              setEmail(event.target.value)
+              setEmail(
+                event.target.value,
+              )
             }
-            placeholder="you@example.com"
-            className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition focus:border-[#f5c400]/60 focus:ring-2 focus:ring-[#f5c400]/10"
+            placeholder="vous@exemple.com"
+            className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[#f5c400]/60 focus:ring-2 focus:ring-[#f5c400]/10"
           />
         </div>
+
 
         <div>
           <label
             htmlFor="phone"
             className="mb-2 block text-sm font-medium text-slate-200"
           >
-            Phone{" "}
+            Téléphone{" "}
+
             <span className="text-slate-500">
-              (optional)
+              (facultatif)
             </span>
           </label>
 
@@ -175,20 +251,25 @@ export default function RegisterPage() {
             id="phone"
             type="tel"
             autoComplete="tel"
+            maxLength={30}
             value={phone}
             onChange={(event) =>
-              setPhone(event.target.value)
+              setPhone(
+                event.target.value,
+              )
             }
-            className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition focus:border-[#f5c400]/60 focus:ring-2 focus:ring-[#f5c400]/10"
+            placeholder="+216 ..."
+            className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[#f5c400]/60 focus:ring-2 focus:ring-[#f5c400]/10"
           />
         </div>
+
 
         <div>
           <label
             htmlFor="password"
             className="mb-2 block text-sm font-medium text-slate-200"
           >
-            Password
+            Mot de passe
           </label>
 
           <input
@@ -197,21 +278,25 @@ export default function RegisterPage() {
             autoComplete="new-password"
             required
             minLength={8}
+            maxLength={128}
             value={password}
             onChange={(event) =>
-              setPassword(event.target.value)
+              setPassword(
+                event.target.value,
+              )
             }
-            placeholder="At least 8 characters"
-            className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition focus:border-[#f5c400]/60 focus:ring-2 focus:ring-[#f5c400]/10"
+            placeholder="Au moins 8 caractères"
+            className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[#f5c400]/60 focus:ring-2 focus:ring-[#f5c400]/10"
           />
         </div>
+
 
         <div>
           <label
             htmlFor="confirmPassword"
             className="mb-2 block text-sm font-medium text-slate-200"
           >
-            Confirm password
+            Confirmer le mot de passe
           </label>
 
           <input
@@ -220,16 +305,18 @@ export default function RegisterPage() {
             autoComplete="new-password"
             required
             minLength={8}
+            maxLength={128}
             value={confirmPassword}
             onChange={(event) =>
               setConfirmPassword(
                 event.target.value,
               )
             }
-            placeholder="Repeat your password"
-            className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition focus:border-[#f5c400]/60 focus:ring-2 focus:ring-[#f5c400]/10"
+            placeholder="Répétez votre mot de passe"
+            className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[#f5c400]/60 focus:ring-2 focus:ring-[#f5c400]/10"
           />
         </div>
+
 
         {(validationError ||
           registerMutation.isError) && (
@@ -241,29 +328,35 @@ export default function RegisterPage() {
           </div>
         )}
 
+
         <div className="rounded-xl border border-[#f5c400]/20 bg-[#f5c400]/5 px-4 py-3 text-sm leading-5 text-slate-300">
-          New accounts require activation before
-          you can sign in.
+          Les nouveaux comptes doivent être
+          activés avant de pouvoir se connecter.
         </div>
+
 
         <button
           type="submit"
-          disabled={registerMutation.isPending}
+          disabled={
+            registerMutation.isPending
+          }
           className="w-full rounded-xl bg-[#f5c400] px-4 py-3 text-sm font-bold text-black transition hover:bg-[#ffd426] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {registerMutation.isPending
-            ? "Creating account..."
-            : "Create account"}
+            ? "Création du compte..."
+            : "Créer mon compte"}
         </button>
       </form>
 
+
       <div className="mt-6 border-t border-white/10 pt-6 text-center text-sm text-slate-400">
-        Already have an account?{" "}
+        Vous avez déjà un compte ?{" "}
+
         <Link
           to="/login"
           className="font-semibold text-[#f5c400] transition hover:text-[#ffd426]"
         >
-          Sign in
+          Se connecter
         </Link>
       </div>
     </AuthLayout>
