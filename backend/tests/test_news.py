@@ -52,12 +52,19 @@ def news_payload(
     return payload
 
 
-def test_list_news_requires_authentication(
+def test_list_news_is_public(
     client: TestClient,
 ):
     response = client.get("/news")
 
-    assert response.status_code == 401
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert "items" in data
+    assert "total" in data
+    assert "skip" in data
+    assert "limit" in data
 
 
 def test_create_news_requires_authentication(
