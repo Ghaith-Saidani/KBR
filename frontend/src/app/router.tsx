@@ -13,12 +13,17 @@ import AdminEventEditPage from "../pages/AdminEventEditPage";
 import AdminEventsPage from "../pages/AdminEventsPage";
 import AdminMemberEditPage from "../pages/AdminMemberEditPage";
 import AdminMembersPage from "../pages/AdminMembersPage";
+import AdminNewsCreatePage from "../pages/AdminNewsCreatePage";
+import AdminNewsEditPage from "../pages/AdminNewsEditPage";
+import AdminNewsPage from "../pages/AdminNewsPage";
 import EventDetailsPage from "../pages/EventDetailsPage";
 import EventsPage from "../pages/EventsPage";
 import HomePage from "../pages/HomePage";
 import LoginPage from "../pages/LoginPage";
 import MemberProfilePage from "../pages/MemberProfilePage";
 import MembersPage from "../pages/MembersPage";
+import NewsDetailsPage from "../pages/NewsDetailsPage";
+import NewsPage from "../pages/NewsPage";
 import NotFoundPage from "../pages/NotFoundPage";
 import RegisterPage from "../pages/RegisterPage";
 
@@ -62,6 +67,16 @@ export const router = createBrowserRouter([
       {
         path: "events/:eventId",
         element: <EventDetailsPage />,
+      },
+
+      {
+        path: "news",
+        element: <NewsPage />,
+      },
+
+      {
+        path: "news/:slug",
+        element: <NewsDetailsPage />,
       },
 
       {
@@ -124,6 +139,21 @@ export const router = createBrowserRouter([
               {
                 path: "admin/events/:eventId/edit",
                 element: <AdminEventEditPage />,
+              },
+
+              {
+                path: "admin/news",
+                element: <AdminNewsPage />,
+              },
+
+              {
+                path: "admin/news/new",
+                element: <AdminNewsCreatePage />,
+              },
+
+              {
+                path: "admin/news/:newsId/edit",
+                element: <AdminNewsEditPage />,
               },
             ],
           },

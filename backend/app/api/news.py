@@ -3,7 +3,6 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from backend.app.api.auth import get_current_user
 from backend.app.core.database import get_db
 from backend.app.core.permissions import require_staff
 from backend.app.models.news import News, NewsStatus
@@ -57,7 +56,6 @@ def get_news_articles(
         max_length=100,
         description="Search title, excerpt, or content.",
     ),
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> NewsListResponse:
     items, total = list_news(
@@ -65,6 +63,62 @@ def get_news_articles(
         skip=skip,
         limit=limit,
         include_unpublished=False,
+        search=search,
+    )
+
+    return NewsListResponse(
+        items=items,
+        total=total,
+        skip=skip,
+        limit=limit,
+    )
+
+
+@router.get(
+    "/manage",
+    response_model=NewsListResponse,
+    summary="List all news articles for staff",
+    description=(
+        "Return all news articles including drafts. "
+        "Staff members and administrators only."
+    ),
+    responses={
+        401: {
+            "description": "Authentication required.",
+        },
+        403: {
+            "description": "Staff privileges required.",
+        },
+    },
+)
+def get_news_for_management(
+    skip: int = Query(
+        default=0,
+        ge=0,
+        description="Number of articles to skip.",
+    ),
+    limit: int = Query(
+        default=50,
+        ge=1,
+        le=100,
+        description="Maximum number of articles to return.",
+    ),
+    search: str | None = Query(
+        default=None,
+        min_length=1,
+        max_length=100,
+        description="Search title, excerpt, or content.",
+    ),
+    current_user: User = Depends(require_staff),
+    db: Session = Depends(get_db),
+) -> NewsListResponse:
+    del current_user
+
+    items, total = list_news(
+        db,
+        skip=skip,
+        limit=limit,
+        include_unpublished=True,
         search=search,
     )
 
@@ -150,6 +204,9 @@ def get_news_details(
         403: {
             "description": "Staff privileges required.",
         },
+        409: {
+            "description": "Article slug already exists.",
+        },
         422: {
             "description": "Invalid news article data.",
         },
@@ -185,6 +242,9 @@ def create_new_article(
         404: {
             "description": "News article not found.",
         },
+        409: {
+            "description": "Article slug already exists.",
+        },
         422: {
             "description": "Invalid news article data.",
         },
@@ -196,6 +256,8 @@ def update_existing_article(
     current_user: User = Depends(require_staff),
     db: Session = Depends(get_db),
 ) -> News:
+    del current_user
+
     return update_news(
         db,
         news_id,
@@ -228,6 +290,8 @@ def delete_existing_article(
     current_user: User = Depends(require_staff),
     db: Session = Depends(get_db),
 ) -> None:
+    del current_user
+
     delete_news(
         db,
         news_id,

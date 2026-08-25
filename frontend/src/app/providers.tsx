@@ -4,7 +4,7 @@ import {
 } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
-import { AuthSession } from "../components/common/AuthSession";
+import  AuthSession  from "../components/common/AuthSession";
 
 const queryClient = new QueryClient({
   defaultOptions: {
