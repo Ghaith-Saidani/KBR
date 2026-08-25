@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     app_env: str = "development"
 
     postgres_db: str = "kbr"
+    postgres_test_db: str = "kbr_test"
     postgres_user: str = "kbr_user"
     postgres_password: str
     postgres_host: str = "localhost"
@@ -43,6 +44,15 @@ class Settings(BaseSettings):
             f"{self.postgres_user}:{self.postgres_password}"
             f"@{self.postgres_host}:{self.postgres_port}"
             f"/{self.postgres_db}"
+        )
+
+    @property
+    def test_database_url(self) -> str:
+        return (
+            f"postgresql+psycopg://"
+            f"{self.postgres_user}:{self.postgres_password}"
+            f"@{self.postgres_host}:{self.postgres_port}"
+            f"/{self.postgres_test_db}"
         )
 
     model_config = SettingsConfigDict(

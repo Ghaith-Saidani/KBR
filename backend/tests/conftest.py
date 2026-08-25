@@ -15,7 +15,7 @@ from backend.app.models.user import User, UserRole, UserStatus
 
 settings = get_settings()
 
-TEST_DATABASE_URL = settings.database_url
+TEST_DATABASE_URL = settings.test_database_url
 
 test_engine = create_engine(
     TEST_DATABASE_URL,
@@ -30,14 +30,33 @@ TestingSessionLocal = sessionmaker(
 )
 
 
+@pytest.fixture(scope="session", autouse=True)
+def prepare_test_database() -> None:
+    """
+    Prepare the dedicated test database.
+
+    The test database is completely separate from the development
+    database and receives the current SQLAlchemy schema before tests run.
+    """
+
+    Base.metadata.create_all(
+        bind=test_engine,
+    )
+
+    yield
+
+    Base.metadata.drop_all(
+        bind=test_engine,
+    )
+
+
 @pytest.fixture
 def db() -> Generator[Session, None, None]:
     """
     Provide an isolated database session for each test.
 
-    The application is allowed to call session.commit(), while
-    the outer transaction remains active and is rolled back after
-    the test finishes.
+    Application code can call session.commit(), while the outer
+    transaction is rolled back after the test finishes.
     """
 
     connection = test_engine.connect()
@@ -47,19 +66,22 @@ def db() -> Generator[Session, None, None]:
 
     session.begin_nested()
 
-    @event.listens_for(session, "after_transaction_end")
+    @event.listens_for(
+        session,
+        "after_transaction_end",
+    )
     def restart_savepoint(
         session: Session,
         transaction_obj,
     ) -> None:
         """
-        Restart the nested SAVEPOINT after the application commits.
-
-        This allows application code to use db.commit() normally
-        without leaking test data into the real test database.
+        Restart the nested SAVEPOINT after application commits.
         """
 
-        if transaction_obj.nested and not transaction_obj._parent.nested:
+        if (
+            transaction_obj.nested
+            and not transaction_obj._parent.nested
+        ):
             session.begin_nested()
 
     try:

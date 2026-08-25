@@ -1,5 +1,6 @@
 import jwt
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
@@ -49,7 +50,10 @@ def register(
     """Register a new KBR member."""
 
     try:
-        return register_user(db, data)
+        return register_user(
+            db,
+            data,
+        )
 
     except EmailAlreadyExistsError as exc:
         raise HTTPException(
@@ -98,7 +102,9 @@ def login(
     return TokenResponse(
         access_token=access_token,
         token_type="bearer",
-        expires_in=settings.jwt_access_token_expire_minutes * 60,
+        expires_in=(
+            settings.jwt_access_token_expire_minutes * 60
+        ),
         user=user,
     )
 
@@ -124,7 +130,10 @@ def dev_activate_user(
             detail="Not found.",
         )
 
-    user = db.get(User, user_id)
+    user = db.get(
+        User,
+        user_id,
+    )
 
     if user is None:
         raise HTTPException(
@@ -150,18 +159,27 @@ def dev_activate_user(
 
 
 def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(
-        security
-    ),
-    authorization: str | None = Header(
-        default=None,
+        security,
     ),
     db: Session = Depends(get_db),
 ) -> User:
-    """Resolve the authenticated user from the JWT."""
+    """
+    Resolve the authenticated user from the JWT.
+
+    HTTPBearer parses the Authorization header. The raw
+    header is inspected only when HTTPBearer cannot produce
+    credentials so we can distinguish a missing header from
+    an unsupported authentication scheme.
+    """
 
     if credentials is None:
-        if authorization is not None:
+        authorization = request.headers.get(
+            "Authorization",
+        )
+
+        if authorization:
             scheme = authorization.split(
                 " ",
                 1,
@@ -195,7 +213,7 @@ def get_current_user(
 
     try:
         payload = decode_access_token(
-            credentials.credentials
+            credentials.credentials,
         )
 
     except jwt.PyJWTError as exc:
@@ -227,7 +245,10 @@ def get_current_user(
             },
         )
 
-    user = db.get(User, user_id)
+    user = db.get(
+        User,
+        user_id,
+    )
 
     if user is None:
         raise HTTPException(

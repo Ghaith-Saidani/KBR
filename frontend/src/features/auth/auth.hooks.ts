@@ -2,24 +2,25 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
-} from '@tanstack/react-query'
+} from "@tanstack/react-query";
 
-import { useAuthStore } from '../../stores/authStore'
+import { useAuthStore } from "../../stores/authStore";
 
 import {
   getCurrentUser,
   loginUser,
   registerUser,
-} from './auth.api'
+} from "./auth.api";
 
 import type {
   LoginRequest,
   RegisterRequest,
-} from './auth.types'
+} from "./auth.types";
 
 export function useLogin() {
-  const setAuthentication =
-    useAuthStore((state) => state.setAuthentication)
+  const setAuthentication = useAuthStore(
+    (state) => state.setAuthentication,
+  );
 
   return useMutation({
     mutationFn: (data: LoginRequest) =>
@@ -29,41 +30,43 @@ export function useLogin() {
       setAuthentication(
         data.access_token,
         data.user,
-      )
+      );
     },
-  })
+  });
 }
 
 export function useRegister() {
   return useMutation({
     mutationFn: (data: RegisterRequest) =>
       registerUser(data),
-  })
+  });
 }
 
 export function useCurrentUser(
   enabled = true,
 ) {
-  const accessToken =
-    useAuthStore((state) => state.accessToken)
+  const accessToken = useAuthStore(
+    (state) => state.accessToken,
+  );
 
-  const setAuthentication =
-    useAuthStore((state) => state.setAuthentication)
+  const setAuthentication = useAuthStore(
+    (state) => state.setAuthentication,
+  );
 
   return useQuery({
-    queryKey: ['auth', 'me'],
+    queryKey: ["auth", "me"],
 
     queryFn: async () => {
-      const user = await getCurrentUser()
+      const user = await getCurrentUser();
 
       if (accessToken) {
         setAuthentication(
           accessToken,
           user,
-        )
+        );
       }
 
-      return user
+      return user;
     },
 
     enabled:
@@ -71,23 +74,23 @@ export function useCurrentUser(
       Boolean(accessToken),
 
     retry: false,
-  })
+  });
 }
 
 export function useLogout() {
   const queryClient =
-    useQueryClient()
+    useQueryClient();
 
   const clearAuthentication =
     useAuthStore(
       (state) => state.clearAuthentication,
-    )
+    );
 
   return () => {
-    clearAuthentication()
+    clearAuthentication();
 
     queryClient.removeQueries({
-      queryKey: ['auth'],
-    })
-  }
+      queryKey: ["auth"],
+    });
+  };
 }

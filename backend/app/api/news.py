@@ -35,7 +35,7 @@ router = APIRouter(
     response_model=NewsListResponse,
     summary="List published news",
     description=(
-        "Return published news articles visible to authenticated users. "
+        "Return published news articles visible to the public. "
         "Results can be searched and paginated."
     ),
 )
@@ -89,7 +89,6 @@ def get_news_articles(
 )
 def get_news_by_slug_endpoint(
     slug: str,
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> News:
     news = get_news_by_slug(
@@ -119,7 +118,6 @@ def get_news_by_slug_endpoint(
 )
 def get_news_details(
     news_id: uuid.UUID,
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> News:
     news = get_news(

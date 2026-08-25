@@ -34,7 +34,7 @@ router = APIRouter(
     response_model=EventListResponse,
     summary="List published events",
     description=(
-        "Return published events visible to authenticated users. "
+        "Return published events visible to the public. "
         "Results can be searched and filtered by whether they are upcoming."
     ),
 )
@@ -96,7 +96,6 @@ def get_events(
 )
 def get_event_details(
     event_id: uuid.UUID,
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Event:
     event = get_event(

@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Request
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
@@ -31,6 +31,7 @@ router = APIRouter(
 
 
 def get_optional_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
     db: Session = Depends(get_db),
 ) -> User | None:
@@ -45,6 +46,7 @@ def get_optional_current_user(
         return None
 
     return get_current_user(
+        request=request,
         credentials=credentials,
         db=db,
     )
