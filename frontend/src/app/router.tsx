@@ -25,6 +25,12 @@ import EventDetailsPage from "../pages/EventDetailsPage";
 import NewsPage from "../pages/NewsPage";
 import NewsDetailsPage from "../pages/NewsDetailsPage";
 
+import ActivitiesPage from "../pages/ActivitiesPage";
+import ActivityDetailsPage from "../pages/ActivityDetailsPage";
+
+import AdminActivitiesPage from "../pages/AdminActivitiesPage";
+import AdminActivityCreatePage from "../pages/AdminActivityCreatePage";
+import AdminActivityEditPage from "../pages/AdminActivityEditPage";
 import AdminDashboardPage from "../pages/AdminDashboardPage";
 import AdminMembersPage from "../pages/AdminMembersPage";
 import AdminMemberEditPage from "../pages/AdminMemberEditPage";
@@ -89,6 +95,16 @@ export const router = createBrowserRouter([
       {
         path: "contact",
         element: <ContactPage />,
+      },
+
+      {
+        path: "activities",
+        element: <ActivitiesPage />,
+      },
+
+      {
+        path: "activities/:slug",
+        element: <ActivityDetailsPage />,
       },
 
       // ----------------------------------------
@@ -178,6 +194,21 @@ export const router = createBrowserRouter([
           {
             path: "admin/contact",
             element: <AdminContactPage />,
+          },
+
+          {
+            path: "admin/activities",
+            element: <AdminActivitiesPage />,
+          },
+
+          {
+            path: "admin/activities/create",
+            element: <AdminActivityCreatePage />,
+          },
+
+          {
+            path: "admin/activities/:id/edit",
+            element: <AdminActivityEditPage />,
           },
         ],
       },
