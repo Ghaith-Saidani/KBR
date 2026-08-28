@@ -48,6 +48,7 @@ import AdminNewsCreatePage from "../pages/AdminNewsCreatePage";
 import AdminNewsEditPage from "../pages/AdminNewsEditPage";
 
 import AdminContactPage from "../pages/AdminContactPage";
+import AdminStatisticsPage from "../pages/AdminStatisticsPage";
 
 export const router = createBrowserRouter([
   {
@@ -265,6 +266,15 @@ export const router = createBrowserRouter([
           {
             path: "admin/contact",
             element: <AdminContactPage />,
+          },
+
+          // --------------------------------------------------------
+          // STATISTICS
+          // --------------------------------------------------------
+          
+          {
+            path: "admin/statistics",
+            element: <AdminStatisticsPage />,
           },
         ],
       },

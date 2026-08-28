@@ -298,6 +298,15 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
+
+            <ManagementCard
+              eyebrow="Analyse"
+              title="Statistiques"
+              description="Analysez les membres, utilisateurs, événements, activités et actualités de KBR à travers des indicateurs et tendances."
+              href="/admin/statistics"
+              action="Voir les statistiques"
+            />
+
             <ManagementCard
               eyebrow="Membres"
               title="Gestion des membres"
