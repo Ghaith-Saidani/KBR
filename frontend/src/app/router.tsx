@@ -14,6 +14,8 @@ import LoginPage from "../pages/LoginPage";
 import RegisterPage from "../pages/RegisterPage";
 import AccountPage from "../pages/AccountPage";
 
+import ContactPage from "../pages/ContactPage";
+
 import MembersPage from "../pages/MembersPage";
 import MemberProfilePage from "../pages/MemberProfilePage";
 
@@ -32,6 +34,7 @@ import AdminEventEditPage from "../pages/AdminEventEditPage";
 import AdminNewsPage from "../pages/AdminNewsPage";
 import AdminNewsCreatePage from "../pages/AdminNewsCreatePage";
 import AdminNewsEditPage from "../pages/AdminNewsEditPage";
+import AdminContactPage from "../pages/AdminContactPage";
 
 export const router = createBrowserRouter([
   {
@@ -81,6 +84,11 @@ export const router = createBrowserRouter([
       {
         path: "news/:slug",
         element: <NewsDetailsPage />,
+      },
+
+      {
+        path: "contact",
+        element: <ContactPage />,
       },
 
       // ----------------------------------------
@@ -165,6 +173,11 @@ export const router = createBrowserRouter([
           {
             path: "admin/news/:id/edit",
             element: <AdminNewsEditPage />,
+          },
+          
+          {
+            path: "admin/contact",
+            element: <AdminContactPage />,
           },
         ],
       },
