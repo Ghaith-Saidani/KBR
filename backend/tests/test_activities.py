@@ -57,12 +57,19 @@ def activity_payload(
     }
 
 
-def test_list_activities_requires_authentication(
+def test_list_activities_is_public(
     client: TestClient,
 ):
     response = client.get("/activities")
 
-    assert response.status_code == 401
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert "items" in data
+    assert "total" in data
+    assert "skip" in data
+    assert "limit" in data
 
 
 def test_create_activity_requires_authentication(

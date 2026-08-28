@@ -2,20 +2,39 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String, Text
+from sqlalchemy import (
+    DateTime,
+    Enum,
+    ForeignKey,
+    String,
+    Text,
+)
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import (
+    Mapped,
+    mapped_column,
+    relationship,
+)
 
-from backend.app.models.base import Base, TimestampMixin
+from backend.app.models.base import (
+    Base,
+    TimestampMixin,
+)
 from backend.app.models.user import User
 
 
-class ActivityStatus(str, enum.Enum):
+class ActivityStatus(
+    str,
+    enum.Enum,
+):
     DRAFT = "draft"
     PUBLISHED = "published"
 
 
-class Activity(Base, TimestampMixin):
+class Activity(
+    Base,
+    TimestampMixin,
+):
     __tablename__ = "activities"
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -53,7 +72,10 @@ class Activity(Base, TimestampMixin):
     )
 
     status: Mapped[ActivityStatus] = mapped_column(
-        Enum(ActivityStatus, name="activity_status"),
+        Enum(
+            ActivityStatus,
+            name="activity_status",
+        ),
         default=ActivityStatus.DRAFT,
         nullable=False,
         index=True,
@@ -83,7 +105,10 @@ class Activity(Base, TimestampMixin):
 
     created_by: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="RESTRICT"),
+        ForeignKey(
+            "users.id",
+            ondelete="RESTRICT",
+        ),
         nullable=False,
         index=True,
     )

@@ -16,92 +16,95 @@ class ActivityCreateRequest(BaseModel):
     title: str = Field(
         min_length=1,
         max_length=200,
-        description="Activity title.",
-        examples=["KBR Community Clean-Up"],
     )
 
     slug: str = Field(
         min_length=1,
         max_length=220,
-        description="Unique URL-friendly activity slug.",
-        examples=["kbr-community-clean-up"],
     )
 
     excerpt: str | None = Field(
         default=None,
         max_length=500,
-        description="Optional short activity summary.",
     )
 
     description: str = Field(
         min_length=1,
-        description="Full activity description.",
     )
 
     cover_image: str | None = Field(
         default=None,
         max_length=500,
-        description="Optional activity cover image URL.",
     )
 
     status: ActivityStatus = Field(
         default=ActivityStatus.DRAFT,
-        description="Initial activity status.",
     )
 
-    start_at: datetime | None = Field(
-        default=None,
-        description="Optional activity start date and time.",
-    )
+    start_at: datetime | None = None
 
-    end_at: datetime | None = Field(
-        default=None,
-        description="Optional activity end date and time.",
-    )
+    end_at: datetime | None = None
 
     location: str | None = Field(
         default=None,
         max_length=255,
-        description="Optional activity location.",
     )
 
-    published_at: datetime | None = Field(
-        default=None,
-        description="Publication date and time.",
-    )
+    published_at: datetime | None = None
+
 
     @field_validator("title")
     @classmethod
-    def validate_title(cls, value: str) -> str:
+    def validate_title(
+        cls,
+        value: str,
+    ) -> str:
         value = value.strip()
 
         if not value:
-            raise ValueError("title cannot be empty.")
+            raise ValueError(
+                "title cannot be empty.",
+            )
 
         return value
+
 
     @field_validator("slug")
     @classmethod
-    def validate_slug(cls, value: str) -> str:
+    def validate_slug(
+        cls,
+        value: str,
+    ) -> str:
         value = value.strip().lower()
 
         if not value:
-            raise ValueError("slug cannot be empty.")
+            raise ValueError(
+                "slug cannot be empty.",
+            )
 
         if " " in value:
-            raise ValueError("slug must not contain spaces.")
+            raise ValueError(
+                "slug must not contain spaces.",
+            )
 
         return value
+
 
     @field_validator("description")
     @classmethod
-    def validate_description(cls, value: str) -> str:
+    def validate_description(
+        cls,
+        value: str,
+    ) -> str:
         value = value.strip()
 
         if not value:
-            raise ValueError("description cannot be empty.")
+            raise ValueError(
+                "description cannot be empty.",
+            )
 
         return value
+
 
     @field_validator(
         "excerpt",
@@ -120,24 +123,27 @@ class ActivityCreateRequest(BaseModel):
 
         return value or None
 
+
     @model_validator(mode="after")
-    def validate_dates_and_publication(self):
+    def validate_dates_and_publication(
+        self,
+    ):
         if (
             self.start_at is not None
             and self.end_at is not None
             and self.end_at < self.start_at
         ):
             raise ValueError(
-                "end_at cannot be earlier than start_at."
+                "end_at cannot be earlier than start_at.",
             )
 
-        if (
-            self.status == ActivityStatus.PUBLISHED
-            and self.published_at is None
-        ):
-            self.published_at = datetime.now().astimezone()
+        if self.status == ActivityStatus.PUBLISHED:
+            if self.published_at is None:
+                self.published_at = (
+                    datetime.now().astimezone()
+                )
 
-        if self.status == ActivityStatus.DRAFT:
+        elif self.status == ActivityStatus.DRAFT:
             self.published_at = None
 
         return self
@@ -148,59 +154,42 @@ class ActivityUpdateRequest(BaseModel):
         default=None,
         min_length=1,
         max_length=200,
-        description="Updated activity title.",
     )
 
     slug: str | None = Field(
         default=None,
         min_length=1,
         max_length=220,
-        description="Updated unique activity slug.",
     )
 
     excerpt: str | None = Field(
         default=None,
         max_length=500,
-        description="Updated activity summary.",
     )
 
     description: str | None = Field(
         default=None,
         min_length=1,
-        description="Updated activity description.",
     )
 
     cover_image: str | None = Field(
         default=None,
         max_length=500,
-        description="Updated activity cover image URL.",
     )
 
-    status: ActivityStatus | None = Field(
-        default=None,
-        description="Updated activity status.",
-    )
+    status: ActivityStatus | None = None
 
-    start_at: datetime | None = Field(
-        default=None,
-        description="Updated activity start date and time.",
-    )
+    start_at: datetime | None = None
 
-    end_at: datetime | None = Field(
-        default=None,
-        description="Updated activity end date and time.",
-    )
+    end_at: datetime | None = None
 
     location: str | None = Field(
         default=None,
         max_length=255,
-        description="Updated activity location.",
     )
 
-    published_at: datetime | None = Field(
-        default=None,
-        description="Updated publication date and time.",
-    )
+    published_at: datetime | None = None
+
 
     @field_validator("title")
     @classmethod
@@ -214,9 +203,12 @@ class ActivityUpdateRequest(BaseModel):
         value = value.strip()
 
         if not value:
-            raise ValueError("title cannot be empty.")
+            raise ValueError(
+                "title cannot be empty.",
+            )
 
         return value
+
 
     @field_validator("slug")
     @classmethod
@@ -230,12 +222,17 @@ class ActivityUpdateRequest(BaseModel):
         value = value.strip().lower()
 
         if not value:
-            raise ValueError("slug cannot be empty.")
+            raise ValueError(
+                "slug cannot be empty.",
+            )
 
         if " " in value:
-            raise ValueError("slug must not contain spaces.")
+            raise ValueError(
+                "slug must not contain spaces.",
+            )
 
         return value
+
 
     @field_validator("description")
     @classmethod
@@ -249,9 +246,12 @@ class ActivityUpdateRequest(BaseModel):
         value = value.strip()
 
         if not value:
-            raise ValueError("description cannot be empty.")
+            raise ValueError(
+                "description cannot be empty.",
+            )
 
         return value
+
 
     @field_validator(
         "excerpt",
@@ -270,6 +270,7 @@ class ActivityUpdateRequest(BaseModel):
 
         return value or None
 
+
     @model_validator(mode="after")
     def validate_dates(self):
         if (
@@ -278,7 +279,7 @@ class ActivityUpdateRequest(BaseModel):
             and self.end_at < self.start_at
         ):
             raise ValueError(
-                "end_at cannot be earlier than start_at."
+                "end_at cannot be earlier than start_at.",
             )
 
         return self

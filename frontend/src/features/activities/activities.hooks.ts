@@ -10,6 +10,7 @@ import {
   getActivities,
   getActivityById,
   getActivityBySlug,
+  getManageActivities,
   updateActivity,
 } from "./activities.api";
 
@@ -33,6 +34,17 @@ const activitiesKeys = {
       params,
     ] as const,
 
+  manageLists: () =>
+    [...activitiesKeys.all, "manage-list"] as const,
+
+  manageList: (
+    params?: ActivityListParams,
+  ) =>
+    [
+      ...activitiesKeys.manageLists(),
+      params,
+    ] as const,
+
   details: () =>
     [...activitiesKeys.all, "detail"] as const,
 
@@ -50,26 +62,38 @@ const activitiesKeys = {
     ] as const,
 };
 
+
 export function useActivities(
   params?: ActivityListParams,
 ) {
   return useQuery({
-    queryKey:
-      activitiesKeys.list(params),
+    queryKey: activitiesKeys.list(params),
 
     queryFn: () =>
       getActivities(params),
   });
 }
 
+
+export function useManageActivities(
+  params?: ActivityListParams,
+) {
+  return useQuery({
+    queryKey:
+      activitiesKeys.manageList(params),
+
+    queryFn: () =>
+      getManageActivities(params),
+  });
+}
+
+
 export function useActivity(
   activityId?: string,
 ) {
   return useQuery({
     queryKey: activityId
-      ? activitiesKeys.detail(
-          activityId,
-        )
+      ? activitiesKeys.detail(activityId)
       : activitiesKeys.all,
 
     queryFn: () =>
@@ -77,10 +101,10 @@ export function useActivity(
         activityId as string,
       ),
 
-    enabled:
-      Boolean(activityId),
+    enabled: Boolean(activityId),
   });
 }
+
 
 export function useActivityBySlug(
   slug?: string,
@@ -95,10 +119,10 @@ export function useActivityBySlug(
         slug as string,
       ),
 
-    enabled:
-      Boolean(slug),
+    enabled: Boolean(slug),
   });
 }
+
 
 export function useCreateActivity() {
   const queryClient =
@@ -110,14 +134,21 @@ export function useCreateActivity() {
     ) =>
       createActivity(data),
 
-    onSuccess: () => {
+    onSuccess: (createdActivity) => {
       queryClient.invalidateQueries({
-        queryKey:
-          activitiesKeys.all,
+        queryKey: activitiesKeys.all,
       });
+
+      queryClient.setQueryData(
+        activitiesKeys.detail(
+          createdActivity.id,
+        ),
+        createdActivity,
+      );
     },
   });
 }
+
 
 export function useUpdateActivity() {
   const queryClient =
@@ -136,12 +167,9 @@ export function useUpdateActivity() {
         data,
       ),
 
-    onSuccess: (
-      updatedActivity,
-    ) => {
+    onSuccess: (updatedActivity) => {
       queryClient.invalidateQueries({
-        queryKey:
-          activitiesKeys.all,
+        queryKey: activitiesKeys.all,
       });
 
       queryClient.setQueryData(
@@ -161,6 +189,7 @@ export function useUpdateActivity() {
   });
 }
 
+
 export function useDeleteActivity() {
   const queryClient =
     useQueryClient();
@@ -175,8 +204,7 @@ export function useDeleteActivity() {
 
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey:
-          activitiesKeys.all,
+        queryKey: activitiesKeys.all,
       });
     },
   });

@@ -3,7 +3,6 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from backend.app.api.auth import get_current_user
 from backend.app.core.database import get_db
 from backend.app.core.permissions import require_staff
 from backend.app.models.activity import Activity, ActivityStatus
@@ -30,34 +29,24 @@ router = APIRouter(
 )
 
 
+# ============================================================
+# PUBLIC
+# ============================================================
+
+
 @router.get(
     "",
     response_model=ActivityListResponse,
     summary="List published activities",
-    description=(
-        "Return published activities visible to authenticated users. "
-        "Results can be searched and paginated."
-    ),
 )
-def get_activities(
-    skip: int = Query(
-        default=0,
-        ge=0,
-        description="Number of activities to skip.",
-    ),
-    limit: int = Query(
-        default=50,
-        ge=1,
-        le=100,
-        description="Maximum number of activities to return.",
-    ),
+def get_public_activities(
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=100),
     search: str | None = Query(
         default=None,
         min_length=1,
         max_length=100,
-        description="Search title, excerpt, or description.",
     ),
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ActivityListResponse:
     items, total = list_activities(
@@ -77,14 +66,46 @@ def get_activities(
 
 
 @router.get(
+    "/manage",
+    response_model=ActivityListResponse,
+    summary="List all activities for staff",
+)
+def get_activities_for_management(
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=100),
+    search: str | None = Query(
+        default=None,
+        min_length=1,
+        max_length=100,
+    ),
+    current_user: User = Depends(require_staff),
+    db: Session = Depends(get_db),
+) -> ActivityListResponse:
+    del current_user
+
+    items, total = list_activities(
+        db,
+        skip=skip,
+        limit=limit,
+        include_unpublished=True,
+        search=search,
+    )
+
+    return ActivityListResponse(
+        items=items,
+        total=total,
+        skip=skip,
+        limit=limit,
+    )
+
+
+@router.get(
     "/slug/{slug}",
     response_model=ActivityResponse,
     summary="Get published activity by slug",
-    description="Return a single published activity by its slug.",
 )
-def get_activity_by_slug_endpoint(
+def get_public_activity_by_slug(
     slug: str,
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Activity:
     activity = get_activity_by_slug(
@@ -102,14 +123,29 @@ def get_activity_by_slug_endpoint(
 
 
 @router.get(
+    "/manage/{activity_id}",
+    response_model=ActivityResponse,
+    summary="Get an activity for management",
+)
+def get_activity_for_management(
+    activity_id: uuid.UUID,
+    current_user: User = Depends(require_staff),
+    db: Session = Depends(get_db),
+) -> Activity:
+    del current_user
+
+    return get_activity(
+        db,
+        activity_id,
+    )
+
+@router.get(
     "/{activity_id}",
     response_model=ActivityResponse,
     summary="Get published activity",
-    description="Return a single published activity.",
 )
-def get_activity_details(
+def get_public_activity(
     activity_id: uuid.UUID,
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Activity:
     activity = get_activity(
@@ -126,15 +162,16 @@ def get_activity_details(
     return activity
 
 
+# ============================================================
+# STAFF / ADMIN
+# ============================================================
+
+
 @router.post(
     "",
     response_model=ActivityResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create an activity",
-    description=(
-        "Create an activity. "
-        "Staff members and administrators can create activities."
-    ),
 )
 def create_new_activity(
     data: ActivityCreateRequest,
@@ -152,10 +189,6 @@ def create_new_activity(
     "/{activity_id}",
     response_model=ActivityResponse,
     summary="Update an activity",
-    description=(
-        "Update an existing activity. "
-        "Only provided fields are modified."
-    ),
 )
 def update_existing_activity(
     activity_id: uuid.UUID,
@@ -163,6 +196,8 @@ def update_existing_activity(
     current_user: User = Depends(require_staff),
     db: Session = Depends(get_db),
 ) -> Activity:
+    del current_user
+
     return update_activity(
         db,
         activity_id,
@@ -174,16 +209,14 @@ def update_existing_activity(
     "/{activity_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete an activity",
-    description=(
-        "Permanently delete an activity. "
-        "Only staff members and administrators can delete activities."
-    ),
 )
 def delete_existing_activity(
     activity_id: uuid.UUID,
     current_user: User = Depends(require_staff),
     db: Session = Depends(get_db),
 ) -> None:
+    del current_user
+
     delete_activity(
         db,
         activity_id,

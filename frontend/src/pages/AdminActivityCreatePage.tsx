@@ -8,12 +8,14 @@ import {
   useCreateActivity,
 } from "../features/activities/activities.hooks";
 
+
 export default function AdminActivityCreatePage() {
   const navigate =
     useNavigate();
 
   const mutation =
     useCreateActivity();
+
 
   function handleSubmit(
     data: Parameters<
@@ -34,9 +36,11 @@ export default function AdminActivityCreatePage() {
     );
   }
 
+
   return (
     <section className="min-h-screen bg-[#050505] px-6 py-10 text-white">
       <div className="mx-auto max-w-5xl">
+
         <div className="mb-8">
           <button
             type="button"
@@ -64,6 +68,7 @@ export default function AdminActivityCreatePage() {
           </p>
         </div>
 
+
         {mutation.isError && (
           <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">
             Impossible de créer
@@ -72,6 +77,7 @@ export default function AdminActivityCreatePage() {
             réessayez.
           </div>
         )}
+
 
         <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 sm:p-8">
           <ActivityForm
@@ -84,6 +90,7 @@ export default function AdminActivityCreatePage() {
             }
           />
         </div>
+
       </div>
     </section>
   );

@@ -52,12 +52,32 @@ def event_payload(
     }
 
 
-def test_list_events_requires_authentication(
+def test_list_events_is_public(
     client: TestClient,
+    staff_user: User,
 ):
+    create_response = client.post(
+        "/events",
+        json=event_payload(
+            title="KBR Public Event",
+        ),
+        headers=auth_headers(client, staff_user),
+    )
+
+    assert create_response.status_code == 201
+
     response = client.get("/events")
 
-    assert response.status_code == 401
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["total"] >= 1
+    assert any(
+        event["title"] == "KBR Public Event"
+        for event in data["items"]
+    )
+
 
 
 def test_create_event_requires_authentication(
@@ -354,3 +374,40 @@ def test_get_missing_event_returns_404(
     )
 
     assert response.status_code == 404
+
+
+def test_draft_event_is_not_publicly_visible(
+    client: TestClient,
+    staff_user: User,
+):
+    create_response = client.post(
+        "/events",
+        json={
+            **event_payload(
+                title="KBR Private Draft Event",
+            ),
+            "status": "draft",
+        },
+        headers=auth_headers(client, staff_user),
+    )
+
+    assert create_response.status_code == 201
+
+    event_id = create_response.json()["id"]
+
+    list_response = client.get("/events")
+
+    assert list_response.status_code == 200
+
+    data = list_response.json()
+
+    assert not any(
+        event["id"] == event_id
+        for event in data["items"]
+    )
+
+    detail_response = client.get(
+        f"/events/{event_id}",
+    )
+
+    assert detail_response.status_code == 404

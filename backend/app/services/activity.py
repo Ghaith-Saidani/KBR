@@ -6,16 +6,21 @@ from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from backend.app.models.notification import NotificationType
-from backend.app.services.notification import (
-    add_notification_for_active_members,
+from backend.app.models.activity import (
+    Activity,
+    ActivityStatus,
 )
-
-from backend.app.models.activity import Activity, ActivityStatus
+from backend.app.models.notification import (
+    NotificationType,
+)
 from backend.app.schemas.activity import (
     ActivityCreateRequest,
     ActivityUpdateRequest,
 )
+from backend.app.services.notification import (
+    add_notification_for_active_members,
+)
+
 
 def create_activity(
     db: Session,
@@ -25,21 +30,51 @@ def create_activity(
     """
     Create a new activity.
 
-    If the activity is created directly as published,
-    notify all active members.
+    Published activities automatically receive a
+    publication timestamp and generate a notification
+    for active members.
     """
 
     existing_activity = (
         db.query(Activity)
-        .filter(Activity.slug == data.slug)
+        .filter(
+            Activity.slug == data.slug,
+        )
         .first()
     )
 
     if existing_activity is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="An activity with this slug already exists.",
+            detail=(
+                "An activity with this slug "
+                "already exists."
+            ),
         )
+
+    if (
+        data.start_at is not None
+        and data.end_at is not None
+        and data.end_at < data.start_at
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                "end_at cannot be earlier "
+                "than start_at."
+            ),
+        )
+
+    published_at = data.published_at
+
+    if (
+        data.status == ActivityStatus.PUBLISHED
+        and published_at is None
+    ):
+        published_at = datetime.now().astimezone()
+
+    if data.status == ActivityStatus.DRAFT:
+        published_at = None
 
     activity = Activity(
         id=uuid.uuid4(),
@@ -52,7 +87,7 @@ def create_activity(
         start_at=data.start_at,
         end_at=data.end_at,
         location=data.location,
-        published_at=data.published_at,
+        published_at=published_at,
         created_by=created_by,
     )
 
@@ -63,8 +98,8 @@ def create_activity(
             db,
             title="Nouvelle activité",
             message=(
-                f"Une nouvelle activité KBR est disponible : "
-                f"{data.title.strip()}."
+                "Une nouvelle activité KBR est "
+                f"disponible : {data.title.strip()}."
             ),
             notification_type=NotificationType.INFO,
         )
@@ -76,7 +111,10 @@ def create_activity(
 
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="An activity with this slug already exists.",
+            detail=(
+                "An activity with this slug "
+                "already exists."
+            ),
         )
 
     db.refresh(activity)
@@ -94,7 +132,9 @@ def get_activity(
 
     activity = (
         db.query(Activity)
-        .filter(Activity.id == activity_id)
+        .filter(
+            Activity.id == activity_id,
+        )
         .first()
     )
 
@@ -117,7 +157,9 @@ def get_activity_by_slug(
 
     activity = (
         db.query(Activity)
-        .filter(Activity.slug == slug)
+        .filter(
+            Activity.slug == slug,
+        )
         .first()
     )
 
@@ -146,17 +188,25 @@ def list_activities(
 
     if not include_unpublished:
         query = query.filter(
-            Activity.status == ActivityStatus.PUBLISHED
+            Activity.status == ActivityStatus.PUBLISHED,
         )
 
     if search:
-        search_pattern = f"%{search.strip()}%"
+        search_pattern = (
+            f"%{search.strip()}%"
+        )
 
         query = query.filter(
             or_(
-                Activity.title.ilike(search_pattern),
-                Activity.excerpt.ilike(search_pattern),
-                Activity.description.ilike(search_pattern),
+                Activity.title.ilike(
+                    search_pattern,
+                ),
+                Activity.excerpt.ilike(
+                    search_pattern,
+                ),
+                Activity.description.ilike(
+                    search_pattern,
+                ),
             )
         )
 
@@ -185,8 +235,9 @@ def update_activity(
     """
     Update an existing activity.
 
-    A notification is generated only when the activity transitions
-    from a non-published state to published.
+    Publication timestamp is automatically managed.
+    A notification is generated only when an activity
+    transitions from a non-published state to published.
     """
 
     activity = get_activity(
@@ -216,7 +267,10 @@ def update_activity(
             if existing_activity is not None:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
-                    detail="An activity with this slug already exists.",
+                    detail=(
+                        "An activity with this slug "
+                        "already exists."
+                    ),
                 )
 
     for field, value in update_data.items():
@@ -226,13 +280,6 @@ def update_activity(
             value,
         )
 
-    if activity.status == ActivityStatus.PUBLISHED:
-        if activity.published_at is None:
-            activity.published_at = datetime.now().astimezone()
-
-    elif activity.status == ActivityStatus.DRAFT:
-        activity.published_at = None
-
     if (
         activity.start_at is not None
         and activity.end_at is not None
@@ -240,8 +287,20 @@ def update_activity(
     ):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="end_at cannot be earlier than start_at.",
+            detail=(
+                "end_at cannot be earlier "
+                "than start_at."
+            ),
         )
+
+    if activity.status == ActivityStatus.PUBLISHED:
+        if activity.published_at is None:
+            activity.published_at = (
+                datetime.now().astimezone()
+            )
+
+    elif activity.status == ActivityStatus.DRAFT:
+        activity.published_at = None
 
     became_published = (
         previous_status != ActivityStatus.PUBLISHED
@@ -253,8 +312,8 @@ def update_activity(
             db,
             title="Nouvelle activité",
             message=(
-                f"Une nouvelle activité KBR est disponible : "
-                f"{activity.title.strip()}."
+                "Une nouvelle activité KBR est "
+                f"disponible : {activity.title.strip()}."
             ),
             notification_type=NotificationType.INFO,
         )
@@ -266,7 +325,10 @@ def update_activity(
 
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="An activity with this slug already exists.",
+            detail=(
+                "An activity with this slug "
+                "already exists."
+            ),
         )
 
     db.refresh(activity)
@@ -288,4 +350,16 @@ def delete_activity(
     )
 
     db.delete(activity)
-    db.commit()
+
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "This activity cannot be deleted "
+                "because it is referenced by other data."
+            ),
+        )

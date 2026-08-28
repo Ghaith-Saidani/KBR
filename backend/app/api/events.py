@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from backend.app.core.database import get_db
-from backend.app.core.permissions import require_member, require_staff
+from backend.app.core.permissions import require_staff
 from backend.app.models.event import Event, EventStatus
 from backend.app.models.user import User
 from backend.app.schemas.event import (
@@ -28,19 +28,20 @@ router = APIRouter(
 )
 
 
+# ============================================================
+# PUBLIC
+# ============================================================
+
+
 @router.get(
     "",
     response_model=EventListResponse,
     summary="List published events",
     description=(
-        "Return published events visible to authenticated KBR members. "
+        "Return published events publicly. "
+        "Authentication is not required. "
         "Results can be searched and filtered by whether they are upcoming."
     ),
-    responses={
-        401: {
-            "description": "Authentication required.",
-        },
-    },
 )
 def get_events(
     skip: int = Query(
@@ -67,11 +68,8 @@ def get_events(
             "true = upcoming, false = past."
         ),
     ),
-    current_user: User = Depends(require_member),
     db: Session = Depends(get_db),
 ) -> EventListResponse:
-    del current_user
-
     items, total = list_events(
         db,
         skip=skip,
@@ -158,13 +156,10 @@ def get_events_for_management(
     response_model=EventResponse,
     summary="Get a published event",
     description=(
-        "Return a single published event to an authenticated "
-        "KBR member."
+        "Return a single published event publicly. "
+        "Authentication is not required."
     ),
     responses={
-        401: {
-            "description": "Authentication required.",
-        },
         404: {
             "description": "Event not found.",
         },
@@ -172,11 +167,8 @@ def get_events_for_management(
 )
 def get_event_details(
     event_id: uuid.UUID,
-    current_user: User = Depends(require_member),
     db: Session = Depends(get_db),
 ) -> Event:
-    del current_user
-
     event = get_event(
         db,
         event_id,
@@ -189,6 +181,11 @@ def get_event_details(
         )
 
     return event
+
+
+# ============================================================
+# STAFF / ADMIN
+# ============================================================
 
 
 @router.post(
