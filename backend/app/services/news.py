@@ -6,6 +6,11 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from backend.app.models.notification import NotificationType
+from backend.app.services.notification import (
+    add_notification_for_active_members,
+)
+
 from backend.app.models.news import News, NewsStatus
 from backend.app.schemas.news import (
     NewsCreateRequest,
@@ -190,6 +195,9 @@ def create_news(
 ) -> News:
     """
     Create a new news article.
+
+    If the article is created directly as published,
+    notify all active members.
     """
 
     slug = data.slug.strip().lower()
@@ -217,6 +225,17 @@ def create_news(
 
     db.add(news)
 
+    if data.status == NewsStatus.PUBLISHED:
+        add_notification_for_active_members(
+            db,
+            title="Nouvelle actualité",
+            message=(
+                f"Une nouvelle actualité KBR est disponible : "
+                f"{data.title.strip()}."
+            ),
+            notification_type=NotificationType.INFO,
+        )
+
     try:
         db.commit()
     except IntegrityError:
@@ -243,12 +262,17 @@ def update_news(
     Only fields explicitly provided by the client are modified.
 
     Publication metadata is normalized automatically.
+
+    A notification is generated only when the article transitions
+    from a non-published state to published.
     """
 
     news = get_news(
         db,
         news_id,
     )
+
+    previous_status = news.status
 
     update_data = data.model_dump(
         exclude_unset=True,
@@ -285,10 +309,14 @@ def update_news(
             and news.status != NewsStatus.PUBLISHED
             and "published_at" not in update_data
         ):
-            final_published_at = datetime.now(timezone.utc)
+            final_published_at = datetime.now(
+                timezone.utc,
+            )
 
         elif final_published_at is None:
-            final_published_at = datetime.now(timezone.utc)
+            final_published_at = datetime.now(
+                timezone.utc,
+            )
 
     else:
         final_published_at = None
@@ -300,6 +328,22 @@ def update_news(
             news,
             field,
             value,
+        )
+
+    became_published = (
+        previous_status != NewsStatus.PUBLISHED
+        and news.status == NewsStatus.PUBLISHED
+    )
+
+    if became_published:
+        add_notification_for_active_members(
+            db,
+            title="Nouvelle actualité",
+            message=(
+                f"Une nouvelle actualité KBR est disponible : "
+                f"{news.title.strip()}."
+            ),
+            notification_type=NotificationType.INFO,
         )
 
     try:

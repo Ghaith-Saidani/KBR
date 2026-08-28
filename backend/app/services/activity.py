@@ -6,12 +6,16 @@ from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from backend.app.models.notification import NotificationType
+from backend.app.services.notification import (
+    add_notification_for_active_members,
+)
+
 from backend.app.models.activity import Activity, ActivityStatus
 from backend.app.schemas.activity import (
     ActivityCreateRequest,
     ActivityUpdateRequest,
 )
-
 
 def create_activity(
     db: Session,
@@ -20,6 +24,9 @@ def create_activity(
 ) -> Activity:
     """
     Create a new activity.
+
+    If the activity is created directly as published,
+    notify all active members.
     """
 
     existing_activity = (
@@ -50,6 +57,17 @@ def create_activity(
     )
 
     db.add(activity)
+
+    if data.status == ActivityStatus.PUBLISHED:
+        add_notification_for_active_members(
+            db,
+            title="Nouvelle activité",
+            message=(
+                f"Une nouvelle activité KBR est disponible : "
+                f"{data.title.strip()}."
+            ),
+            notification_type=NotificationType.INFO,
+        )
 
     try:
         db.commit()
@@ -166,12 +184,17 @@ def update_activity(
 ) -> Activity:
     """
     Update an existing activity.
+
+    A notification is generated only when the activity transitions
+    from a non-published state to published.
     """
 
     activity = get_activity(
         db,
         activity_id,
     )
+
+    previous_status = activity.status
 
     update_data = data.model_dump(
         exclude_unset=True,
@@ -218,6 +241,22 @@ def update_activity(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="end_at cannot be earlier than start_at.",
+        )
+
+    became_published = (
+        previous_status != ActivityStatus.PUBLISHED
+        and activity.status == ActivityStatus.PUBLISHED
+    )
+
+    if became_published:
+        add_notification_for_active_members(
+            db,
+            title="Nouvelle activité",
+            message=(
+                f"Une nouvelle activité KBR est disponible : "
+                f"{activity.title.strip()}."
+            ),
+            notification_type=NotificationType.INFO,
         )
 
     try:

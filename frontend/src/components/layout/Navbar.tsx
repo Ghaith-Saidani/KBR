@@ -6,6 +6,9 @@ import {
 
 import Logo from "../ui/Logo";
 import { useAuthStore } from "../../stores/authStore";
+import {
+  useUnreadNotificationCount,
+} from "../../features/notifications/notifications.hooks";
 
 const navigation = [
   { label: "Accueil", to: "/" },
@@ -16,8 +19,58 @@ const navigation = [
   { label: "Actualités", to: "/news" },
 ];
 
+function NotificationBell() {
+  const {
+    data: unreadCount = 0,
+  } = useUnreadNotificationCount();
+
+  return (
+    <Link
+      to="/notifications"
+      aria-label={
+        unreadCount > 0
+          ? `${unreadCount} notification${
+              unreadCount > 1
+                ? "s"
+                : ""
+            } non lue${
+              unreadCount > 1
+                ? "s"
+                : ""
+            }`
+          : "Notifications"
+      }
+      className="relative flex h-10 w-10 items-center justify-center rounded-lg text-white/70 transition hover:bg-white/10 hover:text-white"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        className="h-5 w-5"
+        aria-hidden="true"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9a6 6 0 1 0-12 0v.75a8.967 8.967 0 0 1-2.31 6.022c1.74.64 3.59 1.08 5.454 1.31m5.713 0a24.255 24.255 0 0 1-5.713 0m5.713 0a3 3 0 1 1-5.713 0"
+        />
+      </svg>
+
+      {unreadCount > 0 && (
+        <span className="absolute right-0.5 top-0.5 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-[#f5c400] px-1 text-[9px] font-black leading-none text-[#050505] ring-2 ring-[#050505]">
+          {unreadCount > 99
+            ? "99+"
+            : unreadCount}
+        </span>
+      )}
+    </Link>
+  );
+}
+
 export default function Navbar() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] =
+    useState(false);
 
   const user = useAuthStore(
     (state) => state.user,
@@ -83,6 +136,10 @@ export default function Navbar() {
             Contact
           </Link>
 
+          {isAuthenticated && (
+            <NotificationBell />
+          )}
+
           {isAuthenticated ? (
             <Link
               to="/account"
@@ -100,25 +157,31 @@ export default function Navbar() {
           )}
         </div>
 
-        <button
-          type="button"
-          aria-label={
-            isOpen
-              ? "Fermer le menu"
-              : "Ouvrir le menu"
-          }
-          aria-expanded={isOpen}
-          onClick={() =>
-            setIsOpen(
-              (current) => !current,
-            )
-          }
-          className="rounded-lg p-2 text-white transition hover:bg-white/10 lg:hidden"
-        >
-          <span className="block h-0.5 w-6 bg-current" />
-          <span className="mt-1.5 block h-0.5 w-6 bg-current" />
-          <span className="mt-1.5 block h-0.5 w-6 bg-current" />
-        </button>
+        <div className="flex items-center gap-2 lg:hidden">
+          {isAuthenticated && (
+            <NotificationBell />
+          )}
+
+          <button
+            type="button"
+            aria-label={
+              isOpen
+                ? "Fermer le menu"
+                : "Ouvrir le menu"
+            }
+            aria-expanded={isOpen}
+            onClick={() =>
+              setIsOpen(
+                (current) => !current,
+              )
+            }
+            className="rounded-lg p-2 text-white transition hover:bg-white/10"
+          >
+            <span className="block h-0.5 w-6 bg-current" />
+            <span className="mt-1.5 block h-0.5 w-6 bg-current" />
+            <span className="mt-1.5 block h-0.5 w-6 bg-current" />
+          </button>
+        </div>
       </div>
 
       {isOpen && (
@@ -161,6 +224,24 @@ export default function Navbar() {
               >
                 Administration
               </NavLink>
+            )}
+
+            {isAuthenticated && (
+              <Link
+                to="/notifications"
+                onClick={() =>
+                  setIsOpen(false)
+                }
+                className="flex items-center justify-between rounded-lg px-3 py-3 text-sm font-semibold text-white/70 transition hover:bg-white/5 hover:text-white"
+              >
+                <span>
+                  Notifications
+                </span>
+
+                <span className="text-xs text-slate-500">
+                  Voir →
+                </span>
+              </Link>
             )}
 
             <div className="mt-2 flex flex-col gap-2 border-t border-white/10 pt-3">

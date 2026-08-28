@@ -5,10 +5,18 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
+from backend.app.models.notification import NotificationType
+from backend.app.services.notification import (
+    add_notification_for_active_members,
+)
+
 from backend.app.models.event import Event, EventStatus
 from backend.app.schemas.event import (
     EventCreateRequest,
     EventUpdateRequest,
+)
+from backend.app.services.notification import (
+    add_notification_for_active_members,
 )
 
 
@@ -106,6 +114,9 @@ def create_event(
 ) -> Event:
     """
     Create a new event.
+
+    If the event is created directly as published,
+    notify all active members.
     """
 
     event = Event(
@@ -120,6 +131,18 @@ def create_event(
     )
 
     db.add(event)
+
+    if data.status == EventStatus.PUBLISHED:
+        add_notification_for_active_members(
+            db,
+            title="Nouvel événement",
+            message=(
+                f"Un nouvel événement KBR est disponible : "
+                f"{data.title.strip()}."
+            ),
+            notification_type=NotificationType.INFO,
+        )
+
     db.commit()
     db.refresh(event)
 
@@ -134,7 +157,8 @@ def update_event(
     """
     Update an existing event.
 
-    Only fields explicitly provided by the client are modified.
+    A notification is generated only when an event transitions
+    from a non-published state to published.
     """
 
     event = get_event(
@@ -142,15 +166,15 @@ def update_event(
         event_id,
     )
 
+    previous_status = event.status
+
     update_data = data.model_dump(
         exclude_unset=True,
     )
 
-    # Nothing to update.
     if not update_data:
         return event
 
-    # Calculate the final values before applying the update.
     final_start_at = update_data.get(
         "start_at",
         event.start_at,
@@ -175,6 +199,22 @@ def update_event(
             event,
             field,
             value,
+        )
+
+    became_published = (
+        previous_status != EventStatus.PUBLISHED
+        and event.status == EventStatus.PUBLISHED
+    )
+
+    if became_published:
+        add_notification_for_active_members(
+            db,
+            title="Nouvel événement",
+            message=(
+                f"Un nouvel événement KBR est disponible : "
+                f"{event.title.strip()}."
+            ),
+            notification_type=NotificationType.INFO,
         )
 
     db.commit()

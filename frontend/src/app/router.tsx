@@ -3,7 +3,7 @@ import {
 } from "react-router-dom";
 
 import PublicLayout from "../components/layout/PublicLayout";
-import {ProtectedRoute} from "../components/common/ProtectedRoute";
+import { ProtectedRoute } from "../components/common/ProtectedRoute";
 import { RoleRoute } from "../components/common/RoleRoute";
 
 import AboutPage from "../pages/AboutPage";
@@ -28,18 +28,25 @@ import NewsDetailsPage from "../pages/NewsDetailsPage";
 import ActivitiesPage from "../pages/ActivitiesPage";
 import ActivityDetailsPage from "../pages/ActivityDetailsPage";
 
+import NotificationsPage from "../pages/NotificationsPage";
+
 import AdminActivitiesPage from "../pages/AdminActivitiesPage";
 import AdminActivityCreatePage from "../pages/AdminActivityCreatePage";
 import AdminActivityEditPage from "../pages/AdminActivityEditPage";
+
 import AdminDashboardPage from "../pages/AdminDashboardPage";
+
 import AdminMembersPage from "../pages/AdminMembersPage";
 import AdminMemberEditPage from "../pages/AdminMemberEditPage";
+
 import AdminEventsPage from "../pages/AdminEventsPage";
 import AdminEventCreatePage from "../pages/AdminEventCreatePage";
 import AdminEventEditPage from "../pages/AdminEventEditPage";
+
 import AdminNewsPage from "../pages/AdminNewsPage";
 import AdminNewsCreatePage from "../pages/AdminNewsCreatePage";
 import AdminNewsEditPage from "../pages/AdminNewsEditPage";
+
 import AdminContactPage from "../pages/AdminContactPage";
 
 export const router = createBrowserRouter([
@@ -47,10 +54,11 @@ export const router = createBrowserRouter([
     path: "/",
     element: <PublicLayout />,
     errorElement: <NotFoundPage />,
+
     children: [
-      // ----------------------------------------
+      // ============================================================
       // PUBLIC
-      // ----------------------------------------
+      // ============================================================
 
       {
         index: true,
@@ -62,6 +70,10 @@ export const router = createBrowserRouter([
         element: <AboutPage />,
       },
 
+      // ------------------------------------------------------------
+      // MEMBERS
+      // ------------------------------------------------------------
+
       {
         path: "members",
         element: <MembersPage />,
@@ -72,15 +84,23 @@ export const router = createBrowserRouter([
         element: <MemberProfilePage />,
       },
 
+      // ------------------------------------------------------------
+      // EVENTS
+      // ------------------------------------------------------------
+
       {
         path: "events",
         element: <EventsPage />,
       },
 
       {
-        path: "events/:slug",
+        path: "events/:eventId",
         element: <EventDetailsPage />,
       },
+
+      // ------------------------------------------------------------
+      // NEWS
+      // ------------------------------------------------------------
 
       {
         path: "news",
@@ -92,10 +112,9 @@ export const router = createBrowserRouter([
         element: <NewsDetailsPage />,
       },
 
-      {
-        path: "contact",
-        element: <ContactPage />,
-      },
+      // ------------------------------------------------------------
+      // ACTIVITIES
+      // ------------------------------------------------------------
 
       {
         path: "activities",
@@ -107,9 +126,18 @@ export const router = createBrowserRouter([
         element: <ActivityDetailsPage />,
       },
 
-      // ----------------------------------------
+      // ------------------------------------------------------------
+      // CONTACT
+      // ------------------------------------------------------------
+
+      {
+        path: "contact",
+        element: <ContactPage />,
+      },
+
+      // ============================================================
       // AUTHENTICATION
-      // ----------------------------------------
+      // ============================================================
 
       {
         path: "login",
@@ -121,9 +149,9 @@ export const router = createBrowserRouter([
         element: <RegisterPage />,
       },
 
-      // ----------------------------------------
-      // MEMBER AREA
-      // ----------------------------------------
+      // ============================================================
+      // AUTHENTICATED MEMBER AREA
+      // ============================================================
 
       {
         element: <ProtectedRoute />,
@@ -132,24 +160,36 @@ export const router = createBrowserRouter([
             path: "account",
             element: <AccountPage />,
           },
+
+          {
+            path: "notifications",
+            element: <NotificationsPage />,
+          },
         ],
       },
 
-      // ----------------------------------------
+      // ============================================================
       // ADMIN / STAFF
-      // ----------------------------------------
+      // ============================================================
 
       {
         element: (
-          <RoleRoute
-            roles={["staff", "admin"]}
-          />
+          <RoleRoute roles={["staff", "admin"]} />
         ),
+
         children: [
+          // --------------------------------------------------------
+          // DASHBOARD
+          // --------------------------------------------------------
+
           {
             path: "admin",
             element: <AdminDashboardPage />,
           },
+
+          // --------------------------------------------------------
+          // MEMBERS
+          // --------------------------------------------------------
 
           {
             path: "admin/members",
@@ -157,9 +197,13 @@ export const router = createBrowserRouter([
           },
 
           {
-            path: "admin/members/:id/edit",
+            path: "admin/members/:memberId/edit",
             element: <AdminMemberEditPage />,
           },
+
+          // --------------------------------------------------------
+          // EVENTS
+          // --------------------------------------------------------
 
           {
             path: "admin/events",
@@ -167,14 +211,18 @@ export const router = createBrowserRouter([
           },
 
           {
-            path: "admin/events/create",
+            path: "admin/events/new",
             element: <AdminEventCreatePage />,
           },
 
           {
-            path: "admin/events/:id/edit",
+            path: "admin/events/:eventId/edit",
             element: <AdminEventEditPage />,
           },
+
+          // --------------------------------------------------------
+          // NEWS
+          // --------------------------------------------------------
 
           {
             path: "admin/news",
@@ -182,19 +230,18 @@ export const router = createBrowserRouter([
           },
 
           {
-            path: "admin/news/create",
+            path: "admin/news/new",
             element: <AdminNewsCreatePage />,
           },
 
           {
-            path: "admin/news/:id/edit",
+            path: "admin/news/:newsId/edit",
             element: <AdminNewsEditPage />,
           },
-          
-          {
-            path: "admin/contact",
-            element: <AdminContactPage />,
-          },
+
+          // --------------------------------------------------------
+          // ACTIVITIES
+          // --------------------------------------------------------
 
           {
             path: "admin/activities",
@@ -210,12 +257,21 @@ export const router = createBrowserRouter([
             path: "admin/activities/:id/edit",
             element: <AdminActivityEditPage />,
           },
+
+          // --------------------------------------------------------
+          // CONTACT
+          // --------------------------------------------------------
+
+          {
+            path: "admin/contact",
+            element: <AdminContactPage />,
+          },
         ],
       },
 
-      // ----------------------------------------
+      // ============================================================
       // FALLBACK
-      // ----------------------------------------
+      // ============================================================
 
       {
         path: "*",

@@ -9,6 +9,10 @@ from backend.app.models.notification import (
     Notification,
     NotificationType,
 )
+from backend.app.models.user import (
+    User,
+    UserStatus,
+)
 
 
 def create_notification(
@@ -38,6 +42,46 @@ def create_notification(
     db.refresh(notification)
 
     return notification
+
+
+def add_notification_for_active_members(
+    db: Session,
+    *,
+    title: str,
+    message: str,
+    notification_type: NotificationType = NotificationType.INFO,
+) -> int:
+    """
+    Create the same notification for every active user.
+
+    Returns:
+        Number of notifications created.
+    """
+
+    user_ids = list(
+        db.scalars(
+            select(User.id).where(
+                User.status == UserStatus.ACTIVE,
+            )
+        ).all()
+    )
+
+    if not user_ids:
+        return 0
+
+    notifications = [
+        Notification(
+            user_id=user_id,
+            type=notification_type,
+            title=title.strip(),
+            message=message.strip(),
+        )
+        for user_id in user_ids
+    ]
+
+    db.add_all(notifications)
+
+    return len(notifications)
 
 
 def get_notification(
@@ -159,7 +203,7 @@ def mark_notification_as_read(
 
     notification.is_read = True
     notification.read_at = datetime.now(
-        timezone.utc
+        timezone.utc,
     )
 
     db.commit()
@@ -176,7 +220,8 @@ def mark_all_notifications_as_read(
     """
     Mark all unread notifications belonging to a user as read.
 
-    Returns the number of notifications updated.
+    Returns:
+        Number of notifications updated.
     """
 
     now = datetime.now(timezone.utc)
