@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import date, datetime, timezone
 
 from sqlalchemy import select
@@ -26,22 +27,79 @@ class KBRContextRetriever:
     """
     Retrieve public KBR information relevant to an AI request.
 
-    The retriever is responsible only for:
-    - querying the database;
-    - filtering records that are safe for public AI use;
-    - converting database records into ContextItem objects.
+    Responsibilities:
+    - query the database;
+    - filter records that are safe for public AI use;
+    - rank candidates against the user's query;
+    - convert database records into ContextItem objects.
 
-    It deliberately does not expose private database fields such as:
+    The retriever never exposes private database fields such as:
     - user IDs;
     - creator IDs;
     - authentication information;
     - internal identifiers.
+
+    Retrieval is intentionally deterministic and does not require
+    another AI/LLM call.
     """
 
     MAX_MEMBERS = 20
     MAX_EVENTS = 10
     MAX_ACTIVITIES = 10
     MAX_NEWS = 10
+
+    CANDIDATE_MULTIPLIER = 5
+
+    _STOP_WORDS = {
+        "a",
+        "an",
+        "and",
+        "are",
+        "at",
+        "be",
+        "can",
+        "does",
+        "for",
+        "from",
+        "how",
+        "i",
+        "in",
+        "is",
+        "it",
+        "me",
+        "of",
+        "on",
+        "or",
+        "the",
+        "to",
+        "what",
+        "when",
+        "where",
+        "who",
+        "with",
+        "you",
+        "your",
+        "de",
+        "des",
+        "du",
+        "et",
+        "est",
+        "la",
+        "le",
+        "les",
+        "un",
+        "une",
+        "pour",
+        "dans",
+        "sur",
+        "avec",
+        "qui",
+        "que",
+        "quoi",
+        "comment",
+        "quand",
+        "où",
+    }
 
     def __init__(
         self,
@@ -56,24 +114,22 @@ class KBRContextRetriever:
         query: str,
     ) -> KBRContext:
         """
-        Retrieve structured KBR context based on the detected intent.
+        Retrieve structured KBR context based on intent and query.
 
-        The query is currently accepted as part of the retrieval
-        interface and will be used for query-aware ranking in the
-        next AI retrieval iteration.
+        The query is used for deterministic relevance ranking.
         """
 
         if intent == AIIntent.EVENTS:
-            return self._retrieve_events()
+            return self._retrieve_events(query)
 
         if intent == AIIntent.MEMBERS:
-            return self._retrieve_members()
+            return self._retrieve_members(query)
 
         if intent == AIIntent.ACTIVITIES:
-            return self._retrieve_activities()
+            return self._retrieve_activities(query)
 
         if intent == AIIntent.NEWS:
-            return self._retrieve_news()
+            return self._retrieve_news(query)
 
         if intent == AIIntent.ORGANIZATION:
             return self._retrieve_organization()
@@ -83,12 +139,16 @@ class KBRContextRetriever:
 
         return self._retrieve_general_context()
 
-    def _retrieve_events(self) -> KBRContext:
+    def _retrieve_events(
+        self,
+        query: str,
+    ) -> KBRContext:
         """
         Retrieve published events.
 
-        Upcoming events are prioritized. If there are no upcoming
-        events, the most recent published events are returned.
+        Upcoming events are preferred when available. Within the
+        candidate set, query relevance is used for ranking while
+        preserving a strong preference for upcoming events.
         """
 
         now = datetime.now(timezone.utc)
@@ -100,7 +160,9 @@ class KBRContextRetriever:
                 Event.start_at >= now,
             )
             .order_by(Event.start_at.asc())
-            .limit(self.MAX_EVENTS)
+            .limit(
+                self.MAX_EVENTS * self.CANDIDATE_MULTIPLIER
+            )
         ).all()
 
         if upcoming:
@@ -112,7 +174,9 @@ class KBRContextRetriever:
                     Event.status == EventStatus.PUBLISHED,
                 )
                 .order_by(Event.start_at.desc())
-                .limit(self.MAX_EVENTS)
+                .limit(
+                    self.MAX_EVENTS * self.CANDIDATE_MULTIPLIER
+                )
             ).all()
 
         items = [
@@ -120,9 +184,20 @@ class KBRContextRetriever:
                 type="event",
                 title=event.title,
                 content=self._event_content(event),
+                relevance=self._event_relevance(
+                    event,
+                    query,
+                    now,
+                ),
             )
             for event in events
         ]
+
+        items = self._rank_items(
+            items,
+            query=query,
+            limit=self.MAX_EVENTS,
+        )
 
         if not items:
             items.append(
@@ -138,7 +213,10 @@ class KBRContextRetriever:
             items=items,
         )
 
-    def _retrieve_members(self) -> KBRContext:
+    def _retrieve_members(
+        self,
+        query: str,
+    ) -> KBRContext:
         members = self.db.scalars(
             select(Member)
             .where(
@@ -148,7 +226,9 @@ class KBRContextRetriever:
                 Member.first_name.asc(),
                 Member.last_name.asc(),
             )
-            .limit(self.MAX_MEMBERS)
+            .limit(
+                self.MAX_MEMBERS * self.CANDIDATE_MULTIPLIER
+            )
         ).all()
 
         items = [
@@ -156,9 +236,23 @@ class KBRContextRetriever:
                 type="member",
                 title=self._member_name(member),
                 content=self._member_content(member),
+                relevance=self._text_relevance(
+                    query,
+                    (
+                        self._member_name(member),
+                        member.position,
+                        member.bio,
+                    ),
+                ),
             )
             for member in members
         ]
+
+        items = self._rank_items(
+            items,
+            query=query,
+            limit=self.MAX_MEMBERS,
+        )
 
         if not items:
             items.append(
@@ -174,7 +268,10 @@ class KBRContextRetriever:
             items=items,
         )
 
-    def _retrieve_activities(self) -> KBRContext:
+    def _retrieve_activities(
+        self,
+        query: str,
+    ) -> KBRContext:
         activities = self.db.scalars(
             select(Activity)
             .where(
@@ -184,7 +281,9 @@ class KBRContextRetriever:
                 Activity.published_at.desc(),
                 Activity.created_at.desc(),
             )
-            .limit(self.MAX_ACTIVITIES)
+            .limit(
+                self.MAX_ACTIVITIES * self.CANDIDATE_MULTIPLIER
+            )
         ).all()
 
         items = [
@@ -192,9 +291,24 @@ class KBRContextRetriever:
                 type="activity",
                 title=activity.title,
                 content=self._activity_content(activity),
+                relevance=self._text_relevance(
+                    query,
+                    (
+                        activity.title,
+                        activity.excerpt,
+                        activity.description,
+                        activity.location,
+                    ),
+                ),
             )
             for activity in activities
         ]
+
+        items = self._rank_items(
+            items,
+            query=query,
+            limit=self.MAX_ACTIVITIES,
+        )
 
         if not items:
             items.append(
@@ -210,7 +324,10 @@ class KBRContextRetriever:
             items=items,
         )
 
-    def _retrieve_news(self) -> KBRContext:
+    def _retrieve_news(
+        self,
+        query: str,
+    ) -> KBRContext:
         news_items = self.db.scalars(
             select(News)
             .where(
@@ -220,7 +337,9 @@ class KBRContextRetriever:
                 News.published_at.desc(),
                 News.created_at.desc(),
             )
-            .limit(self.MAX_NEWS)
+            .limit(
+                self.MAX_NEWS * self.CANDIDATE_MULTIPLIER
+            )
         ).all()
 
         items = [
@@ -228,9 +347,23 @@ class KBRContextRetriever:
                 type="news",
                 title=news.title,
                 content=self._news_content(news),
+                relevance=self._text_relevance(
+                    query,
+                    (
+                        news.title,
+                        news.excerpt,
+                        news.content,
+                    ),
+                ),
             )
             for news in news_items
         ]
+
+        items = self._rank_items(
+            items,
+            query=query,
+            limit=self.MAX_NEWS,
+        )
 
         if not items:
             items.append(
@@ -347,10 +480,14 @@ class KBRContextRetriever:
 
         if member.joined_at:
             lines.append(
-                f"Joined: {KBRContextRetriever._format_date(member.joined_at)}"
+                f"Joined: "
+                f"{KBRContextRetriever._format_date(member.joined_at)}"
             )
 
-        return "\n".join(lines) or "No additional public information."
+        return (
+            "\n".join(lines)
+            or "No additional public information."
+        )
 
     @staticmethod
     def _event_content(
@@ -370,15 +507,20 @@ class KBRContextRetriever:
 
         if event.start_at:
             lines.append(
-                f"Starts: {KBRContextRetriever._format_datetime(event.start_at)}"
+                f"Starts: "
+                f"{KBRContextRetriever._format_datetime(event.start_at)}"
             )
 
         if event.end_at:
             lines.append(
-                f"Ends: {KBRContextRetriever._format_datetime(event.end_at)}"
+                f"Ends: "
+                f"{KBRContextRetriever._format_datetime(event.end_at)}"
             )
 
-        return "\n".join(lines) or "No additional public information."
+        return (
+            "\n".join(lines)
+            or "No additional public information."
+        )
 
     @staticmethod
     def _activity_content(
@@ -402,17 +544,20 @@ class KBRContextRetriever:
 
         if activity.start_at:
             lines.append(
-                f"Starts: {KBRContextRetriever._format_datetime(activity.start_at)}"
+                f"Starts: "
+                f"{KBRContextRetriever._format_datetime(activity.start_at)}"
             )
 
         if activity.end_at:
             lines.append(
-                f"Ends: {KBRContextRetriever._format_datetime(activity.end_at)}"
+                f"Ends: "
+                f"{KBRContextRetriever._format_datetime(activity.end_at)}"
             )
 
         if activity.published_at:
             lines.append(
-                f"Published: {KBRContextRetriever._format_datetime(activity.published_at)}"
+                f"Published: "
+                f"{KBRContextRetriever._format_datetime(activity.published_at)}"
             )
 
         return "\n".join(lines)
@@ -434,10 +579,141 @@ class KBRContextRetriever:
 
         if news.published_at:
             lines.append(
-                f"Published: {KBRContextRetriever._format_datetime(news.published_at)}"
+                f"Published: "
+                f"{KBRContextRetriever._format_datetime(news.published_at)}"
             )
 
         return "\n".join(lines)
+
+    @classmethod
+    def _text_relevance(
+        cls,
+        query: str,
+        fields: tuple[object, ...],
+    ) -> int:
+        """
+        Calculate deterministic relevance for a candidate.
+
+        Scoring:
+        - exact title token: strong weight;
+        - field token match: moderate weight;
+        - repeated matches: small additional weight.
+
+        Common language stop words are ignored.
+        """
+
+        query_tokens = cls._tokenize(query)
+
+        if not query_tokens:
+            return 0
+
+        title = str(fields[0] or "")
+        title_tokens = set(cls._tokenize(title))
+
+        other_tokens: set[str] = set()
+
+        for field in fields[1:]:
+            if field:
+                other_tokens.update(
+                    cls._tokenize(str(field))
+                )
+
+        score = 0
+
+        for token in query_tokens:
+            if token in title_tokens:
+                score += 10
+            elif token in other_tokens:
+                score += 3
+
+        return score
+
+    @classmethod
+    def _event_relevance(
+        cls,
+        event: Event,
+        query: str,
+        now: datetime,
+    ) -> int:
+        """
+        Event relevance combines text matching with temporal relevance.
+
+        Upcoming events receive a small base advantage so a question
+        such as "next event" naturally keeps upcoming events first.
+        """
+
+        score = cls._text_relevance(
+            query,
+            (
+                event.title,
+                event.description,
+                event.location,
+            ),
+        )
+
+        if event.start_at:
+            if event.start_at >= now:
+                score += 2
+
+                days_until = (
+                    event.start_at - now
+                ).total_seconds() / 86400
+
+                if days_until <= 7:
+                    score += 2
+                elif days_until <= 30:
+                    score += 1
+
+        return score
+
+    @classmethod
+    def _rank_items(
+        cls,
+        items: list[ContextItem],
+        *,
+        query: str,
+        limit: int,
+    ) -> list[ContextItem]:
+        """
+        Rank context items by deterministic relevance.
+
+        If the query has no meaningful tokens, preserve the original
+        database ordering.
+        """
+
+        query_tokens = cls._tokenize(query)
+
+        if not query_tokens:
+            return items[:limit]
+
+        return sorted(
+            items,
+            key=lambda item: item.relevance,
+            reverse=True,
+        )[:limit]
+
+    @classmethod
+    def _tokenize(
+        cls,
+        value: str,
+    ) -> list[str]:
+        """
+        Normalize text into meaningful lowercase tokens.
+        """
+
+        normalized = value.lower()
+
+        tokens = re.findall(
+            r"[a-zA-ZÀ-ÿ0-9]+",
+            normalized,
+        )
+
+        return [
+            token
+            for token in tokens
+            if token not in cls._STOP_WORDS
+            and len(token) > 1
+        ]
 
     @staticmethod
     def _format_datetime(
