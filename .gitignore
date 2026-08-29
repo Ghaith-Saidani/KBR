@@ -90,3 +90,11 @@ coverage.xml
 # Docker
 # ==============================
 docker-data/
+
+# ==============================
+# Playwright
+# ==============================
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
