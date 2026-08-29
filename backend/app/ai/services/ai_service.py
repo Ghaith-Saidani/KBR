@@ -9,6 +9,7 @@ from backend.app.ai.context import (
     KBRContextFormatter,
 )
 from backend.app.ai.gateway import ModelGateway
+from backend.app.ai.prompts import KBR_SYSTEM_PROMPT
 from backend.app.ai.schemas import (
     ModelMessage,
     ModelRequest,
@@ -40,9 +41,16 @@ class AIService:
     1. Extract the user's latest message.
     2. Detect the user's intent.
     3. Retrieve relevant public KBR information.
-    4. Format the structured KBR context.
-    5. Inject the context into the model request.
-    6. Delegate generation to ModelGateway.
+    4. Build the KBR system prompt.
+    5. Format the structured KBR context.
+    6. Inject the application instructions and context into the
+       model request.
+    7. Delegate generation to ModelGateway.
+
+    The service owns application-level AI behavior.
+
+    Providers are responsible only for translating the provider-
+    agnostic ModelRequest into the provider's API format.
     """
 
     def __init__(
@@ -64,11 +72,19 @@ class AIService:
         request: ModelRequest,
     ) -> ModelResponse:
         """
-        Generate an AI response.
+        Generate a response through the configured model gateway.
 
-        When a context retriever is configured, public KBR
-        information is retrieved before generation.
+        The KBR system prompt is always injected for application
+        requests.
+
+        When a context retriever is configured, relevant public
+        KBR information is retrieved and appended to the system
+        instructions before generation.
         """
+
+        request = self._with_system_prompt(
+            request,
+        )
 
         if self.context_retriever is None:
             return await self.gateway.generate(
@@ -125,20 +141,50 @@ class AIService:
         return None
 
     @staticmethod
-    def _with_context(
+    def _with_system_prompt(
         request: ModelRequest,
-        context: str,
     ) -> ModelRequest:
         """
-        Insert retrieved KBR context as the first system message.
+        Add the KBR application system prompt.
+
+        Existing system messages supplied by the caller are preserved
+        after the official KBR system instructions.
         """
 
         messages = [
             ModelMessage(
                 role="system",
-                content=context,
+                content=KBR_SYSTEM_PROMPT,
             ),
             *request.messages,
+        ]
+
+        return ModelRequest(
+            messages=messages,
+            model=request.model,
+            temperature=request.temperature,
+            max_tokens=request.max_tokens,
+            metadata=request.metadata,
+        )
+
+    @staticmethod
+    def _with_context(
+        request: ModelRequest,
+        context: str,
+    ) -> ModelRequest:
+        """
+        Add retrieved KBR context to the existing system instructions.
+
+        The context becomes a second system message so the provider
+        can translate it naturally to the target model API.
+        """
+
+        messages = [
+            *request.messages,
+            ModelMessage(
+                role="system",
+                content=context,
+            ),
         ]
 
         return ModelRequest(

@@ -18,8 +18,10 @@ class GeminiProvider(ModelProvider):
 
     Uses Google's REST GenerateContent API directly through httpx.
 
-    The provider is intentionally responsible only for translating
-    the provider-agnostic ModelRequest into Gemini's API format.
+    The provider is responsible only for translating the
+    provider-agnostic ModelRequest into Gemini's API format
+    and translating Gemini responses/errors back into the
+    application's provider-agnostic representation.
 
     Application-level system prompts should be supplied through
     ModelRequest.messages using the "system" role.
@@ -91,6 +93,108 @@ class GeminiProvider(ModelProvider):
         normalized = model.strip().lower()
 
         return normalized.startswith("gemini-3")
+
+    @staticmethod
+    def _extract_error_message(
+        response: httpx.Response,
+    ) -> str:
+        """
+        Extract a useful error message from a Gemini error response.
+
+        Gemini normally returns an error payload similar to:
+
+            {
+                "error": {
+                    "code": 429,
+                    "message": "...",
+                    "status": "RESOURCE_EXHAUSTED"
+                }
+            }
+
+        If the response is not valid JSON, fall back to the
+        HTTP status text.
+        """
+
+        try:
+            data = response.json()
+        except ValueError:
+            return response.text.strip() or response.reason_phrase
+
+        if not isinstance(data, dict):
+            return response.reason_phrase
+
+        error = data.get("error")
+
+        if not isinstance(error, dict):
+            return response.reason_phrase
+
+        message = error.get("message")
+
+        if isinstance(message, str) and message.strip():
+            return message.strip()
+
+        return response.reason_phrase
+
+    @classmethod
+    def _raise_for_gemini_error(
+        cls,
+        response: httpx.Response,
+    ) -> None:
+        """
+        Translate Gemini HTTP errors into clear application errors.
+
+        The original Gemini response is intentionally not exposed
+        directly to the application.
+        """
+
+        if response.is_success:
+            return
+
+        status_code = response.status_code
+        provider_message = cls._extract_error_message(
+            response
+        )
+
+        if status_code == 429:
+            raise RuntimeError(
+                "Gemini rate limit or quota exceeded. "
+                "Please try again later."
+            )
+
+        if status_code in {401, 403}:
+            raise RuntimeError(
+                "Gemini authentication or authorization failed. "
+                "Please verify the configured API key and project."
+            )
+
+        if status_code == 400:
+            raise RuntimeError(
+                "Gemini rejected the request. "
+                f"Provider message: {provider_message}"
+            )
+
+        if status_code == 404:
+            raise RuntimeError(
+                "The configured Gemini model or endpoint was not found. "
+                f"Provider message: {provider_message}"
+            )
+
+        if status_code == 408:
+            raise RuntimeError(
+                "Gemini request timed out. "
+                "Please try again."
+            )
+
+        if 500 <= status_code <= 599:
+            raise RuntimeError(
+                "Gemini is temporarily unavailable. "
+                "Please try again later."
+            )
+
+        raise RuntimeError(
+            "Gemini request failed. "
+            f"HTTP {status_code}: {provider_message}"
+        )
 
     def _build_payload(
         self,
@@ -173,6 +277,9 @@ class GeminiProvider(ModelProvider):
     ) -> ModelResponse:
         """
         Generate a response using Gemini.
+
+        Provider errors are translated into clear RuntimeError
+        messages instead of leaking raw httpx exceptions.
         """
 
         api_key = self._get_api_key()
@@ -219,7 +326,7 @@ class GeminiProvider(ModelProvider):
                     headers=headers,
                 )
 
-        response.raise_for_status()
+        self._raise_for_gemini_error(response)
 
         data = response.json()
 

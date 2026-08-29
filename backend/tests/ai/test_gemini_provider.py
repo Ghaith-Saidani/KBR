@@ -501,7 +501,101 @@ async def test_gemini_provider_raises_for_http_errors():
         )
 
         with pytest.raises(
-            httpx.HTTPStatusError,
+            RuntimeError,
+            match="authentication or authorization failed",
+        ):
+            await provider.generate(
+                request,
+            )
+
+            
+@pytest.mark.asyncio
+async def test_gemini_provider_handles_rate_limit_error():
+    settings = create_settings()
+
+    async def handler(
+        request: httpx.Request,
+    ) -> httpx.Response:
+        return httpx.Response(
+            status_code=429,
+            json={
+                "error": {
+                    "code": 429,
+                    "message": (
+                        "Resource exhausted. "
+                        "Please try again later."
+                    ),
+                    "status": "RESOURCE_EXHAUSTED",
+                },
+            },
+        )
+
+    transport = httpx.MockTransport(handler)
+
+    async with httpx.AsyncClient(
+        transport=transport,
+    ) as client:
+        provider = GeminiProvider(
+            settings=settings,
+            client=client,
+        )
+
+        request = ModelRequest(
+            messages=[
+                ModelMessage(
+                    role="user",
+                    content="Hello",
+                ),
+            ],
+        )
+
+        with pytest.raises(
+            RuntimeError,
+            match="rate limit or quota exceeded",
+        ):
+            await provider.generate(
+                request,
+            )
+
+
+@pytest.mark.asyncio
+async def test_gemini_provider_handles_server_error():
+    settings = create_settings()
+
+    async def handler(
+        request: httpx.Request,
+    ) -> httpx.Response:
+        return httpx.Response(
+            status_code=503,
+            json={
+                "error": {
+                    "message": "Service unavailable",
+                },
+            },
+        )
+
+    transport = httpx.MockTransport(handler)
+
+    async with httpx.AsyncClient(
+        transport=transport,
+    ) as client:
+        provider = GeminiProvider(
+            settings=settings,
+            client=client,
+        )
+
+        request = ModelRequest(
+            messages=[
+                ModelMessage(
+                    role="user",
+                    content="Hello",
+                ),
+            ],
+        )
+
+        with pytest.raises(
+            RuntimeError,
+            match="temporarily unavailable",
         ):
             await provider.generate(
                 request,

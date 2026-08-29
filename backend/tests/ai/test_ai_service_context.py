@@ -2,9 +2,10 @@ import pytest
 
 from backend.app.ai.context import (
     AIIntent,
-    ContextItem,
     KBRContext,
+    ContextItem,
 )
+from backend.app.ai.prompts import KBR_SYSTEM_PROMPT
 from backend.app.ai.schemas import (
     ModelMessage,
     ModelRequest,
@@ -44,11 +45,8 @@ class FakeRetriever:
         self.received_intent = intent
         self.received_query = query
 
-        assert query == "When is the next event?"
-        assert intent == AIIntent.EVENTS
-
         return KBRContext(
-            intent=AIIntent.EVENTS.value,
+            intent="events",
             items=[
                 ContextItem(
                     type="event",
@@ -58,6 +56,7 @@ class FakeRetriever:
                         "Location: Bizerte\n"
                         "Starts: September 10, 2026 at 18:00 UTC"
                     ),
+                    relevance=10,
                 ),
             ],
         )
@@ -68,8 +67,6 @@ class FakeIntentDetector:
         self,
         message: str,
     ) -> AIIntent:
-        assert message == "When is the next event?"
-
         return AIIntent.EVENTS
 
 
@@ -110,11 +107,70 @@ async def test_ai_service_retrieves_context_before_generation():
 
     messages = gateway.received_request.messages
 
-    assert len(messages) == 2
+    assert len(messages) == 3
 
-    context_message = messages[0]
+    # Official KBR system instructions.
+    assert messages[0].role == "system"
+    assert messages[0].content == KBR_SYSTEM_PROMPT
 
-    assert context_message.role == "system"
-    assert "KBR Tournament" in context_message.content
-    assert "September 10" in context_message.content
-    assert "Bizerte" in context_message.content
+    # Original user message.
+    assert messages[1].role == "user"
+    assert messages[1].content == (
+        "When is the next event?"
+    )
+
+    # Retrieved database context.
+    assert messages[2].role == "system"
+
+    assert (
+        "RETRIEVED KBR DATABASE CONTEXT"
+        in messages[2].content
+    )
+
+    assert (
+        "KBR Tournament"
+        in messages[2].content
+    )
+
+    assert (
+        "September 10, 2026"
+        in messages[2].content
+    )
+
+
+@pytest.mark.asyncio
+async def test_ai_service_context_is_added_after_system_prompt():
+    gateway = FakeGateway()
+    retriever = FakeRetriever()
+
+    service = AIService(
+        gateway=gateway,
+        context_retriever=retriever,
+        intent_detector=FakeIntentDetector(),
+    )
+
+    request = ModelRequest(
+        messages=[
+            ModelMessage(
+                role="user",
+                content="Tell me about the tournament.",
+            ),
+        ],
+    )
+
+    await service.generate(request)
+
+    received = gateway.received_request
+
+    assert received is not None
+
+    assert received.messages[0].role == "system"
+    assert received.messages[0].content == KBR_SYSTEM_PROMPT
+
+    assert received.messages[1].role == "user"
+
+    assert received.messages[2].role == "system"
+    assert (
+        "KBR Tournament"
+        in received.messages[2].content
+    )

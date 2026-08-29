@@ -1,4 +1,7 @@
 import { Outlet } from "react-router-dom";
+
+import Chatbot from "../../components/ai/AIChatbot";
+
 import Footer from "./Footer";
 import Navbar from "./Navbar";
 
@@ -12,6 +15,8 @@ export default function PublicLayout() {
       </main>
 
       <Footer />
+
+      <Chatbot />
     </div>
   );
 }
