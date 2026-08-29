@@ -16,6 +16,8 @@ from backend.app.core.config import get_settings
 from backend.app.core.database import engine
 
 
+from backend.app.ai.router import router as ai_router
+
 settings = get_settings()
 
 
@@ -46,6 +48,9 @@ app.include_router(contact_router)
 app.include_router(notifications_router)
 app.include_router(dev.router)
 
+app.include_router(
+    ai_router,
+)
 
 @app.get(
     "/",
