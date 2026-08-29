@@ -1,7 +1,10 @@
 import pytest
 
-from backend.app.ai.context import AIIntent
-from backend.app.ai.gateway import ModelGateway
+from backend.app.ai.context import (
+    AIIntent,
+    ContextItem,
+    KBRContext,
+)
 from backend.app.ai.schemas import (
     ModelMessage,
     ModelRequest,
@@ -37,29 +40,27 @@ class FakeRetriever:
         *,
         intent: AIIntent,
         query: str,
-    ) -> dict[str, object]:
+    ) -> KBRContext:
         self.received_intent = intent
         self.received_query = query
 
         assert query == "When is the next event?"
         assert intent == AIIntent.EVENTS
 
-        return {
-            "intent": "events",
-            "events": [
-                {
-                    "title": "KBR Tournament",
-                    "description": (
-                        "A KBR esports tournament."
+        return KBRContext(
+            intent=AIIntent.EVENTS.value,
+            items=[
+                ContextItem(
+                    type="event",
+                    title="KBR Tournament",
+                    content=(
+                        "Description: A KBR esports tournament.\n"
+                        "Location: Bizerte\n"
+                        "Starts: September 10, 2026 at 18:00 UTC"
                     ),
-                    "location": "Bizerte",
-                    "start_at": (
-                        "2026-09-10T18:00:00+00:00"
-                    ),
-                    "end_at": None,
-                },
+                ),
             ],
-        }
+        )
 
 
 class FakeIntentDetector:
@@ -116,3 +117,4 @@ async def test_ai_service_retrieves_context_before_generation():
     assert context_message.role == "system"
     assert "KBR Tournament" in context_message.content
     assert "September 10" in context_message.content
+    assert "Bizerte" in context_message.content

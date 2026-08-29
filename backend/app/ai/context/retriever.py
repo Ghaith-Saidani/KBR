@@ -1,9 +1,15 @@
-from datetime import datetime, timezone
+from __future__ import annotations
+
+from datetime import date, datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.app.ai.context.intent import AIIntent
+from backend.app.ai.context.models import (
+    ContextItem,
+    KBRContext,
+)
 from backend.app.models import (
     Activity,
     ActivityStatus,
@@ -18,12 +24,18 @@ from backend.app.models import (
 
 class KBRContextRetriever:
     """
-    Retrieves only the KBR information relevant to the user's request.
+    Retrieve public KBR information relevant to an AI request.
 
-    This is the database/RAG retrieval layer.
+    The retriever is responsible only for:
+    - querying the database;
+    - filtering records that are safe for public AI use;
+    - converting database records into ContextItem objects.
 
-    The retriever deliberately does not return private database fields
-    such as user IDs, creator IDs, authentication information, etc.
+    It deliberately does not expose private database fields such as:
+    - user IDs;
+    - creator IDs;
+    - authentication information;
+    - internal identifiers.
     """
 
     MAX_MEMBERS = 20
@@ -42,9 +54,13 @@ class KBRContextRetriever:
         *,
         intent: AIIntent,
         query: str,
-    ) -> dict[str, object]:
+    ) -> KBRContext:
         """
-        Retrieve context based on the detected intent.
+        Retrieve structured KBR context based on the detected intent.
+
+        The query is currently accepted as part of the retrieval
+        interface and will be used for query-aware ranking in the
+        next AI retrieval iteration.
         """
 
         if intent == AIIntent.EVENTS:
@@ -67,11 +83,12 @@ class KBRContextRetriever:
 
         return self._retrieve_general_context()
 
-    def _retrieve_events(self) -> dict[str, object]:
+    def _retrieve_events(self) -> KBRContext:
         """
         Retrieve published events.
 
-        Upcoming events are prioritized.
+        Upcoming events are prioritized. If there are no upcoming
+        events, the most recent published events are returned.
         """
 
         now = datetime.now(timezone.utc)
@@ -86,8 +103,10 @@ class KBRContextRetriever:
             .limit(self.MAX_EVENTS)
         ).all()
 
-        if not upcoming:
-            recent = self.db.scalars(
+        if upcoming:
+            events = upcoming
+        else:
+            events = self.db.scalars(
                 select(Event)
                 .where(
                     Event.status == EventStatus.PUBLISHED,
@@ -95,20 +114,31 @@ class KBRContextRetriever:
                 .order_by(Event.start_at.desc())
                 .limit(self.MAX_EVENTS)
             ).all()
-        else:
-            recent = []
 
-        events = upcoming or recent
+        items = [
+            ContextItem(
+                type="event",
+                title=event.title,
+                content=self._event_content(event),
+            )
+            for event in events
+        ]
 
-        return {
-            "intent": AIIntent.EVENTS.value,
-            "events": [
-                self._serialize_event(event)
-                for event in events
-            ],
-        }
+        if not items:
+            items.append(
+                ContextItem(
+                    type="event",
+                    title="No published events",
+                    content="No published KBR events were found.",
+                )
+            )
 
-    def _retrieve_members(self) -> dict[str, object]:
+        return KBRContext(
+            intent=AIIntent.EVENTS.value,
+            items=items,
+        )
+
+    def _retrieve_members(self) -> KBRContext:
         members = self.db.scalars(
             select(Member)
             .where(
@@ -121,15 +151,30 @@ class KBRContextRetriever:
             .limit(self.MAX_MEMBERS)
         ).all()
 
-        return {
-            "intent": AIIntent.MEMBERS.value,
-            "members": [
-                self._serialize_member(member)
-                for member in members
-            ],
-        }
+        items = [
+            ContextItem(
+                type="member",
+                title=self._member_name(member),
+                content=self._member_content(member),
+            )
+            for member in members
+        ]
 
-    def _retrieve_activities(self) -> dict[str, object]:
+        if not items:
+            items.append(
+                ContextItem(
+                    type="member",
+                    title="No active members",
+                    content="No active KBR members were found.",
+                )
+            )
+
+        return KBRContext(
+            intent=AIIntent.MEMBERS.value,
+            items=items,
+        )
+
+    def _retrieve_activities(self) -> KBRContext:
         activities = self.db.scalars(
             select(Activity)
             .where(
@@ -142,15 +187,30 @@ class KBRContextRetriever:
             .limit(self.MAX_ACTIVITIES)
         ).all()
 
-        return {
-            "intent": AIIntent.ACTIVITIES.value,
-            "activities": [
-                self._serialize_activity(activity)
-                for activity in activities
-            ],
-        }
+        items = [
+            ContextItem(
+                type="activity",
+                title=activity.title,
+                content=self._activity_content(activity),
+            )
+            for activity in activities
+        ]
 
-    def _retrieve_news(self) -> dict[str, object]:
+        if not items:
+            items.append(
+                ContextItem(
+                    type="activity",
+                    title="No published activities",
+                    content="No published KBR activities were found.",
+                )
+            )
+
+        return KBRContext(
+            intent=AIIntent.ACTIVITIES.value,
+            items=items,
+        )
+
+    def _retrieve_news(self) -> KBRContext:
         news_items = self.db.scalars(
             select(News)
             .where(
@@ -163,40 +223,55 @@ class KBRContextRetriever:
             .limit(self.MAX_NEWS)
         ).all()
 
-        return {
-            "intent": AIIntent.NEWS.value,
-            "news": [
-                self._serialize_news(item)
-                for item in news_items
-            ],
-        }
+        items = [
+            ContextItem(
+                type="news",
+                title=news.title,
+                content=self._news_content(news),
+            )
+            for news in news_items
+        ]
 
-    def _retrieve_organization(self) -> dict[str, object]:
+        if not items:
+            items.append(
+                ContextItem(
+                    type="news",
+                    title="No published news",
+                    content="No published KBR news was found.",
+                )
+            )
+
+        return KBRContext(
+            intent=AIIntent.NEWS.value,
+            items=items,
+        )
+
+    def _retrieve_organization(self) -> KBRContext:
         """
         Static organization context.
 
         There is currently no Organization database model, so this
-        information comes from the official KBR configuration/prompt.
+        information comes from the official KBR application context.
         """
 
-        return {
-            "intent": AIIntent.ORGANIZATION.value,
-            "organization": {
-                "name": "Knights of Bizertin Rise",
-                "short_name": "KBR",
-                "location": "Bizerte, Tunisia",
-                "focus": [
-                    "Esports",
-                    "gaming culture",
-                    "community activities",
-                    "projects",
-                    "events",
-                    "local gaming ecosystem",
-                ],
-            },
-        }
+        return KBRContext(
+            intent=AIIntent.ORGANIZATION.value,
+            items=[
+                ContextItem(
+                    type="organization",
+                    title="Knights of Bizertin Rise",
+                    content=(
+                        "Short name: KBR\n"
+                        "Location: Bizerte, Tunisia\n"
+                        "Focus: Esports, gaming culture, community "
+                        "activities, projects, events, and the local "
+                        "gaming ecosystem."
+                    ),
+                ),
+            ],
+        )
 
-    def _retrieve_join_context(self) -> dict[str, object]:
+    def _retrieve_join_context(self) -> KBRContext:
         """
         Current public join information.
 
@@ -204,121 +279,186 @@ class KBRContextRetriever:
         configuration exists in the database.
         """
 
-        return {
-            "intent": AIIntent.JOIN.value,
-            "join": {
-                "available": True,
-                "organization": "Knights of Bizertin Rise",
-                "location": "Bizerte, Tunisia",
-                "note": (
-                    "The application should provide the official "
-                    "membership process when it is configured."
+        return KBRContext(
+            intent=AIIntent.JOIN.value,
+            items=[
+                ContextItem(
+                    type="join",
+                    title="Joining KBR",
+                    content=(
+                        "Membership is currently available.\n"
+                        "Organization: Knights of Bizertin Rise\n"
+                        "Location: Bizerte, Tunisia\n"
+                        "The application should provide the official "
+                        "membership process when it is configured."
+                    ),
                 ),
-            },
-        }
+            ],
+        )
 
-    def _retrieve_general_context(self) -> dict[str, object]:
+    def _retrieve_general_context(self) -> KBRContext:
         """
-        General questions receive a deliberately small context.
+        General questions receive deliberately small context.
 
-        We do NOT dump the whole database into Gemini.
+        The whole database is never dumped into the AI context.
         """
 
-        return {
-            "intent": AIIntent.GENERAL.value,
-            "organization": {
-                "name": "Knights of Bizertin Rise",
-                "short_name": "KBR",
-                "location": "Bizerte, Tunisia",
-                "focus": [
-                    "Esports",
-                    "gaming culture",
-                    "community activities",
-                    "projects",
-                    "events",
-                    "local gaming ecosystem",
-                ],
-            },
-        }
+        return KBRContext(
+            intent=AIIntent.GENERAL.value,
+            items=[
+                ContextItem(
+                    type="organization",
+                    title="Knights of Bizertin Rise",
+                    content=(
+                        "Short name: KBR\n"
+                        "Location: Bizerte, Tunisia\n"
+                        "Focus: Esports, gaming culture, community "
+                        "activities, projects, events, and the local "
+                        "gaming ecosystem."
+                    ),
+                ),
+            ],
+        )
 
     @staticmethod
-    def _serialize_member(
+    def _member_name(
         member: Member,
-    ) -> dict[str, object]:
-        return {
-            "name": (
-                f"{member.first_name} "
-                f"{member.last_name}"
-            ).strip(),
-            "position": member.position,
-            "bio": member.bio,
-            "joined_at": (
-                member.joined_at.isoformat()
-                if member.joined_at
-                else None
-            ),
-        }
+    ) -> str:
+        return (
+            f"{member.first_name} "
+            f"{member.last_name}"
+        ).strip()
 
     @staticmethod
-    def _serialize_event(
+    def _member_content(
+        member: Member,
+    ) -> str:
+        lines: list[str] = []
+
+        if member.position:
+            lines.append(
+                f"Position: {member.position}"
+            )
+
+        if member.bio:
+            lines.append(
+                f"Bio: {member.bio}"
+            )
+
+        if member.joined_at:
+            lines.append(
+                f"Joined: {KBRContextRetriever._format_date(member.joined_at)}"
+            )
+
+        return "\n".join(lines) or "No additional public information."
+
+    @staticmethod
+    def _event_content(
         event: Event,
-    ) -> dict[str, object]:
-        return {
-            "title": event.title,
-            "description": event.description,
-            "location": event.location,
-            "start_at": (
-                event.start_at.isoformat()
-                if event.start_at
-                else None
-            ),
-            "end_at": (
-                event.end_at.isoformat()
-                if event.end_at
-                else None
-            ),
-        }
+    ) -> str:
+        lines: list[str] = []
+
+        if event.description:
+            lines.append(
+                f"Description: {event.description}"
+            )
+
+        if event.location:
+            lines.append(
+                f"Location: {event.location}"
+            )
+
+        if event.start_at:
+            lines.append(
+                f"Starts: {KBRContextRetriever._format_datetime(event.start_at)}"
+            )
+
+        if event.end_at:
+            lines.append(
+                f"Ends: {KBRContextRetriever._format_datetime(event.end_at)}"
+            )
+
+        return "\n".join(lines) or "No additional public information."
 
     @staticmethod
-    def _serialize_activity(
+    def _activity_content(
         activity: Activity,
-    ) -> dict[str, object]:
-        return {
-            "title": activity.title,
-            "excerpt": activity.excerpt,
-            "description": activity.description,
-            "location": activity.location,
-            "start_at": (
-                activity.start_at.isoformat()
-                if activity.start_at
-                else None
-            ),
-            "end_at": (
-                activity.end_at.isoformat()
-                if activity.end_at
-                else None
-            ),
-            "published_at": (
-                activity.published_at.isoformat()
-                if activity.published_at
-                else None
-            ),
-        }
+    ) -> str:
+        lines: list[str] = []
+
+        if activity.excerpt:
+            lines.append(
+                f"Summary: {activity.excerpt}"
+            )
+
+        lines.append(
+            f"Description: {activity.description}"
+        )
+
+        if activity.location:
+            lines.append(
+                f"Location: {activity.location}"
+            )
+
+        if activity.start_at:
+            lines.append(
+                f"Starts: {KBRContextRetriever._format_datetime(activity.start_at)}"
+            )
+
+        if activity.end_at:
+            lines.append(
+                f"Ends: {KBRContextRetriever._format_datetime(activity.end_at)}"
+            )
+
+        if activity.published_at:
+            lines.append(
+                f"Published: {KBRContextRetriever._format_datetime(activity.published_at)}"
+            )
+
+        return "\n".join(lines)
 
     @staticmethod
-    def _serialize_news(
+    def _news_content(
         news: News,
-    ) -> dict[str, object]:
-        return {
-            "title": news.title,
-            "excerpt": news.excerpt,
-            "content": news.content,
-            "published_at": (
-                news.published_at.isoformat()
-                if news.published_at
-                else None
-            ),
-        }
+    ) -> str:
+        lines: list[str] = []
+
+        if news.excerpt:
+            lines.append(
+                f"Summary: {news.excerpt}"
+            )
+
+        lines.append(
+            f"Content: {news.content}"
+        )
+
+        if news.published_at:
+            lines.append(
+                f"Published: {KBRContextRetriever._format_datetime(news.published_at)}"
+            )
+
+        return "\n".join(lines)
+
+    @staticmethod
+    def _format_datetime(
+        value: datetime,
+    ) -> str:
+        if value.tzinfo is not None:
+            return value.strftime(
+                "%B %d, %Y at %H:%M UTC"
+            )
+
+        return value.strftime(
+            "%B %d, %Y at %H:%M"
+        )
+
+    @staticmethod
+    def _format_date(
+        value: date,
+    ) -> str:
+        return value.strftime(
+            "%B %d, %Y"
+        )
 
 
 __all__ = [

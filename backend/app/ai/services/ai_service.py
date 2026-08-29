@@ -5,8 +5,8 @@ from typing import Protocol
 from backend.app.ai.context import (
     AIIntent,
     IntentDetector,
+    KBRContext,
     KBRContextFormatter,
-    KBRContextRetriever,
 )
 from backend.app.ai.gateway import ModelGateway
 from backend.app.ai.schemas import (
@@ -18,7 +18,8 @@ from backend.app.ai.schemas import (
 
 class ContextRetrieverProtocol(Protocol):
     """
-    Protocol describing the context retrieval interface used by AIService.
+    Protocol describing the structured context retrieval interface
+    used by AIService.
     """
 
     def retrieve(
@@ -26,7 +27,7 @@ class ContextRetrieverProtocol(Protocol):
         *,
         intent: AIIntent,
         query: str,
-    ) -> dict[str, object]:
+    ) -> KBRContext:
         ...
 
 
@@ -38,26 +39,10 @@ class AIService:
 
     1. Extract the user's latest message.
     2. Detect the user's intent.
-    3. Retrieve relevant KBR information.
-    4. Format the retrieved information.
+    3. Retrieve relevant public KBR information.
+    4. Format the structured KBR context.
     5. Inject the context into the model request.
     6. Delegate generation to ModelGateway.
-
-    Architecture:
-
-        Router
-           ↓
-        AIService
-           ↓
-        IntentDetector
-           ↓
-        KBRContextRetriever
-           ↓
-        KBRContextFormatter
-           ↓
-        ModelGateway
-           ↓
-        ModelProvider
     """
 
     def __init__(
@@ -67,7 +52,6 @@ class AIService:
         intent_detector: IntentDetector | None = None,
     ) -> None:
         self.gateway = gateway
-
         self.context_retriever = context_retriever
         self.intent_detector = (
             intent_detector
@@ -82,9 +66,8 @@ class AIService:
         """
         Generate an AI response.
 
-        When a context retriever is configured, the service retrieves
-        relevant public KBR information before sending the request
-        to the model.
+        When a context retriever is configured, public KBR
+        information is retrieved before generation.
         """
 
         if self.context_retriever is None:
@@ -129,7 +112,7 @@ class AIService:
         request: ModelRequest,
     ) -> str | None:
         """
-        Return the latest user message from the conversation.
+        Return the latest non-empty user message.
         """
 
         for message in reversed(request.messages):
@@ -147,11 +130,7 @@ class AIService:
         context: str,
     ) -> ModelRequest:
         """
-        Create a new model request with retrieved KBR context.
-
-        The context is inserted as a system message before the
-        conversation so the model receives the database information
-        before processing the user's request.
+        Insert retrieved KBR context as the first system message.
         """
 
         messages = [

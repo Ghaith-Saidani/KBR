@@ -7,7 +7,10 @@ from datetime import datetime
 @dataclass(frozen=True)
 class ContextItem:
     """
-    A single piece of public KBR information retrieved from the database.
+    A single piece of public KBR information retrieved for an AI request.
+
+    The content is already prepared for model consumption. Internal
+    database identifiers and private fields must never be included.
     """
 
     type: str
@@ -19,20 +22,22 @@ class ContextItem:
 @dataclass(frozen=True)
 class KBRContext:
     """
-    Collection of database information relevant to an AI request.
+    Structured collection of public KBR information relevant to an
+    AI request.
+
+    The retriever produces this object and the formatter converts it
+    into the final prompt sent to the model.
     """
 
     intent: str
-    items: list[ContextItem] = field(
-        default_factory=list,
-    )
+    items: list[ContextItem] = field(default_factory=list)
 
     def is_empty(self) -> bool:
         return not self.items
 
     def to_prompt(self) -> str:
         """
-        Convert retrieved information into a compact model context.
+        Convert the structured context into a compact model prompt.
         """
 
         if self.is_empty():
@@ -43,6 +48,10 @@ class KBRContext:
 
         lines: list[str] = [
             "RETRIEVED KBR DATABASE CONTEXT",
+            "The following information was retrieved from the "
+            "KBR application database.",
+            "Use it as authoritative information for dynamic KBR data.",
+            "Do not invent information that is not present here.",
             "",
             f"Detected intent: {self.intent}",
             "",
@@ -76,6 +85,7 @@ class MemberContext:
     last_name: str
     position: str | None
     bio: str | None
+    joined_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -86,6 +96,7 @@ class ActivityContext:
     location: str | None
     start_at: datetime | None
     end_at: datetime | None
+    published_at: datetime | None = None
 
 
 @dataclass(frozen=True)

@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 from backend.app.ai.context import (
     AIIntent,
+    KBRContext,
     KBRContextRetriever,
 )
 from backend.app.models import (
@@ -40,14 +41,22 @@ def test_retriever_returns_active_members(
         query="Who are the KBR members?",
     )
 
-    assert context["intent"] == "members"
-    assert len(context["members"]) == 1
+    assert isinstance(context, KBRContext)
+    assert context.intent == "members"
+    assert len(context.items) == 1
 
-    assert context["members"][0]["name"] == "Ghaith Test"
-    assert context["members"][0]["position"] == "Developer"
+    item = context.items[0]
+
+    assert item.type == "member"
+    assert item.title == "Ghaith Test"
+    assert "Position: Developer" in item.content
+    assert "Bio: KBR developer." in item.content
 
 
-def test_retriever_returns_published_events(db, admin_user):
+def test_retriever_returns_published_events(
+    db,
+    admin_user,
+):
     event = Event(
         title="KBR Esports Tournament",
         description="A KBR tournament.",
@@ -70,12 +79,16 @@ def test_retriever_returns_published_events(db, admin_user):
         query="When is the next event?",
     )
 
-    assert context["intent"] == "events"
-    assert len(context["events"]) == 1
-    assert (
-        context["events"][0]["title"]
-        == "KBR Esports Tournament"
-    )
+    assert isinstance(context, KBRContext)
+    assert context.intent == "events"
+    assert len(context.items) == 1
+
+    item = context.items[0]
+
+    assert item.type == "event"
+    assert item.title == "KBR Esports Tournament"
+    assert "A KBR tournament." in item.content
+    assert "Bizerte" in item.content
 
 
 def test_retriever_excludes_draft_events(
@@ -104,7 +117,13 @@ def test_retriever_excludes_draft_events(
         query="What events are coming?",
     )
 
-    assert context["events"] == []
+    assert context.intent == "events"
+    assert len(context.items) == 1
+
+    item = context.items[0]
+
+    assert item.title == "No published events"
+    assert "No published KBR events were found." in item.content
 
 
 def test_retriever_returns_published_activities(
@@ -130,12 +149,16 @@ def test_retriever_returns_published_activities(
         query="What activities does KBR have?",
     )
 
-    assert context["intent"] == "activities"
-    assert len(context["activities"]) == 1
-    assert (
-        context["activities"][0]["title"]
-        == "KBR Community Project"
-    )
+    assert isinstance(context, KBRContext)
+    assert context.intent == "activities"
+    assert len(context.items) == 1
+
+    item = context.items[0]
+
+    assert item.type == "activity"
+    assert item.title == "KBR Community Project"
+    assert "Community project." in item.content
+    assert "A KBR community project." in item.content
 
 
 def test_retriever_returns_published_news(
@@ -161,9 +184,13 @@ def test_retriever_returns_published_news(
         query="What is the latest KBR news?",
     )
 
-    assert context["intent"] == "news"
-    assert len(context["news"]) == 1
-    assert (
-        context["news"][0]["title"]
-        == "KBR Announcement"
-    )
+    assert isinstance(context, KBRContext)
+    assert context.intent == "news"
+    assert len(context.items) == 1
+
+    item = context.items[0]
+
+    assert item.type == "news"
+    assert item.title == "KBR Announcement"
+    assert "An announcement." in item.content
+    assert "KBR has an announcement." in item.content
