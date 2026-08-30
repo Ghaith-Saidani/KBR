@@ -12,8 +12,13 @@ from backend.app.api.members import router as members_router
 from backend.app.api.news import router as news_router
 from backend.app.api.notifications import router as notifications_router
 from backend.app.api.statistics import router as statistics_router
+from backend.app.api.user_activity import router as user_activity_router
 from backend.app.core.config import get_settings
 from backend.app.core.database import engine
+
+from backend.app.middleware.activity_logging import (
+    ActivityLoggingMiddleware,
+)
 
 
 from backend.app.ai.router import router as ai_router
@@ -36,6 +41,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.add_middleware(
+    ActivityLoggingMiddleware,
+)
 
 app.include_router(auth_router)
 app.include_router(members_router)
@@ -46,6 +54,7 @@ app.include_router(news_router)
 app.include_router(activities_router)
 app.include_router(contact_router)
 app.include_router(notifications_router)
+app.include_router(user_activity_router)
 app.include_router(dev.router)
 
 app.include_router(

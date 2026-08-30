@@ -65,3 +65,9 @@ class User(Base, TimestampMixin):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+
+    activities = relationship(
+        "UserActivity",
+        back_populates="user",
+        passive_deletes=True,
+    )

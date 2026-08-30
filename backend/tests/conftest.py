@@ -12,6 +12,9 @@ from backend.app.main import app
 from backend.app.models.base import Base
 from backend.app.models.user import User, UserRole, UserStatus
 
+from backend.app.middleware.activity_logging import (
+    ActivityLoggingMiddleware,
+)
 
 settings = get_settings()
 
@@ -115,11 +118,27 @@ def client(
 
     app.dependency_overrides[get_db] = override_get_db
 
+    setattr(
+        app.state,
+        ActivityLoggingMiddleware.SESSION_STATE_KEY,
+        db,
+    )
+
     try:
         with TestClient(app) as test_client:
             yield test_client
+
     finally:
         app.dependency_overrides.clear()
+
+        if hasattr(
+            app.state,
+            ActivityLoggingMiddleware.SESSION_STATE_KEY,
+        ):
+            delattr(
+                app.state,
+                ActivityLoggingMiddleware.SESSION_STATE_KEY,
+            )
 
 
 def create_test_user(

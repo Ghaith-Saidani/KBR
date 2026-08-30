@@ -6,6 +6,7 @@ from backend.app.models.member import Member, MemberStatus
 from backend.app.models.news import News, NewsStatus
 from backend.app.models.notification import Notification, NotificationType
 from backend.app.models.user import User, UserRole, UserStatus
+from backend.app.models.user_activity import UserActivity
 
 __all__ = [
     "Activity",
@@ -24,4 +25,5 @@ __all__ = [
     "User",
     "UserRole",
     "UserStatus",
+    "UserActivity",
 ]

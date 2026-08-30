@@ -68,6 +68,7 @@ def register(
 )
 def login(
     data: LoginRequest,
+    request: Request,
     db: Session = Depends(get_db),
 ) -> TokenResponse:
     """Authenticate a user and return a JWT access token."""
@@ -93,6 +94,8 @@ def login(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(exc),
         ) from exc
+
+    request.state.user = user
 
     access_token = create_access_token(
         subject=str(user.id),
@@ -264,6 +267,8 @@ def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="This account has been suspended.",
         )
+
+    request.state.user = user
 
     return user
 

@@ -45,6 +45,11 @@ from backend.app.schemas.notification import (
     NotificationUnreadCountResponse,
 )
 
+from backend.app.schemas.user_activity import (
+    UserActivityListResponse,
+    UserActivityResponse,
+)
+
 __all__ = [
     "ActivityListResponse",
     "ActivityResponse",
@@ -76,4 +81,6 @@ __all__ = [
     "NotificationReadResponse",
     "NotificationResponse",
     "NotificationUnreadCountResponse",
+    "UserActivityListResponse",
+    "UserActivityResponse",
 ]
