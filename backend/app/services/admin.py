@@ -1,4 +1,7 @@
 import uuid
+from datetime import date, datetime
+from enum import Enum
+from typing import Any
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, or_, select
@@ -12,6 +15,64 @@ from backend.app.schemas.admin import (
     AdminMemberUpdateRequest,
     AdminUserStats,
 )
+from backend.app.services.activity_logger import log_user_activity
+
+
+def _serialize_audit_value(value: Any) -> object:
+    """Convert values to JSON-safe audit metadata."""
+
+    if isinstance(value, Enum):
+        return value.value
+
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+
+    if isinstance(value, uuid.UUID):
+        return str(value)
+
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+
+    return str(value)
+
+
+def _member_display_name(member: Member) -> str:
+    """Return a human-readable member name."""
+
+    return (
+        f"{member.first_name.strip()} "
+        f"{member.last_name.strip()}"
+    ).strip()
+
+
+def _build_audit_changes(
+    resource: Any,
+    update_data: dict[str, Any],
+) -> dict[str, dict[str, object]]:
+    """
+    Build a before/after representation for fields that
+    actually changed.
+    """
+
+    changes: dict[str, dict[str, object]] = {}
+
+    for field, new_value in update_data.items():
+        previous_value = getattr(resource, field)
+
+        serialized_previous = _serialize_audit_value(
+            previous_value,
+        )
+        serialized_new = _serialize_audit_value(
+            new_value,
+        )
+
+        if serialized_previous != serialized_new:
+            changes[field] = {
+                "from": serialized_previous,
+                "to": serialized_new,
+            }
+
+    return changes
 
 
 def get_admin_member(
@@ -234,7 +295,14 @@ def update_member(
     db: Session,
     member_id: uuid.UUID,
     data: AdminMemberUpdateRequest,
+    *,
+    actor_user_id: uuid.UUID,
 ) -> tuple[User, Member]:
+    """
+    Update a member profile as an administrator and record
+    a semantic MEMBER_UPDATED audit event.
+    """
+
     user, member = get_admin_member(
         db,
         member_id,
@@ -243,6 +311,17 @@ def update_member(
     update_data = data.model_dump(
         exclude_unset=True,
     )
+
+    if not update_data:
+        return user, member
+
+    changes = _build_audit_changes(
+        member,
+        update_data,
+    )
+
+    if not changes:
+        return user, member
 
     for field, value in update_data.items():
         if isinstance(value, str):
@@ -253,6 +332,25 @@ def update_member(
             field,
             value,
         )
+
+    member_name = _member_display_name(member)
+
+    log_user_activity(
+        db,
+        action="MEMBER_UPDATED",
+        user_id=actor_user_id,
+        resource_type="member",
+        resource_id=member.id,
+        details=(
+            f'Updated member "{member_name}"'
+        ),
+        activity_metadata={
+            "resource_name": member_name,
+            "actor_type": "staff_or_admin",
+            "changed_fields": sorted(changes.keys()),
+            "changes": changes,
+        },
+    )
 
     db.commit()
 
@@ -265,7 +363,14 @@ def update_member(
 def activate_member(
     db: Session,
     member_id: uuid.UUID,
+    *,
+    actor_user_id: uuid.UUID,
 ) -> tuple[User, Member]:
+    """
+    Activate a member account and record a semantic
+    MEMBER_REACTIVATED audit event.
+    """
+
     user, member = get_admin_member(
         db,
         member_id,
@@ -274,7 +379,43 @@ def activate_member(
     if user.status == UserStatus.ACTIVE:
         return user, member
 
+    previous_status = user.status
+
     user.status = UserStatus.ACTIVE
+
+    member_name = _member_display_name(member)
+
+    log_user_activity(
+        db,
+        action="MEMBER_REACTIVATED",
+        user_id=actor_user_id,
+        resource_type="member",
+        resource_id=member.id,
+        details=(
+            f'Reactivated member "{member_name}"'
+        ),
+        activity_metadata={
+            "resource_name": member_name,
+            "actor_type": "staff_or_admin",
+            "changed_fields": ["status"],
+            "changes": {
+                "status": {
+                    "from": _serialize_audit_value(
+                        previous_status,
+                    ),
+                    "to": _serialize_audit_value(
+                        user.status,
+                    ),
+                },
+            },
+            "previous_status": _serialize_audit_value(
+                previous_status,
+            ),
+            "new_status": _serialize_audit_value(
+                user.status,
+            ),
+        },
+    )
 
     db.commit()
 
@@ -287,13 +428,59 @@ def activate_member(
 def suspend_member(
     db: Session,
     member_id: uuid.UUID,
+    *,
+    actor_user_id: uuid.UUID,
 ) -> tuple[User, Member]:
+    """
+    Suspend a member account and record a semantic
+    MEMBER_DEACTIVATED audit event.
+    """
+
     user, member = get_admin_member(
         db,
         member_id,
     )
 
+    previous_status = user.status
+
+    if previous_status == UserStatus.SUSPENDED:
+        return user, member
+
     user.status = UserStatus.SUSPENDED
+
+    member_name = _member_display_name(member)
+
+    log_user_activity(
+        db,
+        action="MEMBER_DEACTIVATED",
+        user_id=actor_user_id,
+        resource_type="member",
+        resource_id=member.id,
+        details=(
+            f'Deactivated member "{member_name}"'
+        ),
+        activity_metadata={
+            "resource_name": member_name,
+            "actor_type": "staff_or_admin",
+            "changed_fields": ["status"],
+            "changes": {
+                "status": {
+                    "from": _serialize_audit_value(
+                        previous_status,
+                    ),
+                    "to": _serialize_audit_value(
+                        user.status,
+                    ),
+                },
+            },
+            "previous_status": _serialize_audit_value(
+                previous_status,
+            ),
+            "new_status": _serialize_audit_value(
+                user.status,
+            ),
+        },
+    )
 
     db.commit()
 
@@ -307,13 +494,53 @@ def update_member_role(
     db: Session,
     member_id: uuid.UUID,
     role: UserRole,
+    *,
+    actor_user_id: uuid.UUID,
 ) -> tuple[User, Member]:
+    """
+    Change a member's role and record the operation as a
+    MEMBER_UPDATED audit event.
+    """
+
     user, member = get_admin_member(
         db,
         member_id,
     )
 
+    previous_role = user.role
+
+    if previous_role == role:
+        return user, member
+
     user.role = role
+
+    member_name = _member_display_name(member)
+
+    log_user_activity(
+        db,
+        action="MEMBER_UPDATED",
+        user_id=actor_user_id,
+        resource_type="member",
+        resource_id=member.id,
+        details=(
+            f'Updated member "{member_name}"'
+        ),
+        activity_metadata={
+            "resource_name": member_name,
+            "actor_type": "staff_or_admin",
+            "changed_fields": ["role"],
+            "changes": {
+                "role": {
+                    "from": _serialize_audit_value(
+                        previous_role,
+                    ),
+                    "to": _serialize_audit_value(
+                        role,
+                    ),
+                },
+            },
+        },
+    )
 
     db.commit()
 

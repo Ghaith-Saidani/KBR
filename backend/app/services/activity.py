@@ -1,5 +1,7 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
+from enum import Enum
+from typing import Any
 
 from fastapi import HTTPException, status
 from sqlalchemy import or_
@@ -21,6 +23,54 @@ from backend.app.services.activity_logger import log_user_activity
 from backend.app.services.notification import (
     add_notification_for_active_members,
 )
+
+
+def _serialize_audit_value(value: Any) -> object:
+    """Convert values to JSON-safe audit metadata."""
+
+    if isinstance(value, Enum):
+        return value.value
+
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+
+    if isinstance(value, uuid.UUID):
+        return str(value)
+
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+
+    return str(value)
+
+
+def _build_audit_changes(
+    resource: Activity,
+    update_data: dict[str, Any],
+) -> dict[str, dict[str, object]]:
+    """
+    Build a before/after representation for fields that
+    actually changed.
+    """
+
+    changes: dict[str, dict[str, object]] = {}
+
+    for field, new_value in update_data.items():
+        previous_value = getattr(resource, field)
+
+        serialized_previous = _serialize_audit_value(
+            previous_value,
+        )
+        serialized_new = _serialize_audit_value(
+            new_value,
+        )
+
+        if serialized_previous != serialized_new:
+            changes[field] = {
+                "from": serialized_previous,
+                "to": serialized_new,
+            }
+
+    return changes
 
 
 def create_activity(
@@ -112,8 +162,11 @@ def create_activity(
         user_id=created_by,
         resource_type="activity",
         resource_id=activity.id,
-        details="Activity created",
+        details=(
+            f'Created activity "{activity.title.strip()}"'
+        ),
         activity_metadata={
+            "resource_name": activity.title.strip(),
             "status": activity.status.value,
         },
     )
@@ -270,8 +323,6 @@ def update_activity(
     if not update_data:
         return activity
 
-    changed_fields = sorted(update_data.keys())
-
     if "slug" in update_data:
         new_slug = update_data["slug"]
 
@@ -293,6 +344,13 @@ def update_activity(
                         "already exists."
                     ),
                 )
+
+    changes = _build_audit_changes(
+        activity,
+        update_data,
+    )
+
+    changed_fields = sorted(changes.keys())
 
     for field, value in update_data.items():
         setattr(
@@ -341,10 +399,14 @@ def update_activity(
 
     if became_published:
         audit_action = "ACTIVITY_PUBLISHED"
-        audit_details = "Activity published"
+        audit_details = (
+            f'Published activity "{activity.title.strip()}"'
+        )
     else:
         audit_action = "ACTIVITY_UPDATED"
-        audit_details = "Activity updated"
+        audit_details = (
+            f'Updated activity "{activity.title.strip()}"'
+        )
 
     log_user_activity(
         db,
@@ -354,7 +416,9 @@ def update_activity(
         resource_id=activity.id,
         details=audit_details,
         activity_metadata={
+            "resource_name": activity.title.strip(),
             "changed_fields": changed_fields,
+            "changes": changes,
             "previous_status": previous_status.value,
             "new_status": activity.status.value,
         },
@@ -393,7 +457,7 @@ def delete_activity(
         activity_id,
     )
 
-    activity_title = activity.title
+    activity_title = activity.title.strip()
 
     db.delete(activity)
 
@@ -403,9 +467,11 @@ def delete_activity(
         user_id=actor_user_id,
         resource_type="activity",
         resource_id=activity.id,
-        details="Activity deleted",
+        details=(
+            f'Deleted activity "{activity_title}"'
+        ),
         activity_metadata={
-            "title": activity_title,
+            "resource_name": activity_title,
         },
     )
 

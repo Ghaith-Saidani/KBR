@@ -1,6 +1,9 @@
 import re
 import unicodedata
 import uuid
+from datetime import date, datetime
+from enum import Enum
+from typing import Any
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, or_, select
@@ -13,6 +16,63 @@ from backend.app.schemas.member import (
     MemberUpdateRequest,
 )
 from backend.app.services.activity_logger import log_user_activity
+
+
+def _serialize_audit_value(value: Any) -> object:
+    """Convert values to JSON-safe audit metadata."""
+
+    if isinstance(value, Enum):
+        return value.value
+
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+
+    if isinstance(value, uuid.UUID):
+        return str(value)
+
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+
+    return str(value)
+
+
+def _member_display_name(member: Member) -> str:
+    """Return a human-readable member name."""
+
+    return (
+        f"{member.first_name.strip()} "
+        f"{member.last_name.strip()}"
+    ).strip()
+
+
+def _build_audit_changes(
+    resource: Member,
+    update_data: dict[str, Any],
+) -> dict[str, dict[str, object]]:
+    """
+    Build a before/after representation for fields that
+    actually changed.
+    """
+
+    changes: dict[str, dict[str, object]] = {}
+
+    for field, new_value in update_data.items():
+        previous_value = getattr(resource, field)
+
+        serialized_previous = _serialize_audit_value(
+            previous_value,
+        )
+        serialized_new = _serialize_audit_value(
+            new_value,
+        )
+
+        if serialized_previous != serialized_new:
+            changes[field] = {
+                "from": serialized_previous,
+                "to": serialized_new,
+            }
+
+    return changes
 
 
 def slugify_member_name(
@@ -211,6 +271,16 @@ def update_member_profile(
         exclude_unset=True,
     )
 
+    if not update_data:
+        return member
+
+    member_name_before = _member_display_name(member)
+
+    changes = _build_audit_changes(
+        member,
+        update_data,
+    )
+
     name_changed = (
         "first_name" in update_data
         or "last_name" in update_data
@@ -231,16 +301,22 @@ def update_member_profile(
             exclude_member_id=member.id,
         )
 
+    member_name_after = _member_display_name(member)
+
     log_user_activity(
         db,
         action="MEMBER_UPDATED",
         user_id=member.user_id,
         resource_type="member",
         resource_id=member.id,
-        details="Member profile updated",
+        details=(
+            f'Updated member "{member_name_after}"'
+        ),
         activity_metadata={
+            "resource_name": member_name_after,
             "actor_type": "member",
-            "changed_fields": sorted(update_data.keys()),
+            "changed_fields": sorted(changes.keys()),
+            "changes": changes,
         },
     )
 
@@ -274,7 +350,16 @@ def update_member_admin(
         exclude_unset=True,
     )
 
+    if not update_data:
+        return member
+
     previous_status = member.status
+    member_name_before = _member_display_name(member)
+
+    changes = _build_audit_changes(
+        member,
+        update_data,
+    )
 
     name_changed = (
         "first_name" in update_data
@@ -297,6 +382,7 @@ def update_member_admin(
         )
 
     new_status = member.status
+    member_name_after = _member_display_name(member)
 
     if (
         "status" in update_data
@@ -310,18 +396,33 @@ def update_member_admin(
     else:
         action = "MEMBER_UPDATED"
 
+    action_details = {
+        "MEMBER_UPDATED": (
+            f'Updated member "{member_name_after}"'
+        ),
+        "MEMBER_REACTIVATED": (
+            f'Reactivated member "{member_name_after}"'
+        ),
+        "MEMBER_DEACTIVATED": (
+            f'Deactivated member "{member_name_after}"'
+        ),
+        "MEMBER_ARCHIVED": (
+            f'Archived member "{member_name_after}"'
+        ),
+    }
+
     log_user_activity(
         db,
         action=action,
         user_id=actor_user_id,
         resource_type="member",
         resource_id=member.id,
-        details="Member updated by staff/admin",
+        details=action_details[action],
         activity_metadata={
+            "resource_name": member_name_after,
             "actor_type": "staff_or_admin",
-            "changed_fields": sorted(
-                update_data.keys()
-            ),
+            "changed_fields": sorted(changes.keys()),
+            "changes": changes,
             "previous_status": previous_status.value,
             "new_status": new_status.value,
         },
@@ -356,6 +457,7 @@ def delete_member(
 
     member_id = member.id
     member_user_id = member.user_id
+    member_name = _member_display_name(member)
 
     db.delete(member)
 
@@ -365,8 +467,11 @@ def delete_member(
         user_id=actor_user_id,
         resource_type="member",
         resource_id=member_id,
-        details="Member profile deleted",
+        details=(
+            f'Deleted member "{member_name}"'
+        ),
         activity_metadata={
+            "resource_name": member_name,
             "actor_type": "admin",
             "affected_user_id": str(member_user_id),
         },

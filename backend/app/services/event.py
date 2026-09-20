@@ -1,5 +1,7 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
+from enum import Enum
+from typing import Any
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, or_, select
@@ -15,6 +17,54 @@ from backend.app.services.activity_logger import log_user_activity
 from backend.app.services.notification import (
     add_notification_for_active_members,
 )
+
+
+def _serialize_audit_value(value: Any) -> object:
+    """Convert values to JSON-safe audit metadata."""
+
+    if isinstance(value, Enum):
+        return value.value
+
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+
+    if isinstance(value, uuid.UUID):
+        return str(value)
+
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+
+    return str(value)
+
+
+def _build_audit_changes(
+    resource: Event,
+    update_data: dict[str, Any],
+) -> dict[str, dict[str, object]]:
+    """
+    Build a before/after representation for fields that
+    actually changed.
+    """
+
+    changes: dict[str, dict[str, object]] = {}
+
+    for field, new_value in update_data.items():
+        previous_value = getattr(resource, field)
+
+        serialized_previous = _serialize_audit_value(
+            previous_value,
+        )
+        serialized_new = _serialize_audit_value(
+            new_value,
+        )
+
+        if serialized_previous != serialized_new:
+            changes[field] = {
+                "from": serialized_previous,
+                "to": serialized_new,
+            }
+
+    return changes
 
 
 def get_event(
@@ -130,14 +180,17 @@ def create_event(
     db.add(event)
     db.flush()
 
+    event_title = event.title.strip()
+
     log_user_activity(
         db,
         action="EVENT_CREATED",
         user_id=current_user_id,
         resource_type="event",
         resource_id=event.id,
-        details="Event created",
+        details=f'Created event "{event_title}"',
         activity_metadata={
+            "resource_name": event_title,
             "status": event.status.value,
         },
     )
@@ -147,8 +200,8 @@ def create_event(
             db,
             title="Nouvel événement",
             message=(
-                f"Un nouvel événement KBR est disponible : "
-                f"{data.title.strip()}."
+                "Un nouvel événement KBR est disponible : "
+                f"{event_title}."
             ),
             notification_type=NotificationType.INFO,
         )
@@ -206,6 +259,13 @@ def update_event(
             detail="end_at must be later than start_at.",
         )
 
+    changes = _build_audit_changes(
+        event,
+        update_data,
+    )
+
+    changed_fields = sorted(changes.keys())
+
     for field, value in update_data.items():
         setattr(
             event,
@@ -223,25 +283,33 @@ def update_event(
             db,
             title="Nouvel événement",
             message=(
-                f"Un nouvel événement KBR est disponible : "
+                "Un nouvel événement KBR est disponible : "
                 f"{event.title.strip()}."
             ),
             notification_type=NotificationType.INFO,
         )
 
+    event_title = event.title.strip()
+
     if became_published:
         action = "EVENT_PUBLISHED"
-        details = "Event published"
+        details = (
+            f'Published event "{event_title}"'
+        )
     elif (
         "status" in update_data
         and event.status == EventStatus.CANCELLED
         and previous_status != EventStatus.CANCELLED
     ):
         action = "EVENT_CANCELLED"
-        details = "Event cancelled"
+        details = (
+            f'Cancelled event "{event_title}"'
+        )
     else:
         action = "EVENT_UPDATED"
-        details = "Event updated"
+        details = (
+            f'Updated event "{event_title}"'
+        )
 
     log_user_activity(
         db,
@@ -251,9 +319,9 @@ def update_event(
         resource_id=event.id,
         details=details,
         activity_metadata={
-            "changed_fields": sorted(
-                update_data.keys()
-            ),
+            "resource_name": event_title,
+            "changed_fields": changed_fields,
+            "changes": changes,
             "previous_status": previous_status.value,
             "new_status": event.status.value,
         },
@@ -281,7 +349,7 @@ def delete_event(
     )
 
     event_id = event.id
-    event_title = event.title
+    event_title = event.title.strip()
 
     db.delete(event)
 
@@ -291,9 +359,11 @@ def delete_event(
         user_id=actor_user_id,
         resource_type="event",
         resource_id=event_id,
-        details="Event deleted",
+        details=(
+            f'Deleted event "{event_title}"'
+        ),
         activity_metadata={
-            "title": event_title,
+            "resource_name": event_title,
         },
     )
 

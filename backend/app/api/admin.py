@@ -182,6 +182,7 @@ def update_member_profile(
         db,
         member_id,
         data,
+        actor_user_id=current_user.id,
     )
 
     return build_member_response(
@@ -204,6 +205,7 @@ def activate_member_account(
     user, member = activate_member(
         db,
         member_id,
+        actor_user_id=current_user.id,
     )
 
     return build_member_response(
@@ -226,6 +228,7 @@ def suspend_member_account(
     user, member = suspend_member(
         db,
         member_id,
+        actor_user_id=current_user.id,
     )
 
     return build_member_response(
@@ -250,6 +253,7 @@ def change_member_role(
         db,
         member_id,
         data.role,
+        actor_user_id=current_user.id,
     )
 
     return build_member_response(

@@ -32,7 +32,9 @@ def news_payload(
         "slug": slug,
         "excerpt": "Audit test news excerpt.",
         "content": "Audit test news content.",
-        "cover_image": "https://example.com/news.jpg",
+        "cover_image": (
+            "https://example.com/news.jpg"
+        ),
         "status": status,
     }
 
@@ -85,8 +87,17 @@ def test_news_creation_creates_business_audit_event(
     assert audit.user_id == staff_user.id
     assert audit.resource_type == "news"
     assert str(audit.resource_id) == news_id
-    assert audit.details == "News article created"
+    assert audit.details == (
+        'Created news article "KBR Audit News"'
+    )
+
     assert audit.activity_metadata is not None
+
+    assert (
+        audit.activity_metadata["resource_name"]
+        == "KBR Audit News"
+    )
+
     assert audit.activity_metadata["status"] == "draft"
 
 
@@ -131,16 +142,42 @@ def test_news_update_creates_business_audit_event(
     assert audit.user_id == staff_user.id
     assert audit.resource_type == "news"
     assert str(audit.resource_id) == news_id
-    assert audit.details == "News article updated"
+    assert audit.details == (
+        'Updated news article "Updated KBR Audit News"'
+    )
+
     assert audit.activity_metadata is not None
-    assert set(
-        audit.activity_metadata["changed_fields"]
-    ) == {
+
+    assert (
+        audit.activity_metadata["resource_name"]
+        == "Updated KBR Audit News"
+    )
+
+    assert audit.activity_metadata["changed_fields"] == [
         "excerpt",
         "title",
+    ]
+
+    assert audit.activity_metadata["changes"] == {
+        "excerpt": {
+            "from": "Audit test news excerpt.",
+            "to": "Updated excerpt.",
+        },
+        "title": {
+            "from": "KBR Audit News",
+            "to": "Updated KBR Audit News",
+        },
     }
-    assert audit.activity_metadata["previous_status"] == "draft"
-    assert audit.activity_metadata["new_status"] == "draft"
+
+    assert (
+        audit.activity_metadata["previous_status"]
+        == "draft"
+    )
+
+    assert (
+        audit.activity_metadata["new_status"]
+        == "draft"
+    )
 
 
 def test_news_publication_creates_semantic_audit_event(
@@ -189,10 +226,37 @@ def test_news_publication_creates_semantic_audit_event(
     assert audit.user_id == staff_user.id
     assert audit.resource_type == "news"
     assert str(audit.resource_id) == news_id
-    assert audit.details == "News article published"
+    assert audit.details == (
+        'Published news article "News To Publish"'
+    )
+
     assert audit.activity_metadata is not None
-    assert audit.activity_metadata["previous_status"] == "draft"
-    assert audit.activity_metadata["new_status"] == "published"
+
+    assert (
+        audit.activity_metadata["resource_name"]
+        == "News To Publish"
+    )
+
+    assert (
+        audit.activity_metadata["previous_status"]
+        == "draft"
+    )
+
+    assert (
+        audit.activity_metadata["new_status"]
+        == "published"
+    )
+
+    assert audit.activity_metadata["changed_fields"] == [
+        "status",
+    ]
+
+    assert audit.activity_metadata["changes"] == {
+        "status": {
+            "from": "draft",
+            "to": "published",
+        },
+    }
 
 
 def test_news_unpublication_creates_semantic_audit_event(
@@ -241,10 +305,37 @@ def test_news_unpublication_creates_semantic_audit_event(
     assert audit.user_id == staff_user.id
     assert audit.resource_type == "news"
     assert str(audit.resource_id) == news_id
-    assert audit.details == "News article unpublished"
+    assert audit.details == (
+        'Unpublished news article "News To Unpublish"'
+    )
+
     assert audit.activity_metadata is not None
-    assert audit.activity_metadata["previous_status"] == "published"
-    assert audit.activity_metadata["new_status"] == "draft"
+
+    assert (
+        audit.activity_metadata["resource_name"]
+        == "News To Unpublish"
+    )
+
+    assert (
+        audit.activity_metadata["previous_status"]
+        == "published"
+    )
+
+    assert (
+        audit.activity_metadata["new_status"]
+        == "draft"
+    )
+
+    assert audit.activity_metadata["changed_fields"] == [
+        "status",
+    ]
+
+    assert audit.activity_metadata["changes"] == {
+        "status": {
+            "from": "published",
+            "to": "draft",
+        },
+    }
 
 
 def test_news_deletion_creates_business_audit_event(
@@ -287,9 +378,16 @@ def test_news_deletion_creates_business_audit_event(
     assert audit.user_id == staff_user.id
     assert audit.resource_type == "news"
     assert str(audit.resource_id) == news_id
-    assert audit.details == "News article deleted"
+    assert audit.details == (
+        'Deleted news article "News To Delete"'
+    )
+
     assert audit.activity_metadata is not None
-    assert audit.activity_metadata["title"] == "News To Delete"
+
+    assert (
+        audit.activity_metadata["resource_name"]
+        == "News To Delete"
+    )
 
 
 def test_news_created_with_published_status_creates_creation_audit(
@@ -318,8 +416,17 @@ def test_news_created_with_published_status_creates_creation_audit(
     ]
 
     assert len(creation_audits) == 1
-    assert creation_audits[0].activity_metadata is not None
+
+    audit = creation_audits[0]
+
+    assert audit.activity_metadata is not None
+
     assert (
-        creation_audits[0].activity_metadata["status"]
+        audit.activity_metadata["resource_name"]
+        == "Immediately Published News"
+    )
+
+    assert (
+        audit.activity_metadata["status"]
         == "published"
     )

@@ -29,7 +29,10 @@ def activity_payload(
     slug: str = "kbr-audit-activity",
     status: str = "draft",
 ) -> dict:
-    start_at = datetime.now(timezone.utc) + timedelta(days=7)
+    start_at = (
+        datetime.now(timezone.utc)
+        + timedelta(days=7)
+    )
     end_at = start_at + timedelta(hours=2)
 
     return {
@@ -37,7 +40,9 @@ def activity_payload(
         "slug": slug,
         "excerpt": "Audit test activity excerpt.",
         "description": "Audit test activity description.",
-        "cover_image": "https://example.com/activity.jpg",
+        "cover_image": (
+            "https://example.com/activity.jpg"
+        ),
         "status": status,
         "start_at": start_at.isoformat(),
         "end_at": end_at.isoformat(),
@@ -93,8 +98,14 @@ def test_activity_creation_creates_business_audit_event(
     assert audit.user_id == staff_user.id
     assert audit.resource_type == "activity"
     assert str(audit.resource_id) == activity_id
-    assert audit.details == "Activity created"
+    assert audit.details == (
+        'Created activity "KBR Audit Activity"'
+    )
     assert audit.activity_metadata is not None
+    assert (
+        audit.activity_metadata["resource_name"]
+        == "KBR Audit Activity"
+    )
     assert audit.activity_metadata["status"] == "draft"
 
 
@@ -139,16 +150,41 @@ def test_activity_update_creates_business_audit_event(
     assert audit.user_id == staff_user.id
     assert audit.resource_type == "activity"
     assert str(audit.resource_id) == activity_id
-    assert audit.details == "Activity updated"
+    assert audit.details == (
+        'Updated activity "Updated KBR Audit Activity"'
+    )
+
     assert audit.activity_metadata is not None
-    assert set(
-        audit.activity_metadata["changed_fields"]
-    ) == {
+
+    assert (
+        audit.activity_metadata["resource_name"]
+        == "Updated KBR Audit Activity"
+    )
+
+    assert audit.activity_metadata["changed_fields"] == [
         "location",
         "title",
+    ]
+
+    assert audit.activity_metadata["changes"] == {
+        "location": {
+            "from": "Bizerte",
+            "to": "Bizerte Marina",
+        },
+        "title": {
+            "from": "KBR Audit Activity",
+            "to": "Updated KBR Audit Activity",
+        },
     }
-    assert audit.activity_metadata["previous_status"] == "draft"
-    assert audit.activity_metadata["new_status"] == "draft"
+
+    assert (
+        audit.activity_metadata["previous_status"]
+        == "draft"
+    )
+    assert (
+        audit.activity_metadata["new_status"]
+        == "draft"
+    )
 
 
 def test_activity_publication_creates_semantic_audit_event(
@@ -197,11 +233,36 @@ def test_activity_publication_creates_semantic_audit_event(
     assert audit.user_id == staff_user.id
     assert audit.resource_type == "activity"
     assert str(audit.resource_id) == activity_id
-    assert audit.details == "Activity published"
+    assert audit.details == (
+        'Published activity "Activity To Publish"'
+    )
+
     assert audit.activity_metadata is not None
-    assert audit.activity_metadata["previous_status"] == "draft"
-    assert audit.activity_metadata["new_status"] == "published"
-    assert "status" in audit.activity_metadata["changed_fields"]
+
+    assert (
+        audit.activity_metadata["resource_name"]
+        == "Activity To Publish"
+    )
+
+    assert (
+        audit.activity_metadata["previous_status"]
+        == "draft"
+    )
+    assert (
+        audit.activity_metadata["new_status"]
+        == "published"
+    )
+
+    assert audit.activity_metadata["changed_fields"] == [
+        "status",
+    ]
+
+    assert audit.activity_metadata["changes"] == {
+        "status": {
+            "from": "draft",
+            "to": "published",
+        },
+    }
 
 
 def test_activity_deletion_creates_business_audit_event(
@@ -244,9 +305,16 @@ def test_activity_deletion_creates_business_audit_event(
     assert audit.user_id == staff_user.id
     assert audit.resource_type == "activity"
     assert str(audit.resource_id) == activity_id
-    assert audit.details == "Activity deleted"
+    assert audit.details == (
+        'Deleted activity "Activity To Delete"'
+    )
+
     assert audit.activity_metadata is not None
-    assert audit.activity_metadata["title"] == "Activity To Delete"
+
+    assert (
+        audit.activity_metadata["resource_name"]
+        == "Activity To Delete"
+    )
 
 
 def test_published_activity_creation_creates_creation_audit(
@@ -275,8 +343,17 @@ def test_published_activity_creation_creates_creation_audit(
     ]
 
     assert len(creation_audits) == 1
-    assert creation_audits[0].activity_metadata is not None
+
+    audit = creation_audits[0]
+
+    assert audit.activity_metadata is not None
+
     assert (
-        creation_audits[0].activity_metadata["status"]
+        audit.activity_metadata["resource_name"]
+        == "Immediately Published Activity"
+    )
+
+    assert (
+        audit.activity_metadata["status"]
         == "published"
     )

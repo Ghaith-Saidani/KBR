@@ -104,14 +104,36 @@ def test_member_update_creates_business_audit_event(
     assert audit.user_id == member_user.id
     assert audit.resource_type == "member"
     assert audit.resource_id == member.id
-    assert audit.details == "Member profile updated"
+    assert audit.details == (
+        'Updated member "Jane Doe"'
+    )
+
     assert audit.activity_metadata is not None
-    assert audit.activity_metadata["actor_type"] == "member"
-    assert set(
-        audit.activity_metadata["changed_fields"]
-    ) == {
+
+    assert (
+        audit.activity_metadata["resource_name"]
+        == "Jane Doe"
+    )
+
+    assert (
+        audit.activity_metadata["actor_type"]
+        == "member"
+    )
+
+    assert audit.activity_metadata["changed_fields"] == [
         "first_name",
         "position",
+    ]
+
+    assert audit.activity_metadata["changes"] == {
+        "first_name": {
+            "from": "John",
+            "to": "Jane",
+        },
+        "position": {
+            "from": "Member",
+            "to": "Community Manager",
+        },
     }
 
 
@@ -151,8 +173,32 @@ def test_staff_member_update_creates_business_audit_event(
     assert audit.user_id == staff_user.id
     assert audit.resource_type == "member"
     assert audit.resource_id == member.id
+    assert audit.details == (
+        'Updated member "John Doe"'
+    )
+
     assert audit.activity_metadata is not None
-    assert audit.activity_metadata["actor_type"] == "staff_or_admin"
+
+    assert (
+        audit.activity_metadata["resource_name"]
+        == "John Doe"
+    )
+
+    assert (
+        audit.activity_metadata["actor_type"]
+        == "staff_or_admin"
+    )
+
+    assert audit.activity_metadata["changed_fields"] == [
+        "position",
+    ]
+
+    assert audit.activity_metadata["changes"] == {
+        "position": {
+            "from": "Member",
+            "to": "Staff Coordinator",
+        },
+    }
 
 
 def test_member_status_change_creates_semantic_audit_event(
@@ -192,11 +238,33 @@ def test_member_status_change_creates_semantic_audit_event(
     assert audit.user_id == staff_user.id
     assert audit.resource_type == "member"
     assert audit.resource_id == member.id
+    assert audit.details == (
+        'Deactivated member "John Doe"'
+    )
+
     assert audit.activity_metadata is not None
+
+    assert (
+        audit.activity_metadata["resource_name"]
+        == "John Doe"
+    )
+
+    assert audit.activity_metadata["changed_fields"] == [
+        "status",
+    ]
+
+    assert audit.activity_metadata["changes"] == {
+        "status": {
+            "from": "active",
+            "to": "inactive",
+        },
+    }
+
     assert (
         audit.activity_metadata["previous_status"]
         == "active"
     )
+
     assert (
         audit.activity_metadata["new_status"]
         == "inactive"
@@ -238,12 +306,35 @@ def test_member_reactivation_creates_semantic_audit_event(
     audit = status_audits[0]
 
     assert audit.user_id == admin_user.id
+    assert audit.resource_type == "member"
     assert audit.resource_id == member.id
+    assert audit.details == (
+        'Reactivated member "John Doe"'
+    )
+
     assert audit.activity_metadata is not None
+
+    assert (
+        audit.activity_metadata["resource_name"]
+        == "John Doe"
+    )
+
+    assert audit.activity_metadata["changed_fields"] == [
+        "status",
+    ]
+
+    assert audit.activity_metadata["changes"] == {
+        "status": {
+            "from": "inactive",
+            "to": "active",
+        },
+    }
+
     assert (
         audit.activity_metadata["previous_status"]
         == "inactive"
     )
+
     assert (
         audit.activity_metadata["new_status"]
         == "active"
@@ -285,9 +376,22 @@ def test_admin_member_delete_creates_business_audit_event(
     assert audit.user_id == admin_user.id
     assert audit.resource_type == "member"
     assert audit.resource_id == member_id
-    assert audit.details == "Member profile deleted"
+    assert audit.details == (
+        'Deleted member "John Doe"'
+    )
+
     assert audit.activity_metadata is not None
-    assert audit.activity_metadata["actor_type"] == "admin"
+
+    assert (
+        audit.activity_metadata["resource_name"]
+        == "John Doe"
+    )
+
+    assert (
+        audit.activity_metadata["actor_type"]
+        == "admin"
+    )
+
     assert (
         audit.activity_metadata["affected_user_id"]
         == str(member_user.id)

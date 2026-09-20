@@ -158,6 +158,44 @@ const RESOURCE_OPTIONS = [
   },
 ];
 
+const FIELD_LABELS: Record<string, string> = {
+  first_name: "Prénom",
+  last_name: "Nom",
+  email: "Email",
+  phone: "Téléphone",
+  position: "Poste",
+  bio: "Biographie",
+  avatar_url: "Avatar",
+  slug: "Slug",
+  status: "Statut",
+  title: "Titre",
+  description: "Description",
+  content: "Contenu",
+  category: "Catégorie",
+  location: "Lieu",
+  start_date: "Date de début",
+  end_date: "Date de fin",
+  published_at: "Date de publication",
+  image_url: "Image",
+  is_featured: "Mis en avant",
+  name: "Nom",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  DRAFT: "Brouillon",
+  PUBLISHED: "Publié",
+  CANCELLED: "Annulé",
+  ACTIVE: "Actif",
+  INACTIVE: "Inactif",
+  ARCHIVED: "Archivé",
+};
+
+const ACTOR_TYPE_LABELS: Record<string, string> = {
+  member: "Membre",
+  staff_or_admin: "Staff / administrateur",
+  admin: "Administrateur",
+};
+
 function formatDate(
   value: string,
 ) {
@@ -314,18 +352,48 @@ function getActionDot(
   return "bg-slate-400";
 }
 
+function formatFieldLabel(
+  field: string,
+) {
+  if (FIELD_LABELS[field]) {
+    return FIELD_LABELS[field];
+  }
+
+  return field
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (character) =>
+      character.toUpperCase(),
+    );
+}
+
 function formatMetadataValue(
   value: unknown,
-) {
+  field?: string,
+): string {
   if (
     value === null ||
-    value === undefined
+    value === undefined ||
+    value === ""
   ) {
     return "—";
   }
 
+  if (
+    field === "status" &&
+    typeof value === "string"
+  ) {
+    return (
+      STATUS_LABELS[value] ??
+      value
+    );
+  }
+
   if (Array.isArray(value)) {
-    return value.join(", ");
+    return value
+      .map((item) =>
+        formatMetadataValue(item),
+      )
+      .join(", ");
   }
 
   if (
@@ -341,17 +409,120 @@ function formatMetadataValue(
   return String(value);
 }
 
-function getMetadataEntries(
+function getAuditMetadata(
   activity: UserActivity,
 ) {
+  return (
+    activity.activity_metadata ??
+    {}
+  );
+}
+
+function getChangedFields(
+  activity: UserActivity,
+) {
+  const metadata =
+    getAuditMetadata(activity);
+
   if (
-    !activity.activity_metadata
+    Array.isArray(
+      metadata.changed_fields,
+    )
   ) {
-    return [];
+    return metadata.changed_fields.filter(
+      (field): field is string =>
+        typeof field === "string",
+    );
   }
 
-  return Object.entries(
-    activity.activity_metadata,
+  return [];
+}
+
+function getChanges(
+  activity: UserActivity,
+) {
+  const metadata =
+    getAuditMetadata(activity);
+
+  if (
+    !metadata.changes ||
+    typeof metadata.changes !==
+      "object" ||
+    Array.isArray(metadata.changes)
+  ) {
+    return {};
+  }
+
+  return metadata.changes as Record<
+    string,
+    {
+      from?: unknown;
+      to?: unknown;
+    }
+  >;
+}
+
+function hasStatusTransition(
+  activity: UserActivity,
+) {
+  const metadata =
+    getAuditMetadata(activity);
+
+  return (
+    typeof metadata.previous_status ===
+      "string" &&
+    typeof metadata.new_status ===
+      "string"
+  );
+}
+
+function StatusBadge({
+  value,
+}: {
+  value: unknown;
+}) {
+  const rawValue =
+    typeof value === "string"
+      ? value
+      : String(value ?? "");
+
+  const label =
+    STATUS_LABELS[rawValue] ??
+    (rawValue || "—");
+
+  let className =
+    "border-white/10 bg-white/[0.04] text-slate-300";
+
+  if (
+    rawValue === "PUBLISHED" ||
+    rawValue === "ACTIVE"
+  ) {
+    className =
+      "border-emerald-500/20 bg-emerald-500/10 text-emerald-300";
+  }
+
+  if (
+    rawValue === "DRAFT" ||
+    rawValue === "INACTIVE"
+  ) {
+    className =
+      "border-blue-500/20 bg-blue-500/10 text-blue-300";
+  }
+
+  if (
+    rawValue === "CANCELLED" ||
+    rawValue === "ARCHIVED"
+  ) {
+    className =
+      "border-red-500/20 bg-red-500/10 text-red-300";
+  }
+
+  return (
+    <span
+      className={`inline-flex rounded-lg border px-2.5 py-1 text-xs font-bold ${className}`}
+    >
+      {label}
+    </span>
   );
 }
 
@@ -360,20 +531,282 @@ function ActivityDetails({
 }: {
   activity: UserActivity;
 }) {
-  const metadataEntries =
-    getMetadataEntries(activity);
+  const metadata =
+    getAuditMetadata(activity);
+
+  const changedFields =
+    getChangedFields(activity);
+
+  const changes =
+    getChanges(activity);
+
+  const hasChanges =
+    changedFields.length > 0 ||
+    Object.keys(changes).length > 0;
+
+  const resourceName =
+    typeof metadata.resource_name ===
+    "string"
+      ? metadata.resource_name
+      : null;
+
+  const actorType =
+    typeof metadata.actor_type ===
+    "string"
+      ? metadata.actor_type
+      : null;
+
+  const previousStatus =
+    metadata.previous_status;
+
+  const newStatus =
+    metadata.new_status;
+
+  const status =
+    metadata.status;
 
   return (
     <div className="border-t border-white/10 bg-black/20 px-6 py-6">
       <div className="grid gap-6 lg:grid-cols-3">
 
-        {/* General information */}
+        {/* Audit summary */}
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-600">
-            Informations
+            Résumé de l'audit
+          </p>
+
+          <div className="mt-4 space-y-4">
+
+            {activity.details && (
+              <div className="rounded-xl border border-[#f5c400]/10 bg-[#f5c400]/[0.04] p-4">
+                <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#f5c400]/60">
+                  Action effectuée
+                </p>
+
+                <p className="mt-2 text-sm leading-6 text-slate-200">
+                  {activity.details}
+                </p>
+              </div>
+            )}
+
+            {resourceName && (
+              <div>
+                <p className="text-xs text-slate-600">
+                  Ressource
+                </p>
+
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-bold text-white">
+                    {resourceName}
+                  </span>
+
+                  <span className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                    {formatResource(
+                      activity.resource_type,
+                    )}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {typeof actorType ===
+              "string" && (
+              <div>
+                <p className="text-xs text-slate-600">
+                  Type d'acteur
+                </p>
+
+                <p className="mt-1 text-sm text-slate-300">
+                  {ACTOR_TYPE_LABELS[
+                    actorType
+                  ] ??
+                    actorType}
+                </p>
+              </div>
+            )}
+
+            {typeof status ===
+              "string" && (
+              <div>
+                <p className="text-xs text-slate-600">
+                  Statut
+                </p>
+
+                <div className="mt-2">
+                  <StatusBadge
+                    value={status}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Changes */}
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-600">
+            Modifications
+          </p>
+
+          {hasStatusTransition(
+            activity,
+          ) ? (
+            <div className="mt-4 rounded-xl border border-[#f5c400]/10 bg-[#f5c400]/[0.03] p-4">
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-600">
+                Transition de statut
+              </p>
+
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <StatusBadge
+                  value={previousStatus}
+                />
+
+                <span className="text-slate-600">
+                  →
+                </span>
+
+                <StatusBadge
+                  value={newStatus}
+                />
+              </div>
+            </div>
+          ) : null}
+
+          {hasChanges ? (
+            <div className="mt-4 space-y-3">
+              {changedFields.map(
+                (field) => {
+                  const change =
+                    changes[field];
+
+                  return (
+                    <div
+                      key={field}
+                      className="rounded-xl border border-white/10 bg-white/[0.02] p-4"
+                    >
+                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+                        {formatFieldLabel(
+                          field,
+                        )}
+                      </p>
+
+                      {change ? (
+                        <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+                          <div className="min-w-0 rounded-lg border border-red-500/10 bg-red-500/[0.04] px-3 py-2">
+                            <p className="text-[10px] font-bold uppercase tracking-wide text-red-400/60">
+                              Avant
+                            </p>
+
+                            <p className="mt-1 break-words text-xs text-slate-300">
+                              {formatMetadataValue(
+                                change.from,
+                                field,
+                              )}
+                            </p>
+                          </div>
+
+                          <span className="hidden text-slate-600 sm:block">
+                            →
+                          </span>
+
+                          <div className="min-w-0 rounded-lg border border-emerald-500/10 bg-emerald-500/[0.04] px-3 py-2">
+                            <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-400/60">
+                              Après
+                            </p>
+
+                            <p className="mt-1 break-words text-xs text-slate-300">
+                              {formatMetadataValue(
+                                change.to,
+                                field,
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="mt-2 text-xs text-slate-500">
+                          Champ modifié sans
+                          détail de transition.
+                        </p>
+                      )}
+                    </div>
+                  );
+                },
+              )}
+
+              {Object.entries(
+                changes,
+              )
+                .filter(
+                  ([field]) =>
+                    !changedFields.includes(
+                      field,
+                    ),
+                )
+                .map(
+                  ([field, change]) => (
+                    <div
+                      key={field}
+                      className="rounded-xl border border-white/10 bg-white/[0.02] p-4"
+                    >
+                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+                        {formatFieldLabel(
+                          field,
+                        )}
+                      </p>
+
+                      <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+                        <div className="min-w-0 rounded-lg border border-red-500/10 bg-red-500/[0.04] px-3 py-2">
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-red-400/60">
+                            Avant
+                          </p>
+
+                          <p className="mt-1 break-words text-xs text-slate-300">
+                            {formatMetadataValue(
+                              change.from,
+                              field,
+                            )}
+                          </p>
+                        </div>
+
+                        <span className="hidden text-slate-600 sm:block">
+                          →
+                        </span>
+
+                        <div className="min-w-0 rounded-lg border border-emerald-500/10 bg-emerald-500/[0.04] px-3 py-2">
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-400/60">
+                            Après
+                          </p>
+
+                          <p className="mt-1 break-words text-xs text-slate-300">
+                            {formatMetadataValue(
+                              change.to,
+                              field,
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ),
+                )}
+            </div>
+          ) : (
+            <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+              <p className="text-sm text-slate-500">
+                Aucun champ modifié n'est
+                enregistré pour cette activité.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Technical / identifiers */}
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-600">
+            Informations techniques
           </p>
 
           <div className="mt-4 space-y-3">
+
             <div>
               <p className="text-xs text-slate-600">
                 Action
@@ -420,16 +853,7 @@ function ActivityDetails({
                 )}
               </p>
             </div>
-          </div>
-        </div>
 
-        {/* Technical information */}
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-600">
-            Informations techniques
-          </p>
-
-          <div className="mt-4 space-y-3">
             <div>
               <p className="text-xs text-slate-600">
                 Méthode
@@ -473,49 +897,22 @@ function ActivityDetails({
                   "Système"}
               </p>
             </div>
+
+            {typeof metadata.affected_user_id ===
+              "string" && (
+              <div>
+                <p className="text-xs text-slate-600">
+                  Utilisateur concerné
+                </p>
+
+                <p className="mt-1 break-all font-mono text-xs text-slate-400">
+                  {
+                    metadata.affected_user_id
+                  }
+                </p>
+              </div>
+            )}
           </div>
-        </div>
-
-        {/* Business details */}
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-600">
-            Détails métier
-          </p>
-
-          {activity.details && (
-            <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
-              <p className="text-sm leading-6 text-slate-300">
-                {activity.details}
-              </p>
-            </div>
-          )}
-
-          {metadataEntries.length >
-            0 && (
-            <div className="mt-4 space-y-3">
-              {metadataEntries.map(
-                ([key, value]) => (
-                  <div
-                    key={key}
-                    className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3"
-                  >
-                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-600">
-                      {key.replaceAll(
-                        "_",
-                        " ",
-                      )}
-                    </p>
-
-                    <p className="mt-1 whitespace-pre-wrap break-words font-mono text-xs text-slate-300">
-                      {formatMetadataValue(
-                        value,
-                      )}
-                    </p>
-                  </div>
-                ),
-              )}
-            </div>
-          )}
         </div>
       </div>
 
@@ -983,7 +1380,6 @@ export default function AdminActivityLogsPage() {
           </section>
         ) : !data ||
           data.items.length === 0 ? (
-          /* Empty state */
           <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-12">
             <div className="mx-auto max-w-lg text-center">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-xl text-slate-500">
@@ -1078,6 +1474,16 @@ export default function AdminActivityLogsPage() {
                           expandedActivityId ===
                           activity.id;
 
+                        const metadata =
+                          activity.activity_metadata ??
+                          {};
+
+                        const resourceName =
+                          typeof metadata.resource_name ===
+                          "string"
+                            ? metadata.resource_name
+                            : null;
+
                         return (
                           <>
                             <tr
@@ -1147,6 +1553,13 @@ export default function AdminActivityLogsPage() {
 
                               <td className="px-4 py-5">
                                 <p className="text-sm font-bold text-slate-300">
+                                  {resourceName ??
+                                    formatResource(
+                                      activity.resource_type,
+                                    )}
+                                </p>
+
+                                <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-slate-600">
                                   {formatResource(
                                     activity.resource_type,
                                   )}

@@ -1,5 +1,7 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
+from enum import Enum
+from typing import Any
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, or_, select
@@ -16,7 +18,57 @@ from backend.app.schemas.news import (
     NewsCreateRequest,
     NewsUpdateRequest,
 )
-from backend.app.services.activity_logger import log_user_activity
+from backend.app.services.activity_logger import (
+    log_user_activity,
+)
+
+
+def _serialize_audit_value(value: Any) -> object:
+    """Convert values to JSON-safe audit metadata."""
+
+    if isinstance(value, Enum):
+        return value.value
+
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+
+    if isinstance(value, uuid.UUID):
+        return str(value)
+
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+
+    return str(value)
+
+
+def _build_audit_changes(
+    resource: News,
+    update_data: dict[str, Any],
+) -> dict[str, dict[str, object]]:
+    """
+    Build a before/after representation for fields that
+    actually changed.
+    """
+
+    changes: dict[str, dict[str, object]] = {}
+
+    for field, new_value in update_data.items():
+        previous_value = getattr(resource, field)
+
+        serialized_previous = _serialize_audit_value(
+            previous_value,
+        )
+        serialized_new = _serialize_audit_value(
+            new_value,
+        )
+
+        if serialized_previous != serialized_new:
+            changes[field] = {
+                "from": serialized_previous,
+                "to": serialized_new,
+            }
+
+    return changes
 
 
 def get_news(
@@ -166,7 +218,10 @@ def _check_slug_available(
     if existing_id is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="A news article with this slug already exists.",
+            detail=(
+                "A news article with this slug "
+                "already exists."
+            ),
         )
 
 
@@ -227,13 +282,15 @@ def create_news(
     db.add(news)
     db.flush()
 
+    news_title = news.title.strip()
+
     if data.status == NewsStatus.PUBLISHED:
         add_notification_for_active_members(
             db,
             title="Nouvelle actualité",
             message=(
-                f"Une nouvelle actualité KBR est disponible : "
-                f"{data.title.strip()}."
+                "Une nouvelle actualité KBR est disponible : "
+                f"{news_title}."
             ),
             notification_type=NotificationType.INFO,
         )
@@ -244,8 +301,11 @@ def create_news(
         user_id=current_user_id,
         resource_type="news",
         resource_id=news.id,
-        details="News article created",
+        details=(
+            f'Created news article "{news_title}"'
+        ),
         activity_metadata={
+            "resource_name": news_title,
             "status": news.status.value,
         },
     )
@@ -257,7 +317,10 @@ def create_news(
 
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="A news article with this slug already exists.",
+            detail=(
+                "A news article with this slug "
+                "already exists."
+            ),
         )
 
     db.refresh(news)
@@ -296,8 +359,6 @@ def update_news(
 
     if not update_data:
         return news
-
-    changed_fields = sorted(update_data.keys())
 
     if "slug" in update_data:
         new_slug = update_data["slug"].strip().lower()
@@ -339,7 +400,20 @@ def update_news(
     else:
         final_published_at = None
 
+    # Keep the client-provided fields separate from
+    # internally managed publication metadata so that
+    # published_at is not incorrectly reported as a
+    # user-requested field change.
+    audit_update_data = dict(update_data)
+
     update_data["published_at"] = final_published_at
+
+    changes = _build_audit_changes(
+        news,
+        audit_update_data,
+    )
+
+    changed_fields = sorted(changes.keys())
 
     for field, value in update_data.items():
         setattr(
@@ -363,21 +437,29 @@ def update_news(
             db,
             title="Nouvelle actualité",
             message=(
-                f"Une nouvelle actualité KBR est disponible : "
+                "Une nouvelle actualité KBR est disponible : "
                 f"{news.title.strip()}."
             ),
             notification_type=NotificationType.INFO,
         )
 
+    news_title = news.title.strip()
+
     if became_published:
         audit_action = "NEWS_PUBLISHED"
-        audit_details = "News article published"
+        audit_details = (
+            f'Published news article "{news_title}"'
+        )
     elif became_unpublished:
         audit_action = "NEWS_UNPUBLISHED"
-        audit_details = "News article unpublished"
+        audit_details = (
+            f'Unpublished news article "{news_title}"'
+        )
     else:
         audit_action = "NEWS_UPDATED"
-        audit_details = "News article updated"
+        audit_details = (
+            f'Updated news article "{news_title}"'
+        )
 
     log_user_activity(
         db,
@@ -387,7 +469,9 @@ def update_news(
         resource_id=news.id,
         details=audit_details,
         activity_metadata={
+            "resource_name": news_title,
             "changed_fields": changed_fields,
+            "changes": changes,
             "previous_status": previous_status.value,
             "new_status": news.status.value,
         },
@@ -400,7 +484,10 @@ def update_news(
 
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="A news article with this slug already exists.",
+            detail=(
+                "A news article with this slug "
+                "already exists."
+            ),
         )
 
     db.refresh(news)
@@ -423,7 +510,7 @@ def delete_news(
         news_id,
     )
 
-    news_title = news.title
+    news_title = news.title.strip()
 
     db.delete(news)
 
@@ -433,9 +520,11 @@ def delete_news(
         user_id=actor_user_id,
         resource_type="news",
         resource_id=news.id,
-        details="News article deleted",
+        details=(
+            f'Deleted news article "{news_title}"'
+        ),
         activity_metadata={
-            "title": news_title,
+            "resource_name": news_title,
         },
     )
 

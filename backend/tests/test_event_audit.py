@@ -94,8 +94,17 @@ def test_event_creation_creates_business_audit_event(
     assert audit.user_id == staff_user.id
     assert audit.resource_type == "event"
     assert str(audit.resource_id) == event_id
-    assert audit.details == "Event created"
+    assert audit.details == (
+        'Created event "KBR Audit Event"'
+    )
+
     assert audit.activity_metadata is not None
+
+    assert (
+        audit.activity_metadata["resource_name"]
+        == "KBR Audit Event"
+    )
+
     assert audit.activity_metadata["status"] == "draft"
 
 
@@ -140,18 +149,38 @@ def test_event_update_creates_business_audit_event(
     assert audit.user_id == staff_user.id
     assert audit.resource_type == "event"
     assert str(audit.resource_id) == event_id
-    assert audit.details == "Event updated"
+    assert audit.details == (
+        'Updated event "Updated KBR Event"'
+    )
+
     assert audit.activity_metadata is not None
-    assert set(
-        audit.activity_metadata["changed_fields"]
-    ) == {
-        "title",
+
+    assert (
+        audit.activity_metadata["resource_name"]
+        == "Updated KBR Event"
+    )
+
+    assert audit.activity_metadata["changed_fields"] == [
         "location",
+        "title",
+    ]
+
+    assert audit.activity_metadata["changes"] == {
+        "location": {
+            "from": "Bizerte",
+            "to": "Bizerte Marina",
+        },
+        "title": {
+            "from": "KBR Audit Event",
+            "to": "Updated KBR Event",
+        },
     }
+
     assert (
         audit.activity_metadata["previous_status"]
         == "draft"
     )
+
     assert (
         audit.activity_metadata["new_status"]
         == "draft"
@@ -201,16 +230,37 @@ def test_event_publication_creates_semantic_audit_event(
     assert audit.user_id == staff_user.id
     assert audit.resource_type == "event"
     assert str(audit.resource_id) == event_id
-    assert audit.details == "Event published"
+    assert audit.details == (
+        'Published event "Event To Publish"'
+    )
+
     assert audit.activity_metadata is not None
+
+    assert (
+        audit.activity_metadata["resource_name"]
+        == "Event To Publish"
+    )
+
     assert (
         audit.activity_metadata["previous_status"]
         == "draft"
     )
+
     assert (
         audit.activity_metadata["new_status"]
         == "published"
     )
+
+    assert audit.activity_metadata["changed_fields"] == [
+        "status",
+    ]
+
+    assert audit.activity_metadata["changes"] == {
+        "status": {
+            "from": "draft",
+            "to": "published",
+        },
+    }
 
 
 def test_event_cancellation_creates_semantic_audit_event(
@@ -256,16 +306,37 @@ def test_event_cancellation_creates_semantic_audit_event(
     assert audit.user_id == staff_user.id
     assert audit.resource_type == "event"
     assert str(audit.resource_id) == event_id
-    assert audit.details == "Event cancelled"
+    assert audit.details == (
+        'Cancelled event "Event To Cancel"'
+    )
+
     assert audit.activity_metadata is not None
+
+    assert (
+        audit.activity_metadata["resource_name"]
+        == "Event To Cancel"
+    )
+
     assert (
         audit.activity_metadata["previous_status"]
         == "published"
     )
+
     assert (
         audit.activity_metadata["new_status"]
         == "cancelled"
     )
+
+    assert audit.activity_metadata["changed_fields"] == [
+        "status",
+    ]
+
+    assert audit.activity_metadata["changes"] == {
+        "status": {
+            "from": "published",
+            "to": "cancelled",
+        },
+    }
 
 
 def test_event_deletion_creates_business_audit_event(
@@ -307,9 +378,13 @@ def test_event_deletion_creates_business_audit_event(
     assert audit.user_id == staff_user.id
     assert audit.resource_type == "event"
     assert str(audit.resource_id) == event_id
-    assert audit.details == "Event deleted"
+    assert audit.details == (
+        'Deleted event "Event To Delete"'
+    )
+
     assert audit.activity_metadata is not None
+
     assert (
-        audit.activity_metadata["title"]
+        audit.activity_metadata["resource_name"]
         == "Event To Delete"
     )
