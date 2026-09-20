@@ -25,6 +25,7 @@ class ActivityLoggingMiddleware(BaseHTTPMiddleware):
         "/openapi.json",
         "/auth/me",
         "/notifications/unread-count",
+        "/admin/activity-logs",
     }
 
     IGNORED_PREFIXES = (
