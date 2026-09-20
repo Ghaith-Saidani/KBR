@@ -5,16 +5,13 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from backend.app.models.notification import NotificationType
-from backend.app.services.notification import (
-    add_notification_for_active_members,
-)
-
 from backend.app.models.event import Event, EventStatus
+from backend.app.models.notification import NotificationType
 from backend.app.schemas.event import (
     EventCreateRequest,
     EventUpdateRequest,
 )
+from backend.app.services.activity_logger import log_user_activity
 from backend.app.services.notification import (
     add_notification_for_active_members,
 )
@@ -131,6 +128,19 @@ def create_event(
     )
 
     db.add(event)
+    db.flush()
+
+    log_user_activity(
+        db,
+        action="EVENT_CREATED",
+        user_id=current_user_id,
+        resource_type="event",
+        resource_id=event.id,
+        details="Event created",
+        activity_metadata={
+            "status": event.status.value,
+        },
+    )
 
     if data.status == EventStatus.PUBLISHED:
         add_notification_for_active_members(
@@ -153,6 +163,8 @@ def update_event(
     db: Session,
     event_id: uuid.UUID,
     data: EventUpdateRequest,
+    *,
+    actor_user_id: uuid.UUID,
 ) -> Event:
     """
     Update an existing event.
@@ -217,6 +229,36 @@ def update_event(
             notification_type=NotificationType.INFO,
         )
 
+    if became_published:
+        action = "EVENT_PUBLISHED"
+        details = "Event published"
+    elif (
+        "status" in update_data
+        and event.status == EventStatus.CANCELLED
+        and previous_status != EventStatus.CANCELLED
+    ):
+        action = "EVENT_CANCELLED"
+        details = "Event cancelled"
+    else:
+        action = "EVENT_UPDATED"
+        details = "Event updated"
+
+    log_user_activity(
+        db,
+        action=action,
+        user_id=actor_user_id,
+        resource_type="event",
+        resource_id=event.id,
+        details=details,
+        activity_metadata={
+            "changed_fields": sorted(
+                update_data.keys()
+            ),
+            "previous_status": previous_status.value,
+            "new_status": event.status.value,
+        },
+    )
+
     db.commit()
     db.refresh(event)
 
@@ -226,6 +268,8 @@ def update_event(
 def delete_event(
     db: Session,
     event_id: uuid.UUID,
+    *,
+    actor_user_id: uuid.UUID,
 ) -> None:
     """
     Permanently delete an event.
@@ -236,5 +280,21 @@ def delete_event(
         event_id,
     )
 
+    event_id = event.id
+    event_title = event.title
+
     db.delete(event)
+
+    log_user_activity(
+        db,
+        action="EVENT_DELETED",
+        user_id=actor_user_id,
+        resource_type="event",
+        resource_id=event_id,
+        details="Event deleted",
+        activity_metadata={
+            "title": event_title,
+        },
+    )
+
     db.commit()

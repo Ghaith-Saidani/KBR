@@ -139,6 +139,7 @@ def get_activity_for_management(
         activity_id,
     )
 
+
 @router.get(
     "/{activity_id}",
     response_model=ActivityResponse,
@@ -196,12 +197,11 @@ def update_existing_activity(
     current_user: User = Depends(require_staff),
     db: Session = Depends(get_db),
 ) -> Activity:
-    del current_user
-
     return update_activity(
         db,
         activity_id,
         data,
+        actor_user_id=current_user.id,
     )
 
 
@@ -215,9 +215,8 @@ def delete_existing_activity(
     current_user: User = Depends(require_staff),
     db: Session = Depends(get_db),
 ) -> None:
-    del current_user
-
     delete_activity(
         db,
         activity_id,
+        actor_user_id=current_user.id,
     )

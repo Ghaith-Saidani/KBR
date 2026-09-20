@@ -16,6 +16,7 @@ from backend.app.schemas.news import (
     NewsCreateRequest,
     NewsUpdateRequest,
 )
+from backend.app.services.activity_logger import log_user_activity
 
 
 def get_news(
@@ -224,6 +225,7 @@ def create_news(
     )
 
     db.add(news)
+    db.flush()
 
     if data.status == NewsStatus.PUBLISHED:
         add_notification_for_active_members(
@@ -235,6 +237,18 @@ def create_news(
             ),
             notification_type=NotificationType.INFO,
         )
+
+    log_user_activity(
+        db,
+        action="NEWS_CREATED",
+        user_id=current_user_id,
+        resource_type="news",
+        resource_id=news.id,
+        details="News article created",
+        activity_metadata={
+            "status": news.status.value,
+        },
+    )
 
     try:
         db.commit()
@@ -255,6 +269,8 @@ def update_news(
     db: Session,
     news_id: uuid.UUID,
     data: NewsUpdateRequest,
+    *,
+    actor_user_id: uuid.UUID,
 ) -> News:
     """
     Update an existing news article.
@@ -280,6 +296,8 @@ def update_news(
 
     if not update_data:
         return news
+
+    changed_fields = sorted(update_data.keys())
 
     if "slug" in update_data:
         new_slug = update_data["slug"].strip().lower()
@@ -335,6 +353,11 @@ def update_news(
         and news.status == NewsStatus.PUBLISHED
     )
 
+    became_unpublished = (
+        previous_status == NewsStatus.PUBLISHED
+        and news.status == NewsStatus.DRAFT
+    )
+
     if became_published:
         add_notification_for_active_members(
             db,
@@ -345,6 +368,30 @@ def update_news(
             ),
             notification_type=NotificationType.INFO,
         )
+
+    if became_published:
+        audit_action = "NEWS_PUBLISHED"
+        audit_details = "News article published"
+    elif became_unpublished:
+        audit_action = "NEWS_UNPUBLISHED"
+        audit_details = "News article unpublished"
+    else:
+        audit_action = "NEWS_UPDATED"
+        audit_details = "News article updated"
+
+    log_user_activity(
+        db,
+        action=audit_action,
+        user_id=actor_user_id,
+        resource_type="news",
+        resource_id=news.id,
+        details=audit_details,
+        activity_metadata={
+            "changed_fields": changed_fields,
+            "previous_status": previous_status.value,
+            "new_status": news.status.value,
+        },
+    )
 
     try:
         db.commit()
@@ -364,6 +411,8 @@ def update_news(
 def delete_news(
     db: Session,
     news_id: uuid.UUID,
+    *,
+    actor_user_id: uuid.UUID,
 ) -> None:
     """
     Permanently delete a news article.
@@ -374,5 +423,28 @@ def delete_news(
         news_id,
     )
 
+    news_title = news.title
+
     db.delete(news)
-    db.commit()
+
+    log_user_activity(
+        db,
+        action="NEWS_DELETED",
+        user_id=actor_user_id,
+        resource_type="news",
+        resource_id=news.id,
+        details="News article deleted",
+        activity_metadata={
+            "title": news_title,
+        },
+    )
+
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Unable to delete news article.",
+        )

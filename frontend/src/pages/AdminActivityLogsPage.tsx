@@ -7,7 +7,156 @@ import {
   useAdminActivityLogs,
 } from "../features/admin/adminActivity.hooks";
 
+import type {
+  ActivityType,
+  UserActivity,
+} from "../features/admin/adminActivity.types";
+
 const PAGE_SIZE = 20;
+
+const ACTIVITY_TYPE_OPTIONS: Array<{
+  value: "" | ActivityType;
+  label: string;
+}> = [
+  {
+    value: "",
+    label: "Toutes les activités",
+  },
+  {
+    value: "business",
+    label: "Actions métier",
+  },
+  {
+    value: "technical",
+    label: "Activité technique",
+  },
+];
+
+const ACTION_OPTIONS = [
+  {
+    value: "",
+    label: "Toutes les actions",
+  },
+  {
+    value: "MEMBER_UPDATED",
+    label: "Membre modifié",
+  },
+  {
+    value: "MEMBER_DEACTIVATED",
+    label: "Membre désactivé",
+  },
+  {
+    value: "MEMBER_REACTIVATED",
+    label: "Membre réactivé",
+  },
+  {
+    value: "MEMBER_ARCHIVED",
+    label: "Membre archivé",
+  },
+  {
+    value: "MEMBER_DELETED",
+    label: "Membre supprimé",
+  },
+  {
+    value: "EVENT_CREATED",
+    label: "Événement créé",
+  },
+  {
+    value: "EVENT_UPDATED",
+    label: "Événement modifié",
+  },
+  {
+    value: "EVENT_PUBLISHED",
+    label: "Événement publié",
+  },
+  {
+    value: "EVENT_CANCELLED",
+    label: "Événement annulé",
+  },
+  {
+    value: "EVENT_DELETED",
+    label: "Événement supprimé",
+  },
+  {
+    value: "NEWS_CREATED",
+    label: "Article créé",
+  },
+  {
+    value: "NEWS_UPDATED",
+    label: "Article modifié",
+  },
+  {
+    value: "NEWS_PUBLISHED",
+    label: "Article publié",
+  },
+  {
+    value: "NEWS_UNPUBLISHED",
+    label: "Article dépublié",
+  },
+  {
+    value: "NEWS_DELETED",
+    label: "Article supprimé",
+  },
+  {
+    value: "ACTIVITY_CREATED",
+    label: "Activité créée",
+  },
+  {
+    value: "ACTIVITY_UPDATED",
+    label: "Activité modifiée",
+  },
+  {
+    value: "ACTIVITY_PUBLISHED",
+    label: "Activité publiée",
+  },
+  {
+    value: "ACTIVITY_DELETED",
+    label: "Activité supprimée",
+  },
+  {
+    value: "LOGIN",
+    label: "Connexion",
+  },
+  {
+    value: "REGISTER",
+    label: "Inscription",
+  },
+  {
+    value: "USER_ACTIVATED",
+    label: "Utilisateur activé",
+  },
+];
+
+const RESOURCE_OPTIONS = [
+  {
+    value: "",
+    label: "Toutes les ressources",
+  },
+  {
+    value: "member",
+    label: "Membres",
+  },
+  {
+    value: "event",
+    label: "Événements",
+  },
+  {
+    value: "news",
+    label: "Actualités",
+  },
+  {
+    value: "activity",
+    label: "Activités",
+  },
+  {
+    value: "authentication",
+    label: "Authentification",
+  },
+  {
+    value: "http_request",
+    label: "Requêtes HTTP",
+  },
+];
 
 function formatDate(
   value: string,
@@ -24,9 +173,64 @@ function formatDate(
 function formatAction(
   action: string,
 ) {
+  const labels: Record<string, string> = {
+    MEMBER_UPDATED: "Membre modifié",
+    MEMBER_DEACTIVATED: "Membre désactivé",
+    MEMBER_REACTIVATED: "Membre réactivé",
+    MEMBER_ARCHIVED: "Membre archivé",
+    MEMBER_DELETED: "Membre supprimé",
+
+    EVENT_CREATED: "Événement créé",
+    EVENT_UPDATED: "Événement modifié",
+    EVENT_PUBLISHED: "Événement publié",
+    EVENT_CANCELLED: "Événement annulé",
+    EVENT_DELETED: "Événement supprimé",
+
+    NEWS_CREATED: "Article créé",
+    NEWS_UPDATED: "Article modifié",
+    NEWS_PUBLISHED: "Article publié",
+    NEWS_UNPUBLISHED: "Article dépublié",
+    NEWS_DELETED: "Article supprimé",
+
+    ACTIVITY_CREATED: "Activité créée",
+    ACTIVITY_UPDATED: "Activité modifiée",
+    ACTIVITY_PUBLISHED: "Activité publiée",
+    ACTIVITY_DELETED: "Activité supprimée",
+
+    LOGIN: "Connexion",
+    REGISTER: "Inscription",
+    USER_ACTIVATED: "Utilisateur activé",
+  };
+
+  if (labels[action]) {
+    return labels[action];
+  }
+
   return action
     .toLowerCase()
     .replaceAll("_", " ");
+}
+
+function formatResource(
+  resourceType: string | null,
+) {
+  if (!resourceType) {
+    return "—";
+  }
+
+  const labels: Record<string, string> = {
+    member: "Membre",
+    event: "Événement",
+    news: "Actualité",
+    activity: "Activité",
+    authentication: "Authentification",
+    http_request: "Requête HTTP",
+  };
+
+  return (
+    labels[resourceType] ??
+    resourceType
+  );
 }
 
 function getActionStyle(
@@ -36,7 +240,9 @@ function getActionStyle(
 
   if (
     normalized.includes("DELETE") ||
-    normalized.includes("REMOVE") ||
+    normalized.includes("DEACTIVATED") ||
+    normalized.includes("CANCELLED") ||
+    normalized.includes("UNPUBLISHED") ||
     normalized.includes("FAIL")
   ) {
     return "border-red-500/20 bg-red-500/10 text-red-300";
@@ -45,9 +251,17 @@ function getActionStyle(
   if (
     normalized.includes("CREATE") ||
     normalized.includes("REGISTER") ||
-    normalized.includes("LOGIN")
+    normalized.includes("LOGIN") ||
+    normalized.includes("REACTIVATED")
   ) {
     return "border-emerald-500/20 bg-emerald-500/10 text-emerald-300";
+  }
+
+  if (
+    normalized.includes("PUBLISH") ||
+    normalized.includes("ARCHIVED")
+  ) {
+    return "border-[#f5c400]/20 bg-[#f5c400]/10 text-[#f5c400]";
   }
 
   if (
@@ -58,6 +272,266 @@ function getActionStyle(
   }
 
   return "border-white/10 bg-white/[0.05] text-slate-300";
+}
+
+function getActionDot(
+  action: string,
+) {
+  const normalized = action.toUpperCase();
+
+  if (
+    normalized.includes("DELETE") ||
+    normalized.includes("DEACTIVATED") ||
+    normalized.includes("CANCELLED") ||
+    normalized.includes("UNPUBLISHED")
+  ) {
+    return "bg-red-400";
+  }
+
+  if (
+    normalized.includes("CREATE") ||
+    normalized.includes("REGISTER") ||
+    normalized.includes("LOGIN") ||
+    normalized.includes("REACTIVATED")
+  ) {
+    return "bg-emerald-400";
+  }
+
+  if (
+    normalized.includes("PUBLISH") ||
+    normalized.includes("ARCHIVED")
+  ) {
+    return "bg-[#f5c400]";
+  }
+
+  if (
+    normalized.includes("UPDATE") ||
+    normalized.includes("EDIT")
+  ) {
+    return "bg-blue-400";
+  }
+
+  return "bg-slate-400";
+}
+
+function formatMetadataValue(
+  value: unknown,
+) {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return "—";
+  }
+
+  if (Array.isArray(value)) {
+    return value.join(", ");
+  }
+
+  if (
+    typeof value === "object"
+  ) {
+    return JSON.stringify(
+      value,
+      null,
+      2,
+    );
+  }
+
+  return String(value);
+}
+
+function getMetadataEntries(
+  activity: UserActivity,
+) {
+  if (
+    !activity.activity_metadata
+  ) {
+    return [];
+  }
+
+  return Object.entries(
+    activity.activity_metadata,
+  );
+}
+
+function ActivityDetails({
+  activity,
+}: {
+  activity: UserActivity;
+}) {
+  const metadataEntries =
+    getMetadataEntries(activity);
+
+  return (
+    <div className="border-t border-white/10 bg-black/20 px-6 py-6">
+      <div className="grid gap-6 lg:grid-cols-3">
+
+        {/* General information */}
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-600">
+            Informations
+          </p>
+
+          <div className="mt-4 space-y-3">
+            <div>
+              <p className="text-xs text-slate-600">
+                Action
+              </p>
+
+              <p className="mt-1 text-sm font-bold text-white">
+                {formatAction(
+                  activity.action,
+                )}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-slate-600">
+                Ressource
+              </p>
+
+              <p className="mt-1 text-sm text-slate-300">
+                {formatResource(
+                  activity.resource_type,
+                )}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-slate-600">
+                Identifiant de ressource
+              </p>
+
+              <p className="mt-1 break-all font-mono text-xs text-slate-400">
+                {activity.resource_id ??
+                  "—"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-slate-600">
+                Date
+              </p>
+
+              <p className="mt-1 text-sm text-slate-300">
+                {formatDate(
+                  activity.occurred_at,
+                )}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Technical information */}
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-600">
+            Informations techniques
+          </p>
+
+          <div className="mt-4 space-y-3">
+            <div>
+              <p className="text-xs text-slate-600">
+                Méthode
+              </p>
+
+              <p className="mt-1 font-mono text-xs text-slate-300">
+                {activity.method ??
+                  "—"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-slate-600">
+                Endpoint
+              </p>
+
+              <p className="mt-1 break-all font-mono text-xs text-slate-400">
+                {activity.endpoint ??
+                  "—"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-slate-600">
+                Adresse IP
+              </p>
+
+              <p className="mt-1 font-mono text-xs text-slate-400">
+                {activity.ip_address ??
+                  "—"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-slate-600">
+                Utilisateur
+              </p>
+
+              <p className="mt-1 break-all font-mono text-xs text-slate-400">
+                {activity.user_id ??
+                  "Système"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Business details */}
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-600">
+            Détails métier
+          </p>
+
+          {activity.details && (
+            <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+              <p className="text-sm leading-6 text-slate-300">
+                {activity.details}
+              </p>
+            </div>
+          )}
+
+          {metadataEntries.length >
+            0 && (
+            <div className="mt-4 space-y-3">
+              {metadataEntries.map(
+                ([key, value]) => (
+                  <div
+                    key={key}
+                    className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3"
+                  >
+                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-600">
+                      {key.replaceAll(
+                        "_",
+                        " ",
+                      )}
+                    </p>
+
+                    <p className="mt-1 whitespace-pre-wrap break-words font-mono text-xs text-slate-300">
+                      {formatMetadataValue(
+                        value,
+                      )}
+                    </p>
+                  </div>
+                ),
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {activity.user_agent && (
+        <div className="mt-6 border-t border-white/5 pt-5">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-600">
+            User agent
+          </p>
+
+          <p className="mt-2 break-all font-mono text-xs leading-5 text-slate-600">
+            {activity.user_agent}
+          </p>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function ActivityLogsSkeleton() {
@@ -71,15 +545,15 @@ function ActivityLogsSkeleton() {
         <div className="mt-3 h-5 w-full max-w-2xl rounded bg-white/10" />
 
         <div className="mt-10 rounded-2xl border border-white/10 bg-white/[0.04] p-6">
-          <div className="grid gap-4 md:grid-cols-4">
-            {Array.from({ length: 4 }).map(
-              (_, index) => (
-                <div
-                  key={`filter-skeleton-${index}`}
-                  className="h-20 rounded-xl bg-white/5"
-                />
-              ),
-            )}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            {Array.from({
+              length: 5,
+            }).map((_, index) => (
+              <div
+                key={`filter-skeleton-${index}`}
+                className="h-20 rounded-xl bg-white/5"
+              />
+            ))}
           </div>
         </div>
 
@@ -90,20 +564,21 @@ function ActivityLogsSkeleton() {
 }
 
 export default function AdminActivityLogsPage() {
-  const [
-    page,
-    setPage,
-  ] = useState(1);
+  const [page, setPage] =
+    useState(1);
 
   const [
-    action,
-    setAction,
-  ] = useState("");
+    activityType,
+    setActivityType,
+  ] = useState<"" | ActivityType>(
+    "",
+  );
 
-  const [
-    method,
-    setMethod,
-  ] = useState("");
+  const [action, setAction] =
+    useState("");
+
+  const [method, setMethod] =
+    useState("");
 
   const [
     resourceType,
@@ -117,10 +592,19 @@ export default function AdminActivityLogsPage() {
     "asc" | "desc"
   >("desc");
 
+  const [
+    expandedActivityId,
+    setExpandedActivityId,
+  ] = useState<string | null>(
+    null,
+  );
+
   const filters = useMemo(
     () => ({
       page,
       page_size: PAGE_SIZE,
+      activity_type:
+        activityType || undefined,
       action:
         action || undefined,
       method:
@@ -131,6 +615,7 @@ export default function AdminActivityLogsPage() {
     }),
     [
       page,
+      activityType,
       action,
       method,
       resourceType,
@@ -148,11 +633,54 @@ export default function AdminActivityLogsPage() {
   );
 
   const resetFilters = () => {
+    setActivityType("");
     setAction("");
     setMethod("");
     setResourceType("");
     setSortOrder("desc");
     setPage(1);
+    setExpandedActivityId(null);
+  };
+
+  const handleActivityTypeChange = (
+    value: "" | ActivityType,
+  ) => {
+    setActivityType(value);
+    setAction("");
+    setPage(1);
+    setExpandedActivityId(null);
+  };
+
+  const handleActionChange = (
+    value: string,
+  ) => {
+    setAction(value);
+    setPage(1);
+    setExpandedActivityId(null);
+  };
+
+  const handleResourceChange = (
+    value: string,
+  ) => {
+    setResourceType(value);
+    setPage(1);
+    setExpandedActivityId(null);
+  };
+
+  const handleMethodChange = (
+    value: string,
+  ) => {
+    setMethod(value);
+    setPage(1);
+    setExpandedActivityId(null);
+  };
+
+  const handleSortChange = (
+    value: "asc" | "desc",
+  ) => {
+    setSortOrder(value);
+    setPage(1);
+    setExpandedActivityId(null);
   };
 
   if (isLoading) {
@@ -169,15 +697,43 @@ export default function AdminActivityLogsPage() {
             Administration
           </p>
 
-          <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
-            Activity Logs
-          </h1>
+          <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
+                Activity Logs
+              </h1>
 
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
-            Consultez et analysez les activités
-            des utilisateurs et les actions
-            administratives effectuées sur KBR.
-          </p>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
+                Consultez les actions métier et
+                les activités techniques
+                enregistrées sur KBR.
+              </p>
+            </div>
+
+            {data && (
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-600">
+                    Total
+                  </p>
+
+                  <p className="mt-1 text-xl font-black text-white">
+                    {data.total}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-[#f5c400]/20 bg-[#f5c400]/5 px-4 py-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#f5c400]/60">
+                    Page
+                  </p>
+
+                  <p className="mt-1 text-xl font-black text-[#f5c400]">
+                    {page}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Filters */}
@@ -192,12 +748,47 @@ export default function AdminActivityLogsPage() {
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              Filtrez les événements par action,
-              ressource ou méthode HTTP.
+              Filtrez les journaux par type,
+              action, ressource, méthode HTTP ou
+              ordre chronologique.
             </p>
           </div>
 
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-5">
+
+            {/* Activity type */}
+            <div>
+              <label
+                htmlFor="activity-type"
+                className="mb-2 block text-xs font-bold uppercase tracking-[0.15em] text-slate-400"
+              >
+                Type
+              </label>
+
+              <select
+                id="activity-type"
+                value={activityType}
+                onChange={(event) =>
+                  handleActivityTypeChange(
+                    event.target.value as
+                      | ""
+                      | ActivityType,
+                  )
+                }
+                className="w-full rounded-xl border border-white/10 bg-[#090909] px-4 py-3 text-sm text-white outline-none transition focus:border-[#f5c400]/50 focus:ring-1 focus:ring-[#f5c400]/20"
+              >
+                {ACTIVITY_TYPE_OPTIONS.map(
+                  (option) => (
+                    <option
+                      key={option.value}
+                      value={option.value}
+                    >
+                      {option.label}
+                    </option>
+                  ),
+                )}
+              </select>
+            </div>
 
             {/* Action */}
             <div>
@@ -208,18 +799,27 @@ export default function AdminActivityLogsPage() {
                 Action
               </label>
 
-              <input
+              <select
                 id="activity-action"
                 value={action}
-                onChange={(event) => {
-                  setAction(
+                onChange={(event) =>
+                  handleActionChange(
                     event.target.value,
-                  );
-                  setPage(1);
-                }}
-                placeholder="LOGIN"
-                className="w-full rounded-xl border border-white/10 bg-[#090909] px-4 py-3 text-sm text-white placeholder:text-slate-600 outline-none transition focus:border-[#f5c400]/50 focus:ring-1 focus:ring-[#f5c400]/20"
-              />
+                  )
+                }
+                className="w-full rounded-xl border border-white/10 bg-[#090909] px-4 py-3 text-sm text-white outline-none transition focus:border-[#f5c400]/50 focus:ring-1 focus:ring-[#f5c400]/20"
+              >
+                {ACTION_OPTIONS.map(
+                  (option) => (
+                    <option
+                      key={option.value}
+                      value={option.value}
+                    >
+                      {option.label}
+                    </option>
+                  ),
+                )}
+              </select>
             </div>
 
             {/* Resource */}
@@ -231,18 +831,27 @@ export default function AdminActivityLogsPage() {
                 Ressource
               </label>
 
-              <input
+              <select
                 id="activity-resource"
                 value={resourceType}
-                onChange={(event) => {
-                  setResourceType(
+                onChange={(event) =>
+                  handleResourceChange(
                     event.target.value,
-                  );
-                  setPage(1);
-                }}
-                placeholder="member"
-                className="w-full rounded-xl border border-white/10 bg-[#090909] px-4 py-3 text-sm text-white placeholder:text-slate-600 outline-none transition focus:border-[#f5c400]/50 focus:ring-1 focus:ring-[#f5c400]/20"
-              />
+                  )
+                }
+                className="w-full rounded-xl border border-white/10 bg-[#090909] px-4 py-3 text-sm text-white outline-none transition focus:border-[#f5c400]/50 focus:ring-1 focus:ring-[#f5c400]/20"
+              >
+                {RESOURCE_OPTIONS.map(
+                  (option) => (
+                    <option
+                      key={option.value}
+                      value={option.value}
+                    >
+                      {option.label}
+                    </option>
+                  ),
+                )}
+              </select>
             </div>
 
             {/* Method */}
@@ -257,12 +866,11 @@ export default function AdminActivityLogsPage() {
               <select
                 id="activity-method"
                 value={method}
-                onChange={(event) => {
-                  setMethod(
+                onChange={(event) =>
+                  handleMethodChange(
                     event.target.value,
-                  );
-                  setPage(1);
-                }}
+                  )
+                }
                 className="w-full rounded-xl border border-white/10 bg-[#090909] px-4 py-3 text-sm text-white outline-none transition focus:border-[#f5c400]/50 focus:ring-1 focus:ring-[#f5c400]/20"
               >
                 <option value="">
@@ -303,15 +911,13 @@ export default function AdminActivityLogsPage() {
               <select
                 id="activity-sort"
                 value={sortOrder}
-                onChange={(event) => {
-                  setSortOrder(
+                onChange={(event) =>
+                  handleSortChange(
                     event.target.value as
                       | "asc"
                       | "desc",
-                  );
-
-                  setPage(1);
-                }}
+                  )
+                }
                 className="w-full rounded-xl border border-white/10 bg-[#090909] px-4 py-3 text-sm text-white outline-none transition focus:border-[#f5c400]/50 focus:ring-1 focus:ring-[#f5c400]/20"
               >
                 <option value="desc">
@@ -325,10 +931,18 @@ export default function AdminActivityLogsPage() {
             </div>
           </div>
 
-          <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-5">
+          <div className="mt-5 flex flex-col gap-3 border-t border-white/10 pt-5 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-slate-600">
               {data
-                ? `${data.total} activité${data.total > 1 ? "s" : ""} enregistrée${data.total > 1 ? "s" : ""}`
+                ? `${data.total} activité${
+                    data.total > 1
+                      ? "s"
+                      : ""
+                  } enregistrée${
+                    data.total > 1
+                      ? "s"
+                      : ""
+                  }`
                 : "Aucune donnée"}
             </p>
 
@@ -337,7 +951,7 @@ export default function AdminActivityLogsPage() {
               onClick={resetFilters}
               className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-bold text-slate-300 transition hover:border-[#f5c400]/30 hover:bg-[#f5c400]/10 hover:text-white"
             >
-              Réinitialiser
+              Réinitialiser les filtres
             </button>
           </div>
         </section>
@@ -391,7 +1005,7 @@ export default function AdminActivityLogsPage() {
             {/* Activity table */}
             <section className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
 
-              <div className="flex items-center justify-between border-b border-white/10 px-6 py-5">
+              <div className="flex flex-col gap-4 border-b border-white/10 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#f5c400]">
                     Journal système
@@ -402,8 +1016,26 @@ export default function AdminActivityLogsPage() {
                   </h2>
                 </div>
 
-                <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-bold text-slate-400">
-                  {data.total} total
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`rounded-full px-3 py-1.5 text-xs font-bold ${
+                      activityType === "business"
+                        ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
+                        : activityType === "technical"
+                          ? "border border-blue-500/20 bg-blue-500/10 text-blue-300"
+                          : "border border-[#f5c400]/20 bg-[#f5c400]/10 text-[#f5c400]"
+                    }`}
+                  >
+                    {activityType === "business"
+                      ? "Audit métier"
+                      : activityType === "technical"
+                        ? "Activité technique"
+                        : "Toutes les activités"}
+                  </span>
+
+                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-bold text-slate-400">
+                    {data.total} total
+                  </span>
                 </div>
               </div>
 
@@ -411,27 +1043,29 @@ export default function AdminActivityLogsPage() {
                 <table className="min-w-full">
                   <thead>
                     <tr className="border-b border-white/10 bg-white/[0.02] text-left">
-                      <th className="whitespace-nowrap px-6 py-4 text-xs font-bold uppercase tracking-[0.15em] text-slate-500">
+                      <th className="w-12 px-4 py-4" />
+
+                      <th className="whitespace-nowrap px-4 py-4 text-xs font-bold uppercase tracking-[0.15em] text-slate-500">
                         Date
                       </th>
 
-                      <th className="whitespace-nowrap px-6 py-4 text-xs font-bold uppercase tracking-[0.15em] text-slate-500">
+                      <th className="whitespace-nowrap px-4 py-4 text-xs font-bold uppercase tracking-[0.15em] text-slate-500">
                         Action
                       </th>
 
-                      <th className="whitespace-nowrap px-6 py-4 text-xs font-bold uppercase tracking-[0.15em] text-slate-500">
+                      <th className="whitespace-nowrap px-4 py-4 text-xs font-bold uppercase tracking-[0.15em] text-slate-500">
                         Ressource
                       </th>
 
-                      <th className="whitespace-nowrap px-6 py-4 text-xs font-bold uppercase tracking-[0.15em] text-slate-500">
+                      <th className="whitespace-nowrap px-4 py-4 text-xs font-bold uppercase tracking-[0.15em] text-slate-500">
                         Méthode
                       </th>
 
-                      <th className="whitespace-nowrap px-6 py-4 text-xs font-bold uppercase tracking-[0.15em] text-slate-500">
+                      <th className="whitespace-nowrap px-4 py-4 text-xs font-bold uppercase tracking-[0.15em] text-slate-500">
                         Endpoint
                       </th>
 
-                      <th className="whitespace-nowrap px-6 py-4 text-xs font-bold uppercase tracking-[0.15em] text-slate-500">
+                      <th className="whitespace-nowrap px-4 py-4 text-xs font-bold uppercase tracking-[0.15em] text-slate-500">
                         Utilisateur
                       </th>
                     </tr>
@@ -439,84 +1073,158 @@ export default function AdminActivityLogsPage() {
 
                   <tbody>
                     {data.items.map(
-                      (activity) => (
-                        <tr
-                          key={activity.id}
-                          className="border-b border-white/5 transition last:border-b-0 hover:bg-white/[0.025]"
-                        >
-                          <td className="whitespace-nowrap px-6 py-5 text-sm text-slate-400">
-                            {formatDate(
-                              activity.occurred_at,
-                            )}
-                          </td>
+                      (activity) => {
+                        const isExpanded =
+                          expandedActivityId ===
+                          activity.id;
 
-                          <td className="px-6 py-5">
-                            <span
-                              className={`inline-flex rounded-lg border px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${getActionStyle(
-                                activity.action,
-                              )}`}
+                        return (
+                          <>
+                            <tr
+                              key={activity.id}
+                              className={`border-b border-white/5 transition ${
+                                isExpanded
+                                  ? "bg-white/[0.04]"
+                                  : "hover:bg-white/[0.025]"
+                              }`}
                             >
-                              {formatAction(
-                                activity.action,
-                              )}
-                            </span>
+                              <td className="px-4 py-5">
+                                <button
+                                  type="button"
+                                  aria-label={
+                                    isExpanded
+                                      ? "Masquer les détails"
+                                      : "Afficher les détails"
+                                  }
+                                  onClick={() =>
+                                    setExpandedActivityId(
+                                      isExpanded
+                                        ? null
+                                        : activity.id,
+                                    )
+                                  }
+                                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-sm text-slate-400 transition hover:border-[#f5c400]/30 hover:bg-[#f5c400]/10 hover:text-[#f5c400]"
+                                >
+                                  {isExpanded
+                                    ? "−"
+                                    : "+"}
+                                </button>
+                              </td>
 
-                            {activity.details && (
-                              <p className="mt-2 max-w-xs truncate text-xs text-slate-600">
-                                {
-                                  activity.details
-                                }
-                              </p>
-                            )}
-                          </td>
-
-                          <td className="px-6 py-5 text-sm text-slate-300">
-                            {activity.resource_type ?? (
-                              <span className="text-slate-700">
-                                —
-                              </span>
-                            )}
-                          </td>
-
-                          <td className="px-6 py-5">
-                            {activity.method ? (
-                              <span className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 font-mono text-xs font-bold text-slate-300">
-                                {
-                                  activity.method
-                                }
-                              </span>
-                            ) : (
-                              <span className="text-slate-700">
-                                —
-                              </span>
-                            )}
-                          </td>
-
-                          <td className="px-6 py-5 font-mono text-xs text-slate-400">
-                            {activity.endpoint ?? (
-                              <span className="text-slate-700">
-                                —
-                              </span>
-                            )}
-                          </td>
-
-                          <td className="px-6 py-5">
-                            {activity.user_id ? (
-                              <span className="font-mono text-xs text-slate-400">
-                                {activity.user_id.slice(
-                                  0,
-                                  8,
+                              <td className="whitespace-nowrap px-4 py-5 text-sm text-slate-400">
+                                {formatDate(
+                                  activity.occurred_at,
                                 )}
-                                ...
-                              </span>
-                            ) : (
-                              <span className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-1 text-xs font-bold text-slate-500">
-                                System
-                              </span>
+                              </td>
+
+                              <td className="px-4 py-5">
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${getActionDot(
+                                      activity.action,
+                                    )}`}
+                                  />
+
+                                  <span
+                                    className={`inline-flex rounded-lg border px-2.5 py-1 text-xs font-bold ${getActionStyle(
+                                      activity.action,
+                                    )}`}
+                                  >
+                                    {formatAction(
+                                      activity.action,
+                                    )}
+                                  </span>
+                                </div>
+
+                                {activity.details && (
+                                  <p className="mt-2 max-w-xs truncate text-xs text-slate-600">
+                                    {
+                                      activity.details
+                                    }
+                                  </p>
+                                )}
+                              </td>
+
+                              <td className="px-4 py-5">
+                                <p className="text-sm font-bold text-slate-300">
+                                  {formatResource(
+                                    activity.resource_type,
+                                  )}
+                                </p>
+
+                                {activity.resource_id && (
+                                  <p className="mt-1 max-w-[180px] truncate font-mono text-[10px] text-slate-700">
+                                    {
+                                      activity.resource_id
+                                    }
+                                  </p>
+                                )}
+                              </td>
+
+                              <td className="px-4 py-5">
+                                {activity.method ? (
+                                  <span className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 font-mono text-xs font-bold text-slate-300">
+                                    {
+                                      activity.method
+                                    }
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-700">
+                                    —
+                                  </span>
+                                )}
+                              </td>
+
+                              <td className="px-4 py-5 font-mono text-xs text-slate-400">
+                                {activity.endpoint ?? (
+                                  <span className="text-slate-700">
+                                    —
+                                  </span>
+                                )}
+                              </td>
+
+                              <td className="px-4 py-5">
+                                {activity.user_id ? (
+                                  <span
+                                    title={
+                                      activity.user_id
+                                    }
+                                    className="font-mono text-xs text-slate-400"
+                                  >
+                                    {activity.user_id.slice(
+                                      0,
+                                      8,
+                                    )}
+                                    ...
+                                  </span>
+                                ) : (
+                                  <span className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-1 text-xs font-bold text-slate-500">
+                                    Système
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+
+                            {isExpanded && (
+                              <tr
+                                key={`${activity.id}-details`}
+                                className="border-b border-white/5"
+                              >
+                                <td
+                                  colSpan={7}
+                                  className="p-0"
+                                >
+                                  <ActivityDetails
+                                    activity={
+                                      activity
+                                    }
+                                  />
+                                </td>
+                              </tr>
                             )}
-                          </td>
-                        </tr>
-                      ),
+                          </>
+                        );
+                      },
                     )}
                   </tbody>
                 </table>
@@ -549,15 +1257,18 @@ export default function AdminActivityLogsPage() {
                   <button
                     type="button"
                     disabled={page <= 1}
-                    onClick={() =>
+                    onClick={() => {
                       setPage(
                         (value) =>
                           Math.max(
                             1,
                             value - 1,
                           ),
-                      )
-                    }
+                      );
+                      setExpandedActivityId(
+                        null,
+                      );
+                    }}
                     className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-bold text-slate-300 transition hover:border-white/20 hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     ← Précédent
@@ -572,12 +1283,15 @@ export default function AdminActivityLogsPage() {
                     disabled={
                       page >= data.pages
                     }
-                    onClick={() =>
+                    onClick={() => {
                       setPage(
                         (value) =>
                           value + 1,
-                      )
-                    }
+                      );
+                      setExpandedActivityId(
+                        null,
+                      );
+                    }}
                     className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-bold text-slate-300 transition hover:border-white/20 hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     Suivant →

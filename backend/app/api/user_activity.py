@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -59,18 +60,37 @@ def get_activity_logs(
         max_length=10,
         description="Filter activity logs by HTTP method.",
     ),
+    activity_type: Literal[
+        "business",
+        "technical",
+    ]
+    | None = Query(
+        default=None,
+        description=(
+            "Filter activity logs by "
+            "business or technical activity."
+        ),
+    ),
     date_from: datetime | None = Query(
         default=None,
-        description="Return activity logs occurring at or after this timestamp.",
+        description=(
+            "Return activity logs occurring "
+            "at or after this timestamp."
+        ),
     ),
     date_to: datetime | None = Query(
         default=None,
-        description="Return activity logs occurring at or before this timestamp.",
+        description=(
+            "Return activity logs occurring "
+            "at or before this timestamp."
+        ),
     ),
     sort_order: str = Query(
         default="desc",
         pattern="^(asc|desc)$",
-        description="Sort activity logs by occurrence time.",
+        description=(
+            "Sort activity logs by occurrence time."
+        ),
     ),
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
@@ -85,6 +105,7 @@ def get_activity_logs(
         action=action,
         resource_type=resource_type,
         method=method,
+        activity_type=activity_type,
         date_from=date_from,
         date_to=date_to,
         sort_order=sort_order,

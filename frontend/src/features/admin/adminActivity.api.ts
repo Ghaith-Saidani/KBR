@@ -52,6 +52,13 @@ export async function getActivityLogs(
     );
   }
 
+  if (filters.activity_type) {
+    params.set(
+      "activity_type",
+      filters.activity_type,
+    );
+  }
+
   if (filters.date_from) {
     params.set(
       "date_from",

@@ -23,6 +23,10 @@ export interface UserActivityListResponse {
   pages: number;
 }
 
+export type ActivityType =
+  | "business"
+  | "technical";
+
 export interface ActivityLogFilters {
   page?: number;
   page_size?: number;
@@ -30,6 +34,7 @@ export interface ActivityLogFilters {
   action?: string;
   resource_type?: string;
   method?: string;
+  activity_type?: ActivityType;
   date_from?: string;
   date_to?: string;
   sort_order?: "asc" | "desc";

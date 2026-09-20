@@ -250,12 +250,11 @@ def update_existing_event(
     current_user: User = Depends(require_staff),
     db: Session = Depends(get_db),
 ) -> EventResponse:
-    del current_user
-
     return update_event(
         db,
         event_id,
         data,
+        actor_user_id=current_user.id,
     )
 
 
@@ -284,9 +283,8 @@ def delete_existing_event(
     current_user: User = Depends(require_staff),
     db: Session = Depends(get_db),
 ) -> None:
-    del current_user
-
     delete_event(
         db,
         event_id,
+        actor_user_id=current_user.id,
     )

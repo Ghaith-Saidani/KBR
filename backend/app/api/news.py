@@ -256,12 +256,11 @@ def update_existing_article(
     current_user: User = Depends(require_staff),
     db: Session = Depends(get_db),
 ) -> News:
-    del current_user
-
     return update_news(
         db,
         news_id,
         data,
+        actor_user_id=current_user.id,
     )
 
 
@@ -290,9 +289,8 @@ def delete_existing_article(
     current_user: User = Depends(require_staff),
     db: Session = Depends(get_db),
 ) -> None:
-    del current_user
-
     delete_news(
         db,
         news_id,
+        actor_user_id=current_user.id,
     )

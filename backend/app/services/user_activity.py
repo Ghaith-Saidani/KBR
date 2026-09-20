@@ -1,7 +1,7 @@
 import math
 import uuid
-from collections.abc import Mapping
 from datetime import datetime
+from typing import Literal
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -10,79 +10,21 @@ from backend.app.models.user_activity import UserActivity
 from backend.app.schemas.user_activity import (
     UserActivityListResponse,
 )
+from backend.app.services.activity_logger import (
+    log_user_activity,
+)
 
 
-def log_user_activity(
-    db: Session,
-    *,
-    action: str,
-    user_id: uuid.UUID | None = None,
-    resource_type: str | None = None,
-    resource_id: uuid.UUID | None = None,
-    method: str | None = None,
-    endpoint: str | None = None,
-    ip_address: str | None = None,
-    user_agent: str | None = None,
-    details: str | None = None,
-    activity_metadata: Mapping[str, object] | None = None,
-    occurred_at: datetime | None = None,
-) -> UserActivity:
-    """
-    Record a user activity in the current database transaction.
+BUSINESS_AUTH_ACTIONS = (
+    "LOGIN",
+    "REGISTER",
+    "USER_ACTIVATED",
+)
 
-    The function intentionally does not commit the transaction.
-    The caller remains responsible for committing or rolling back.
-    """
-
-    activity = UserActivity(
-        id=uuid.uuid4(),
-        user_id=user_id,
-        action=action.strip(),
-        resource_type=(
-            resource_type.strip()
-            if resource_type
-            else None
-        ),
-        resource_id=resource_id,
-        method=(
-            method.strip().upper()
-            if method
-            else None
-        ),
-        endpoint=(
-            endpoint.strip()
-            if endpoint
-            else None
-        ),
-        ip_address=(
-            ip_address.strip()
-            if ip_address
-            else None
-        ),
-        user_agent=(
-            user_agent.strip()
-            if user_agent
-            else None
-        ),
-        details=(
-            details.strip()
-            if details
-            else None
-        ),
-        activity_metadata=(
-            dict(activity_metadata)
-            if activity_metadata is not None
-            else None
-        ),
-    )
-
-    if occurred_at is not None:
-        activity.occurred_at = occurred_at
-
-    db.add(activity)
-    db.flush()
-
-    return activity
+ActivityType = Literal[
+    "business",
+    "technical",
+]
 
 
 def list_user_activities(
@@ -94,6 +36,7 @@ def list_user_activities(
     action: str | None = None,
     resource_type: str | None = None,
     method: str | None = None,
+    activity_type: ActivityType | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     sort_order: str = "desc",
@@ -102,7 +45,7 @@ def list_user_activities(
     Return a paginated list of user activity logs.
 
     Supports filtering by user, action, resource type,
-    HTTP method, and occurrence date range.
+    HTTP method, activity type, and occurrence date range.
     """
 
     filters = []
@@ -127,6 +70,32 @@ def list_user_activities(
         filters.append(
             UserActivity.method
             == method.strip().upper()
+        )
+
+    if activity_type == "business":
+        filters.append(
+            (
+                UserActivity.action.like("MEMBER_%")
+                | UserActivity.action.like("EVENT_%")
+                | UserActivity.action.like("NEWS_%")
+                | UserActivity.action.like("ACTIVITY_%")
+                | UserActivity.action.in_(
+                    BUSINESS_AUTH_ACTIONS
+                )
+            )
+        )
+
+    elif activity_type == "technical":
+        filters.append(
+            ~(
+                UserActivity.action.like("MEMBER_%")
+                | UserActivity.action.like("EVENT_%")
+                | UserActivity.action.like("NEWS_%")
+                | UserActivity.action.like("ACTIVITY_%")
+                | UserActivity.action.in_(
+                    BUSINESS_AUTH_ACTIONS
+                )
+            )
         )
 
     if date_from is not None:

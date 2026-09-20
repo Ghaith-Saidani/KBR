@@ -17,6 +17,7 @@ from backend.app.schemas.activity import (
     ActivityCreateRequest,
     ActivityUpdateRequest,
 )
+from backend.app.services.activity_logger import log_user_activity
 from backend.app.services.notification import (
     add_notification_for_active_members,
 )
@@ -92,6 +93,7 @@ def create_activity(
     )
 
     db.add(activity)
+    db.flush()
 
     if data.status == ActivityStatus.PUBLISHED:
         add_notification_for_active_members(
@@ -103,6 +105,18 @@ def create_activity(
             ),
             notification_type=NotificationType.INFO,
         )
+
+    log_user_activity(
+        db,
+        action="ACTIVITY_CREATED",
+        user_id=created_by,
+        resource_type="activity",
+        resource_id=activity.id,
+        details="Activity created",
+        activity_metadata={
+            "status": activity.status.value,
+        },
+    )
 
     try:
         db.commit()
@@ -231,6 +245,8 @@ def update_activity(
     db: Session,
     activity_id: uuid.UUID,
     data: ActivityUpdateRequest,
+    *,
+    actor_user_id: uuid.UUID,
 ) -> Activity:
     """
     Update an existing activity.
@@ -250,6 +266,11 @@ def update_activity(
     update_data = data.model_dump(
         exclude_unset=True,
     )
+
+    if not update_data:
+        return activity
+
+    changed_fields = sorted(update_data.keys())
 
     if "slug" in update_data:
         new_slug = update_data["slug"]
@@ -318,6 +339,27 @@ def update_activity(
             notification_type=NotificationType.INFO,
         )
 
+    if became_published:
+        audit_action = "ACTIVITY_PUBLISHED"
+        audit_details = "Activity published"
+    else:
+        audit_action = "ACTIVITY_UPDATED"
+        audit_details = "Activity updated"
+
+    log_user_activity(
+        db,
+        action=audit_action,
+        user_id=actor_user_id,
+        resource_type="activity",
+        resource_id=activity.id,
+        details=audit_details,
+        activity_metadata={
+            "changed_fields": changed_fields,
+            "previous_status": previous_status.value,
+            "new_status": activity.status.value,
+        },
+    )
+
     try:
         db.commit()
     except IntegrityError:
@@ -339,6 +381,8 @@ def update_activity(
 def delete_activity(
     db: Session,
     activity_id: uuid.UUID,
+    *,
+    actor_user_id: uuid.UUID,
 ) -> None:
     """
     Permanently delete an activity.
@@ -349,7 +393,21 @@ def delete_activity(
         activity_id,
     )
 
+    activity_title = activity.title
+
     db.delete(activity)
+
+    log_user_activity(
+        db,
+        action="ACTIVITY_DELETED",
+        user_id=actor_user_id,
+        resource_type="activity",
+        resource_id=activity.id,
+        details="Activity deleted",
+        activity_metadata={
+            "title": activity_title,
+        },
+    )
 
     try:
         db.commit()
