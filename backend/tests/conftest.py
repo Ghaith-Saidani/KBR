@@ -3,7 +3,7 @@ from collections.abc import Generator
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from backend.app.core.config import get_settings
@@ -30,6 +30,7 @@ TestingSessionLocal = sessionmaker(
     class_=Session,
     autocommit=False,
     autoflush=False,
+    join_transaction_mode="create_savepoint",
 )
 
 
@@ -58,45 +59,25 @@ def db() -> Generator[Session, None, None]:
     """
     Provide an isolated database session for each test.
 
-    Application code can call session.commit(), while the outer
-    transaction is rolled back after the test finishes.
+    A real outer transaction is opened on the connection. The SQLAlchemy
+    session uses create_savepoint mode so application code can freely call
+    session.commit() without committing the outer test transaction.
+
+    At the end of the test, the outer transaction is rolled back,
+    guaranteeing that database changes do not leak into another test.
     """
 
     connection = test_engine.connect()
     transaction = connection.begin()
 
-    session = TestingSessionLocal(bind=connection)
-
-    session.begin_nested()
-
-    @event.listens_for(
-        session,
-        "after_transaction_end",
+    session = TestingSessionLocal(
+        bind=connection,
     )
-    def restart_savepoint(
-        session: Session,
-        transaction_obj,
-    ) -> None:
-        """
-        Restart the nested SAVEPOINT after application commits.
-        """
-
-        if (
-            transaction_obj.nested
-            and not transaction_obj._parent.nested
-        ):
-            session.begin_nested()
 
     try:
         yield session
 
     finally:
-        event.remove(
-            session,
-            "after_transaction_end",
-            restart_savepoint,
-        )
-
         session.close()
 
         if transaction.is_active:
