@@ -23,6 +23,8 @@ class ActivityLoggingMiddleware(BaseHTTPMiddleware):
         "/docs",
         "/redoc",
         "/openapi.json",
+        "/auth/me",
+        "/notifications/unread-count",
     }
 
     IGNORED_PREFIXES = (
@@ -31,11 +33,32 @@ class ActivityLoggingMiddleware(BaseHTTPMiddleware):
 
     SESSION_STATE_KEY = "activity_logging_session"
 
+    ACTION_MAP = {
+        ("POST", "/auth/login"): (
+            "LOGIN",
+            "authentication",
+        ),
+        ("POST", "/auth/register"): (
+            "REGISTER",
+            "authentication",
+        ),
+        ("POST", "/auth/dev/activate"): (
+            "USER_ACTIVATED",
+            "authentication",
+        ),
+    }
+
     def _should_log(
         self,
-        path: str,
+        request: Request,
     ) -> bool:
         """Return whether the request should generate an activity log."""
+
+        path = request.url.path
+
+        # OPTIONS requests are browser/CORS infrastructure traffic.
+        if request.method.upper() == "OPTIONS":
+            return False
 
         if path in self.IGNORED_PATHS:
             return False
@@ -86,6 +109,104 @@ class ActivityLoggingMiddleware(BaseHTTPMiddleware):
             None,
         )
 
+    def _get_resource_type(
+        self,
+        path: str,
+    ) -> str:
+        """
+        Derive a basic resource type from the request path.
+
+        Infrastructure endpoints such as health checks are classified
+        as generic HTTP requests.
+
+        Examples:
+            /health             -> http_request
+            /health/db         -> http_request
+            /admin/members     -> members
+            /events            -> events
+            /news/123          -> news
+            /admin/events/123  -> events
+        """
+
+        infrastructure_paths = {
+            "/health",
+            "/health/db",
+        }
+
+        if path in infrastructure_paths:
+            return "http_request"
+
+        parts = [
+            part
+            for part in path.strip("/").split("/")
+            if part
+        ]
+
+        if not parts:
+            return "http_request"
+
+        # Remove administrative/API grouping prefixes.
+        while parts and parts[0] in {
+            "admin",
+            "api",
+        }:
+            parts.pop(0)
+
+        if not parts:
+            return "http_request"
+
+        resource = parts[0]
+
+        return resource.replace(
+            "-",
+            "_",
+        )
+
+    def _get_action(
+        self,
+        method: str,
+        path: str,
+    ) -> tuple[str, str]:
+        """
+        Determine a meaningful activity action and resource type.
+        """
+
+        normalized_method = method.upper()
+
+        # Dynamic development activation route:
+        # /auth/dev/activate/{user_id}
+        if (
+            normalized_method == "POST"
+            and path.startswith("/auth/dev/activate/")
+        ):
+            return (
+                "USER_ACTIVATED",
+                "authentication",
+            )
+
+        # Exact action mappings for important authentication events.
+        mapped_action = self.ACTION_MAP.get(
+            (
+                normalized_method,
+                path,
+            )
+        )
+
+        if mapped_action is not None:
+            return mapped_action
+
+        resource_type = self._get_resource_type(
+            path,
+        )
+
+        # Keep the original HTTP action format for generic requests.
+        # This preserves compatibility with the existing audit-log
+        # contract while explicit business actions use semantic names.
+        return (
+            f"{normalized_method} {path}",
+            resource_type,
+        )
+
     def _get_database_session(
         self,
         request: Request,
@@ -110,9 +231,15 @@ class ActivityLoggingMiddleware(BaseHTTPMiddleware):
         )
 
         if shared_session is not None:
-            return shared_session, False
+            return (
+                shared_session,
+                False,
+            )
 
-        return SessionLocal(), True
+        return (
+            SessionLocal(),
+            True,
+        )
 
     async def dispatch(
         self,
@@ -123,7 +250,7 @@ class ActivityLoggingMiddleware(BaseHTTPMiddleware):
         Process the request and persist an activity log.
         """
 
-        if not self._should_log(request.url.path):
+        if not self._should_log(request):
             return await call_next(request)
 
         response = None
@@ -141,11 +268,15 @@ class ActivityLoggingMiddleware(BaseHTTPMiddleware):
             owns_session = False
 
             try:
-                db, owns_session = self._get_database_session(
-                    request,
+                db, owns_session = (
+                    self._get_database_session(
+                        request,
+                    )
                 )
 
-                user_id = self._get_user_id(request)
+                user_id = self._get_user_id(
+                    request,
+                )
 
                 status_code = (
                     response.status_code
@@ -153,9 +284,11 @@ class ActivityLoggingMiddleware(BaseHTTPMiddleware):
                     else 500
                 )
 
-                action = (
-                    f"{request.method} "
-                    f"{request.url.path}"
+                action, resource_type = (
+                    self._get_action(
+                        request.method,
+                        request.url.path,
+                    )
                 )
 
                 details = f"HTTP {status_code}"
@@ -170,7 +303,7 @@ class ActivityLoggingMiddleware(BaseHTTPMiddleware):
                     db,
                     action=action,
                     user_id=user_id,
-                    resource_type="http_request",
+                    resource_type=resource_type,
                     method=request.method,
                     endpoint=request.url.path,
                     ip_address=self._get_client_ip(

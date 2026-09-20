@@ -300,6 +300,14 @@ export default function AdminDashboardPage() {
           <div className="grid gap-4 lg:grid-cols-2">
 
             <ManagementCard
+              eyebrow="Sécurité"
+              title="Journal d'activité"
+              description="Consultez les actions des utilisateurs, les requêtes HTTP et les événements système enregistrés par KBR."
+              href="/admin/activity-logs"
+              action="Consulter le journal"
+            />
+
+            <ManagementCard
               eyebrow="Analyse"
               title="Statistiques"
               description="Analysez les membres, utilisateurs, événements, activités et actualités de KBR à travers des indicateurs et tendances."
