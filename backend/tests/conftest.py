@@ -3,7 +3,7 @@ from collections.abc import Generator
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from backend.app.core.config import get_settings
@@ -30,7 +30,6 @@ TestingSessionLocal = sessionmaker(
     class_=Session,
     autocommit=False,
     autoflush=False,
-    join_transaction_mode="create_savepoint",
 )
 
 
@@ -57,22 +56,15 @@ def prepare_test_database() -> None:
 @pytest.fixture
 def db() -> Generator[Session, None, None]:
     """
-    Provide an isolated database session for each test.
+    Provide a database session for each test.
 
-    A real outer transaction is opened on the connection. The SQLAlchemy
-    session uses create_savepoint mode so application code can freely call
-    session.commit() without committing the outer test transaction.
+    Tests are allowed to call session.commit() normally.
 
-    At the end of the test, the outer transaction is rolled back,
-    guaranteeing that database changes do not leak into another test.
+    Database state is explicitly cleared after every test so that
+    committed rows cannot leak into subsequent tests.
     """
 
-    connection = test_engine.connect()
-    transaction = connection.begin()
-
-    session = TestingSessionLocal(
-        bind=connection,
-    )
+    session = TestingSessionLocal()
 
     try:
         yield session
@@ -80,10 +72,25 @@ def db() -> Generator[Session, None, None]:
     finally:
         session.close()
 
-        if transaction.is_active:
-            transaction.rollback()
+        with test_engine.begin() as connection:
+            table_names = [
+                table.name
+                for table in Base.metadata.sorted_tables
+            ]
 
-        connection.close()
+            if table_names:
+                quoted_tables = ", ".join(
+                    f'"{table_name}"'
+                    for table_name in table_names
+                )
+
+                connection.execute(
+                    text(
+                        "TRUNCATE TABLE "
+                        f"{quoted_tables} "
+                        "RESTART IDENTITY CASCADE"
+                    )
+                )
 
 
 @pytest.fixture
