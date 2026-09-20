@@ -179,6 +179,7 @@ def update_member(
         db,
         member,
         data,
+        actor_user_id=current_user.id,
     )
 
 
@@ -200,4 +201,5 @@ def remove_member(
     delete_member(
         db,
         member,
+        actor_user_id=current_user.id,
     )

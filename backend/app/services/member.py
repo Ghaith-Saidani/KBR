@@ -12,6 +12,7 @@ from backend.app.schemas.member import (
     MemberAdminUpdateRequest,
     MemberUpdateRequest,
 )
+from backend.app.services.activity_logger import log_user_activity
 
 
 def slugify_member_name(
@@ -230,6 +231,19 @@ def update_member_profile(
             exclude_member_id=member.id,
         )
 
+    log_user_activity(
+        db,
+        action="MEMBER_UPDATED",
+        user_id=member.user_id,
+        resource_type="member",
+        resource_id=member.id,
+        details="Member profile updated",
+        activity_metadata={
+            "actor_type": "member",
+            "changed_fields": sorted(update_data.keys()),
+        },
+    )
+
     try:
         db.commit()
     except IntegrityError as exc:
@@ -249,6 +263,8 @@ def update_member_admin(
     db: Session,
     member: Member,
     data: MemberAdminUpdateRequest,
+    *,
+    actor_user_id: uuid.UUID,
 ) -> Member:
     """
     Update a member by staff/admin users.
@@ -257,6 +273,8 @@ def update_member_admin(
     update_data = data.model_dump(
         exclude_unset=True,
     )
+
+    previous_status = member.status
 
     name_changed = (
         "first_name" in update_data
@@ -278,6 +296,37 @@ def update_member_admin(
             exclude_member_id=member.id,
         )
 
+    new_status = member.status
+
+    if (
+        "status" in update_data
+        and new_status != previous_status
+    ):
+        action = {
+            MemberStatus.ACTIVE: "MEMBER_REACTIVATED",
+            MemberStatus.INACTIVE: "MEMBER_DEACTIVATED",
+            MemberStatus.ARCHIVED: "MEMBER_ARCHIVED",
+        }[new_status]
+    else:
+        action = "MEMBER_UPDATED"
+
+    log_user_activity(
+        db,
+        action=action,
+        user_id=actor_user_id,
+        resource_type="member",
+        resource_id=member.id,
+        details="Member updated by staff/admin",
+        activity_metadata={
+            "actor_type": "staff_or_admin",
+            "changed_fields": sorted(
+                update_data.keys()
+            ),
+            "previous_status": previous_status.value,
+            "new_status": new_status.value,
+        },
+    )
+
     try:
         db.commit()
     except IntegrityError as exc:
@@ -296,6 +345,8 @@ def update_member_admin(
 def delete_member(
     db: Session,
     member: Member,
+    *,
+    actor_user_id: uuid.UUID,
 ) -> None:
     """
     Delete a member profile.
@@ -303,7 +354,23 @@ def delete_member(
     The linked user account is intentionally not deleted.
     """
 
+    member_id = member.id
+    member_user_id = member.user_id
+
     db.delete(member)
+
+    log_user_activity(
+        db,
+        action="MEMBER_DELETED",
+        user_id=actor_user_id,
+        resource_type="member",
+        resource_id=member_id,
+        details="Member profile deleted",
+        activity_metadata={
+            "actor_type": "admin",
+            "affected_user_id": str(member_user_id),
+        },
+    )
 
     try:
         db.commit()
