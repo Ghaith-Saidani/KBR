@@ -122,10 +122,10 @@ class ActivityLoggingMiddleware(BaseHTTPMiddleware):
 
         Examples:
             /health             -> http_request
-            /health/db         -> http_request
-            /admin/members     -> members
-            /events            -> events
-            /news/123          -> news
+            /health/db          -> http_request
+            /admin/members      -> members
+            /events             -> events
+            /news/123           -> news
             /admin/events/123  -> events
         """
 
@@ -322,10 +322,19 @@ class ActivityLoggingMiddleware(BaseHTTPMiddleware):
                     },
                 )
 
-                db.commit()
+                if owns_session:
+                    # Production owns this session, so it must
+                    # commit the activity record itself.
+                    db.commit()
+                else:
+                    # Tests provide a shared transaction.
+                    # Flush the activity without committing the
+                    # test transaction so the fixture can roll it
+                    # back after the test.
+                    db.flush()
 
             except SQLAlchemyError:
-                if db is not None:
+                if db is not None and owns_session:
                     db.rollback()
 
             finally:
