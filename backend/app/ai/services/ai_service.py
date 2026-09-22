@@ -15,6 +15,12 @@ from backend.app.ai.schemas import (
     ModelRequest,
     ModelResponse,
 )
+from backend.app.analytics import (
+    AnalyticsEngine,
+    AnalyticsResult,
+    AnalyticsTrendResult,
+    AnalyticsComparisonResult,
+)
 
 
 class ContextRetrieverProtocol(Protocol):
@@ -32,6 +38,27 @@ class ContextRetrieverProtocol(Protocol):
         ...
 
 
+class AnalyticsEngineProtocol(Protocol):
+    """
+    Protocol describing the deterministic analytics interface
+    used by AIService.
+
+    Keeping this as a protocol allows the AI service to be tested
+    independently from the real database-backed engine.
+    """
+
+    def analyze(
+        self,
+        query: str,
+    ) -> (
+        AnalyticsResult
+        | AnalyticsTrendResult
+        | AnalyticsComparisonResult
+        | None
+    ):
+        ...
+
+
 class AIService:
     """
     Application-level service for AI model interactions.
@@ -40,17 +67,16 @@ class AIService:
 
     1. Extract the user's latest message.
     2. Detect the user's intent.
-    3. Retrieve relevant public KBR information.
-    4. Build the KBR system prompt.
-    5. Format the structured KBR context.
-    6. Inject the application instructions and context into the
-       model request.
-    7. Delegate generation to ModelGateway.
+    3. Route analytical questions to AnalyticsEngine.
+    4. Retrieve public KBR information for knowledge questions.
+    5. Build the KBR system prompt.
+    6. Format structured KBR context.
+    7. Inject application instructions and verified context into
+       the model request.
+    8. Delegate generation to ModelGateway.
 
-    The service owns application-level AI behavior.
-
-    Providers are responsible only for translating the provider-
-    agnostic ModelRequest into the provider's API format.
+    Providers remain responsible only for translating the
+    provider-agnostic ModelRequest into the provider API format.
     """
 
     def __init__(
@@ -58,6 +84,7 @@ class AIService:
         gateway: ModelGateway,
         context_retriever: ContextRetrieverProtocol | None = None,
         intent_detector: IntentDetector | None = None,
+        analytics_engine: AnalyticsEngineProtocol | None = None,
     ) -> None:
         self.gateway = gateway
         self.context_retriever = context_retriever
@@ -66,6 +93,7 @@ class AIService:
             if intent_detector is not None
             else IntentDetector()
         )
+        self.analytics_engine = analytics_engine
 
     async def generate(
         self,
@@ -74,22 +102,16 @@ class AIService:
         """
         Generate a response through the configured model gateway.
 
-        The KBR system prompt is always injected for application
-        requests.
+        Analytics questions are answered using deterministic
+        database-derived context.
 
-        When a context retriever is configured, relevant public
-        KBR information is retrieved and appended to the system
-        instructions before generation.
+        Knowledge questions continue using the existing KBR
+        context retriever.
         """
 
         request = self._with_system_prompt(
             request,
         )
-
-        if self.context_retriever is None:
-            return await self.gateway.generate(
-                request,
-            )
 
         user_message = self._get_latest_user_message(
             request,
@@ -103,6 +125,21 @@ class AIService:
         intent = self.intent_detector.detect(
             user_message,
         )
+
+        if intent == AIIntent.ANALYTICS:
+            request = self._with_analytics_context(
+                request,
+                user_message,
+            )
+
+            return await self.gateway.generate(
+                request,
+            )
+
+        if self.context_retriever is None:
+            return await self.gateway.generate(
+                request,
+            )
 
         context = self.context_retriever.retrieve(
             intent=intent,
@@ -123,6 +160,60 @@ class AIService:
             request,
         )
 
+    def _with_analytics_context(
+        self,
+        request: ModelRequest,
+        query: str,
+    ) -> ModelRequest:
+        """
+        Add deterministic analytics context to the model request.
+
+        When no supported analytical metric can be resolved, the
+        model receives an explicit instruction not to invent a
+        statistical answer.
+        """
+
+        if self.analytics_engine is None:
+            analytics_prompt = (
+                "ANALYTICS REQUEST\n"
+                f"User question: {query}\n\n"
+                "No analytics engine is currently configured. "
+                "Do not invent statistics or claim that a database "
+                "value was retrieved."
+            )
+
+            return self._with_context(
+                request,
+                analytics_prompt,
+            )
+
+        result = self.analytics_engine.analyze(
+            query,
+        )
+
+        if result is None:
+            analytics_prompt = (
+                "ANALYTICS REQUEST\n"
+                f"User question: {query}\n\n"
+                "This analytical question is not currently "
+                "supported by the deterministic analytics engine.\n"
+                "Do not invent, estimate, or hallucinate a numerical "
+                "answer.\n"
+                "Explain that this specific statistic is not "
+                "currently available and, when useful, mention "
+                "the types of KBR statistics that are available."
+            )
+
+            return self._with_context(
+                request,
+                analytics_prompt,
+            )
+
+        return self._with_context(
+            request,
+            result.to_prompt(),
+        )
+
     @staticmethod
     def _get_latest_user_message(
         request: ModelRequest,
@@ -131,7 +222,9 @@ class AIService:
         Return the latest non-empty user message.
         """
 
-        for message in reversed(request.messages):
+        for message in reversed(
+            request.messages,
+        ):
             if message.role == "user":
                 content = message.content.strip()
 
@@ -173,10 +266,7 @@ class AIService:
         context: str,
     ) -> ModelRequest:
         """
-        Add retrieved KBR context to the existing system instructions.
-
-        The context becomes a second system message so the provider
-        can translate it naturally to the target model API.
+        Add structured KBR context to the existing system messages.
         """
 
         messages = [
@@ -199,4 +289,5 @@ class AIService:
 __all__ = [
     "AIService",
     "ContextRetrieverProtocol",
+    "AnalyticsEngineProtocol",
 ]

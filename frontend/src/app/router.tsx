@@ -53,6 +53,8 @@ import AdminStatisticsPage from "../pages/AdminStatisticsPage";
 import AdminActivityLogsPage from "../pages/AdminActivityLogsPage";
 import { AdminRoute } from "../components/common/AdminRoute";
 
+import AdminAIAnalyticsPage from "../pages/AdminAIAnalyticsPage";
+
 export const router = createBrowserRouter([
   {
     path: "/",
@@ -279,6 +281,12 @@ export const router = createBrowserRouter([
             path: "admin/statistics",
             element: <AdminStatisticsPage />,
           },
+
+          {
+            path: "admin/ai-analytics",
+            element: <AdminAIAnalyticsPage />,
+          },
+          
           {
             path: "admin/activity-logs",
             element: (

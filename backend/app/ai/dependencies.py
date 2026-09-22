@@ -7,7 +7,8 @@ from backend.app.ai.context import KBRContextRetriever
 from backend.app.ai.gateway import ModelGateway
 from backend.app.ai.providers import create_model_provider
 from backend.app.ai.services.ai_service import AIService
-from backend.app.core.config import Settings, get_settings
+from backend.app.analytics import AnalyticsEngine
+from backend.app.core.config import get_settings
 from backend.app.core.database import get_db
 
 
@@ -37,17 +38,28 @@ def get_ai_service(
     """
     FastAPI dependency for the application-level AI service.
 
-    The service receives a database-backed context retriever so
-    AI responses can be grounded in public KBR information.
+    The service receives both:
+
+    - a database-backed public context retriever;
+    - a deterministic analytics engine.
+
+    This allows the AI service to route knowledge questions
+    through the existing RAG/context system and analytical
+    questions through verified database statistics.
     """
 
     context_retriever = KBRContextRetriever(
         db,
     )
 
+    analytics_engine = AnalyticsEngine(
+        db,
+    )
+
     return AIService(
         gateway=get_ai_gateway(),
         context_retriever=context_retriever,
+        analytics_engine=analytics_engine,
     )
 
 

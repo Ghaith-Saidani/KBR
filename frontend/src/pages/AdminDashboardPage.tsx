@@ -308,6 +308,14 @@ export default function AdminDashboardPage() {
             />
 
             <ManagementCard
+              eyebrow="Data Science / AI"
+              title="AI Analytics"
+              description="Explorez les tendances KBR et interrogez les données avec des requêtes analytiques en langage naturel."
+              href="/admin/ai-analytics"
+              action="Ouvrir AI Analytics"
+            />
+
+            <ManagementCard
               eyebrow="Analyse"
               title="Statistiques"
               description="Analysez les membres, utilisateurs, événements, activités et actualités de KBR à travers des indicateurs et tendances."

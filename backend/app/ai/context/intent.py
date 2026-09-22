@@ -2,6 +2,7 @@ from enum import Enum
 
 
 class AIIntent(str, Enum):
+    ANALYTICS = "analytics"
     EVENTS = "events"
     MEMBERS = "members"
     ACTIVITIES = "activities"
@@ -17,7 +18,45 @@ class IntentDetector:
 
     The detector is intentionally rule-based for now.
     This avoids an additional LLM call just to determine intent.
+
+    Analytics is checked before content-specific intents because
+    questions such as "How many events does KBR have?" contain an
+    event keyword but require a database aggregation rather than
+    content retrieval.
     """
+
+    _ANALYTICS_KEYWORDS = (
+        "how many",
+        "how much",
+        "count",
+        "number of",
+        "total",
+        "statistics",
+        "statistic",
+        "stats",
+        "growth",
+        "trend",
+        "trends",
+        "monthly",
+        "per month",
+        "increase",
+        "decrease",
+        "evolution",
+        "combien",
+        "nombre",
+        "statistique",
+        "statistiques",
+        "croissance",
+        "tendance",
+        "mensuel",
+        "mensuelle",
+        "par mois",
+        "augmentation",
+        "diminution",
+        "évolution",
+        "grown",
+        "growing",
+    )
 
     _EVENT_KEYWORDS = (
         "event",
@@ -106,16 +145,27 @@ class IntentDetector:
         "qui est kbr",
     )
 
-    def detect(self, message: str) -> AIIntent:
+    def detect(
+        self,
+        message: str,
+    ) -> AIIntent:
         """
         Detect the most relevant KBR intent.
 
-        More specific intents are checked before organization/general
-        because messages containing "KBR" may also ask about events,
-        members, news, etc.
+        Analytics is checked first because analytical questions
+        often contain entity keywords such as "events", "members",
+        or "news".
         """
 
-        normalized = self._normalize(message)
+        normalized = self._normalize(
+            message,
+        )
+
+        if self._contains_any(
+            normalized,
+            self._ANALYTICS_KEYWORDS,
+        ):
+            return AIIntent.ANALYTICS
 
         if self._contains_any(
             normalized,
@@ -156,7 +206,9 @@ class IntentDetector:
         return AIIntent.GENERAL
 
     @staticmethod
-    def _normalize(value: str) -> str:
+    def _normalize(
+        value: str,
+    ) -> str:
         return " ".join(
             value.strip().lower().split()
         )
