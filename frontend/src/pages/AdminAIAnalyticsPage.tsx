@@ -85,6 +85,36 @@ interface TrendChartProps {
   }[];
 }
 
+const TREND_SERIES = [
+  {
+    key: "members",
+    label: "Membres",
+    color: "bg-blue-500",
+    hoverColor: "hover:bg-blue-400",
+  },
+  {
+    key: "events",
+    label: "Événements",
+    color: "bg-[#f5c400]",
+    hoverColor: "hover:bg-[#ffd21a]",
+  },
+  {
+    key: "activities",
+    label: "Activités",
+    color: "bg-purple-500",
+    hoverColor: "hover:bg-purple-400",
+  },
+  {
+    key: "news",
+    label: "Actualités",
+    color: "bg-emerald-500",
+    hoverColor: "hover:bg-emerald-400",
+  },
+] as const;
+
+type TrendSeriesKey =
+  (typeof TREND_SERIES)[number]["key"];
+
 function TrendChart({
   months,
 }: TrendChartProps) {
@@ -111,90 +141,153 @@ function TrendChart({
 
   return (
     <div className="overflow-x-auto">
-      <div className="min-w-[680px] rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-        <div className="flex h-72 items-end gap-5">
-          {months.map((item) => {
-            const values = [
-              {
-                key: "members",
-                value: item.members,
-              },
-              {
-                key: "events",
-                value: item.events,
-              },
-              {
-                key: "activities",
-                value: item.activities,
-              },
-              {
-                key: "news",
-                value: item.news,
-              },
-            ];
-
-            return (
-              <div
-                key={item.month}
-                className="flex min-w-[76px] flex-1 flex-col items-center justify-end gap-3"
-              >
-                <div className="flex h-56 w-full items-end justify-center gap-1">
-                  {values.map((entry) => {
-                    const height =
-                      entry.value === 0
-                        ? 0
-                        : Math.max(
-                            8,
-                            (entry.value / maximum) * 100,
-                          );
-
-                    return (
-                      <div
-                        key={entry.key}
-                        title={`${entry.key}: ${entry.value}`}
-                        className="w-3 rounded-t-md bg-[#f5c400]/80 transition hover:bg-[#f5c400]"
-                        style={{
-                          height: `${height}%`,
-                        }}
-                      />
-                    );
-                  })}
-                </div>
-
-                <div className="text-center">
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                    {formatMonth(item.month)}
-                  </p>
-
-                  <p className="mt-1 text-[10px] text-slate-600">
-                    {item.month.slice(0, 4)}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
+      <div className="min-w-[760px] rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+        {/* Legend */}
+        <div className="mb-6 flex flex-wrap justify-center gap-x-6 gap-y-3">
+          {TREND_SERIES.map((series) => (
+            <LegendItem
+              key={series.key}
+              label={series.label}
+              color={series.color}
+            />
+          ))}
         </div>
 
-        <div className="mt-6 flex flex-wrap justify-center gap-5 border-t border-white/10 pt-5">
-          <LegendItem
-            label="Membres"
-            value="members"
-          />
+        {/* Chart */}
+        <div className="relative">
+          {/* Horizontal grid */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-56">
+            <div className="absolute inset-x-0 top-0 border-t border-white/[0.05]" />
 
-          <LegendItem
-            label="Événements"
-            value="events"
-          />
+            <div className="absolute inset-x-0 top-1/4 border-t border-white/[0.04]" />
 
-          <LegendItem
-            label="Activités"
-            value="activities"
-          />
+            <div className="absolute inset-x-0 top-1/2 border-t border-white/[0.04]" />
 
-          <LegendItem
-            label="Actualités"
-            value="news"
-          />
+            <div className="absolute inset-x-0 top-3/4 border-t border-white/[0.04]" />
+
+            <div className="absolute inset-x-0 bottom-0 border-t border-white/[0.06]" />
+          </div>
+
+          <div className="relative flex h-72 items-end gap-5">
+            {months.map((item, index) => {
+              const values: Record<
+                TrendSeriesKey,
+                number
+              > = {
+                members: item.members,
+                events: item.events,
+                activities: item.activities,
+                news: item.news,
+              };
+
+              const isFirstMonth = index === 0;
+              const isLastMonth =
+                index === months.length - 1;
+
+              const tooltipPosition = isFirstMonth
+                ? "left-0 translate-x-0"
+                : isLastMonth
+                  ? "right-0 translate-x-0"
+                  : "left-1/2 -translate-x-1/2";
+
+              return (
+                <div
+                  key={item.month}
+                  className="group relative flex min-w-[86px] flex-1 flex-col items-center justify-end"
+                >
+                  {/* Tooltip */}
+                  <div
+                    className={`pointer-events-none absolute bottom-[calc(100%-3.5rem)] z-30 w-52 rounded-xl border border-white/10 bg-[#101010] p-4 shadow-2xl opacity-0 transition duration-150 group-hover:translate-y-0 group-hover:opacity-100 ${tooltipPosition} translate-y-2`}
+                  >
+                    <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#f5c400]">
+                      {formatMonth(item.month)}{" "}
+                      {item.month.slice(0, 4)}
+                    </p>
+
+                    <div className="mt-3 space-y-2">
+                      {TREND_SERIES.map((series) => (
+                        <div
+                          key={series.key}
+                          className="flex items-center justify-between gap-4"
+                        >
+                          <span className="flex items-center gap-2 text-xs text-slate-400">
+                            <span
+                              className={`h-2 w-2 rounded-full ${series.color}`}
+                            />
+
+                            {series.label}
+                          </span>
+
+                          <span className="text-xs font-black text-white">
+                            {formatNumber(
+                              values[series.key],
+                            )}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Bars */}
+                  <div
+                    className="flex h-56 w-full items-end justify-center gap-1"
+                    aria-label={`Données de ${formatMonth(
+                      item.month,
+                    )} ${item.month.slice(0, 4)}`}
+                  >
+                    {TREND_SERIES.map((series) => {
+                      const value =
+                        values[series.key];
+
+                      const height =
+                        value === 0
+                          ? 0
+                          : Math.max(
+                              8,
+                              (value / maximum) * 100,
+                            );
+
+                      return (
+                        <div
+                          key={series.key}
+                          role="img"
+                          aria-label={`${series.label}: ${formatNumber(
+                            value,
+                          )}`}
+                          title={`${series.label}: ${formatNumber(
+                            value,
+                          )}`}
+                          className={`w-3 rounded-t-md ${series.color} ${series.hoverColor} transition-all duration-200`}
+                          style={{
+                            height: `${height}%`,
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  {/* Month */}
+                  <div className="mt-4 text-center">
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                      {formatMonth(item.month)}
+                    </p>
+
+                    <p className="mt-1 text-[10px] text-slate-600">
+                      {item.month.slice(0, 4)}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Chart help */}
+        <div className="mt-6 border-t border-white/10 pt-5">
+          <p className="text-center text-xs text-slate-600">
+            Survolez un mois pour afficher le détail des
+            quatre indicateurs.
+          </p>
         </div>
       </div>
     </div>
@@ -203,23 +296,22 @@ function TrendChart({
 
 interface LegendItemProps {
   label: string;
-  value: string;
+  color: string;
 }
 
 function LegendItem({
   label,
-  value,
+  color,
 }: LegendItemProps) {
   return (
     <div className="flex items-center gap-2">
-      <span className="h-2.5 w-2.5 rounded-full bg-[#f5c400]" />
+      <span
+        className={`h-2.5 w-2.5 rounded-full ${color}`}
+        aria-hidden="true"
+      />
 
-      <span className="text-xs font-medium text-slate-500">
+      <span className="text-xs font-medium text-slate-400">
         {label}
-      </span>
-
-      <span className="text-[10px] uppercase tracking-wider text-slate-700">
-        {value}
       </span>
     </div>
   );
