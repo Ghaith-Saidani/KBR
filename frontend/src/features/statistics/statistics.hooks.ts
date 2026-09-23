@@ -1,8 +1,7 @@
-import {
-  useQuery,
-} from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
 import {
+  getRecentBusinessActivity,
   getStatisticsOverview,
   getStatisticsTrends,
 } from "./statistics.api";
@@ -23,6 +22,15 @@ export const statisticsKeys = {
       ...statisticsKeys.all,
       "trends",
       months,
+    ] as const,
+
+  recentActivity: (
+    limit: number,
+  ) =>
+    [
+      ...statisticsKeys.all,
+      "recent-activity",
+      limit,
     ] as const,
 };
 
@@ -45,5 +53,17 @@ export function useStatisticsTrends(
 
     queryFn: () =>
       getStatisticsTrends(months),
+  });
+}
+
+export function useRecentBusinessActivity(
+  limit = 10,
+) {
+  return useQuery({
+    queryKey:
+      statisticsKeys.recentActivity(limit),
+
+    queryFn: () =>
+      getRecentBusinessActivity(limit),
   });
 }

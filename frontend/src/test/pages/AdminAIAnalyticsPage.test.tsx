@@ -37,6 +37,8 @@ const mockOverview = {
     suspended: 0,
     inactive: 0,
     archived: 0,
+    created_this_month: 13,
+    created_last_month: 0,
   },
 
   users: {
@@ -53,6 +55,8 @@ const mockOverview = {
     cancelled: 0,
     upcoming: 7,
     past: 0,
+    created_this_month: 7,
+    created_last_month: 0,
   },
 
   activities: {
@@ -61,12 +65,16 @@ const mockOverview = {
     published: 9,
     upcoming: 9,
     past: 0,
+    created_this_month: 9,
+    created_last_month: 0,
   },
 
   news: {
     total: 8,
     draft: 0,
     published: 8,
+    created_this_month: 8,
+    created_last_month: 0,
   },
 };
 
@@ -117,6 +125,54 @@ const mockTrends = {
   ],
 };
 
+const mockRecentActivity = {
+  activities: [
+    {
+      id: "activity-1",
+      action: "MEMBER_UPDATED",
+      resource_type: "member",
+      resource_id:
+        "e3863d63-a18f-4829-b4f1-41c65bcec231",
+      details: 'Updated member "Testt Test"',
+      occurred_at:
+        "2026-09-20T13:28:06.369368Z",
+      user_id:
+        "30ca6978-9186-4de0-9cfb-7d46181a9be4",
+    },
+    {
+      id: "activity-2",
+      action: "EVENT_UPDATED",
+      resource_type: "event",
+      resource_id:
+        "b741a583-4069-4ac5-af50-4e823ba3a0a0",
+      details:
+        'Updated event "Atelier Création de Contenu 1"',
+      occurred_at:
+        "2026-09-20T13:14:54.113149Z",
+      user_id:
+        "30ca6978-9186-4de0-9cfb-7d46181a9be4",
+    },
+    {
+      id: "activity-3",
+      action: "EVENT_PUBLISHED",
+      resource_type: "event",
+      resource_id: null,
+      details:
+        "SEED:2026-09-10: Événement publié #105",
+      occurred_at:
+        "2026-09-10T14:08:00Z",
+      user_id:
+        "098d986f-5690-4e01-a095-c6ae49f0ba0f",
+    },
+  ],
+};
+
+const mockRecentBusinessActivityState = {
+  data: mockRecentActivity,
+  isLoading: false,
+  isError: false,
+};
+
 vi.mock(
   "../../features/statistics/statistics.hooks",
   () => ({
@@ -131,6 +187,9 @@ vi.mock(
       isLoading: false,
       isError: false,
     }),
+
+    useRecentBusinessActivity: () =>
+      mockRecentBusinessActivityState,
   }),
 );
 
@@ -155,6 +214,15 @@ describe(
       mockAnalyticsState.data = null;
       mockAnalyticsState.isPending = false;
       mockAnalyticsState.isError = false;
+
+      mockRecentBusinessActivityState.data =
+        mockRecentActivity;
+
+      mockRecentBusinessActivityState.isLoading =
+        false;
+
+      mockRecentBusinessActivityState.isError =
+        false;
     });
 
     it(
@@ -215,29 +283,106 @@ describe(
           <AdminAIAnalyticsPage />,
         );
 
+        const totalLabels = [
+          "Membres",
+          "Événements",
+          "Activités",
+          "Actualités",
+        ];
+
+        for (const label of totalLabels) {
+          const labelElement = screen.getByText(label, {
+            selector: "p",
+          });
+
+          const card = labelElement.closest("div.rounded-2xl");
+
+          expect(card).not.toBeNull();
+
+          expect(
+            card?.querySelector(
+              "p.mt-3.text-4xl.font-black",
+            ),
+          ).toBeInTheDocument();
+        }
+
         expect(
           screen.getByText("13", {
-            selector: "p",
+            selector: "p.mt-3.text-4xl.font-black",
           }),
         ).toBeInTheDocument();
 
         expect(
           screen.getByText("7", {
-            selector: "p",
+            selector: "p.mt-3.text-4xl.font-black",
           }),
         ).toBeInTheDocument();
 
         expect(
           screen.getByText("9", {
-            selector: "p",
+            selector: "p.mt-3.text-4xl.font-black",
           }),
         ).toBeInTheDocument();
 
         expect(
           screen.getByText("8", {
-            selector: "p",
+            selector: "p.mt-3.text-4xl.font-black",
           }),
         ).toBeInTheDocument();
+      },
+    );
+
+    it(
+      "renders recent business activity",
+      () => {
+        render(
+          <AdminAIAnalyticsPage />,
+        );
+
+        expect(
+          screen.getByRole("heading", {
+            name: "Activité récente",
+          }),
+        ).toBeInTheDocument();
+
+        expect(
+          screen.getByText("Membre modifié"),
+        ).toBeInTheDocument();
+
+        expect(
+          screen.getByText("Événement modifié"),
+        ).toBeInTheDocument();
+
+        expect(
+          screen.getByText("Événement publié"),
+        ).toBeInTheDocument();
+
+        expect(
+          screen.getByText(
+            'Updated member "Testt Test"',
+          ),
+        ).toBeInTheDocument();
+
+        expect(
+          screen.getByText(
+            'Updated event "Atelier Création de Contenu 1"',
+          ),
+        ).toBeInTheDocument();
+
+        expect(
+          screen.getByText(
+            "Événement publié #105",
+          ),
+        ).toBeInTheDocument();
+
+        expect(
+          screen.getByRole("link", {
+            name: /Voir tous les journaux/i,
+          }),
+        ).toHaveAttribute(
+          "href",
+          "/admin/activity-logs",
+        );
       },
     );
 
@@ -353,55 +498,55 @@ describe(
     );
 
     it(
-        "does not invent an analytics result",
-        () => {
-            mockAnalyticsState.data = null;
-            mockAnalyticsState.isPending = false;
-            mockAnalyticsState.isError = false;
+      "does not invent an analytics result",
+      () => {
+        mockAnalyticsState.data = null;
+        mockAnalyticsState.isPending = false;
+        mockAnalyticsState.isError = false;
 
-            render(
-            <AdminAIAnalyticsPage />,
-            );
-
-            expect(
-            screen.getByText(
-                /Posez une question sur KBR/i,
-            ),
-            ).toBeInTheDocument();
-
-            /*
-            * "Résultat vérifié" is also the title of the
-            * architecture step, so it cannot be used to
-            * determine whether an analytics result exists.
-            *
-            * "Requête analysée" only appears after a query
-            * has actually been submitted.
-            */
-            expect(
-            screen.queryByText(
-                "Requête analysée",
-            ),
-            ).not.toBeInTheDocument();
-
-            expect(
-            screen.queryByText(
-                "Tendance vérifiée",
-            ),
-            ).not.toBeInTheDocument();
-
-            expect(
-            screen.queryByText(
-                "Comparaison vérifiée",
-            ),
-            ).not.toBeInTheDocument();
-
-            expect(
-            screen.queryByText(
-                "Cette statistique n'est pas encore supportée.",
-            ),
-            ).not.toBeInTheDocument();
-        },
+        render(
+          <AdminAIAnalyticsPage />,
         );
+
+        expect(
+          screen.getByText(
+            /Posez une question sur KBR/i,
+          ),
+        ).toBeInTheDocument();
+
+        /*
+         * "Résultat vérifié" is also the title of the
+         * architecture step, so it cannot be used to
+         * determine whether an analytics result exists.
+         *
+         * "Requête analysée" only appears after a query
+         * has actually been submitted.
+         */
+        expect(
+          screen.queryByText(
+            "Requête analysée",
+          ),
+        ).not.toBeInTheDocument();
+
+        expect(
+          screen.queryByText(
+            "Tendance vérifiée",
+          ),
+        ).not.toBeInTheDocument();
+
+        expect(
+          screen.queryByText(
+            "Comparaison vérifiée",
+          ),
+        ).not.toBeInTheDocument();
+
+        expect(
+          screen.queryByText(
+            "Cette statistique n'est pas encore supportée.",
+          ),
+        ).not.toBeInTheDocument();
+      },
+    );
 
     it(
       "renders the loading state",
@@ -432,6 +577,48 @@ describe(
         expect(
           screen.getByText(
             /Impossible d'exécuter cette analyse/i,
+          ),
+        ).toBeInTheDocument();
+      },
+    );
+
+    it(
+      "renders the recent activity loading state",
+      () => {
+        mockRecentBusinessActivityState.isLoading =
+          true;
+
+        render(
+          <AdminAIAnalyticsPage />,
+        );
+
+        expect(
+          screen.getByRole("heading", {
+            name: "Activité récente",
+          }),
+        ).toBeInTheDocument();
+
+        expect(
+          screen.queryByText(
+            "Membre modifié",
+          ),
+        ).not.toBeInTheDocument();
+      },
+    );
+
+    it(
+      "renders the recent activity error state",
+      () => {
+        mockRecentBusinessActivityState.isError =
+          true;
+
+        render(
+          <AdminAIAnalyticsPage />,
+        );
+
+        expect(
+          screen.getByText(
+            /Impossible de charger l'activité récente/i,
           ),
         ).toBeInTheDocument();
       },

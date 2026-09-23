@@ -2,11 +2,12 @@ import {
   useMemo,
   useState,
 } from "react";
-import type { FormEvent } from "react";
+import type { FormEvent, ReactNode } from "react";
 
 import { Link } from "react-router-dom";
 
 import {
+  useRecentBusinessActivity,
   useStatisticsOverview,
   useStatisticsTrends,
 } from "../features/statistics/statistics.hooks";
@@ -14,6 +15,8 @@ import {
 import { useAnalyticsQuery } from "../features/analytics/analytics.hooks";
 
 import type { AnalyticsResult } from "../features/analytics/analytics.types";
+
+import type { RecentBusinessActivity } from "../features/statistics/statistics.types";
 
 function formatNumber(value: number | null): string {
   if (value === null) {
@@ -47,22 +50,87 @@ function formatPercentage(value: number | null): string {
   return `${value > 0 ? "+" : ""}${value.toFixed(1)} %`;
 }
 
+function calculateMonthChange(
+  current: number,
+  previous: number,
+): number | null {
+  if (previous === 0) {
+    return current === 0 ? 0 : null;
+  }
+
+  return ((current - previous) / previous) * 100;
+}
+
+function getChangeLabel(
+  current: number,
+  previous: number,
+): string {
+  if (current === previous) {
+    return "Stable par rapport au mois dernier";
+  }
+
+  if (previous === 0) {
+    return current > 0
+      ? "Nouvelle activité ce mois-ci"
+      : "Aucune activité";
+  }
+
+  return current > previous
+    ? "En hausse par rapport au mois dernier"
+    : "En baisse par rapport au mois dernier";
+}
+
+function getChangeClassName(
+  current: number,
+  previous: number,
+): string {
+  if (current === previous) {
+    return "text-slate-500";
+  }
+
+  if (current > previous) {
+    return "text-emerald-400";
+  }
+
+  return "text-red-400";
+}
+
 interface KpiCardProps {
   label: string;
   value: number;
+  currentMonth: number;
+  previousMonth: number;
   description: string;
 }
 
 function KpiCard({
   label,
   value,
+  currentMonth,
+  previousMonth,
   description,
 }: KpiCardProps) {
+  const change = calculateMonthChange(
+    currentMonth,
+    previousMonth,
+  );
+
+  const changeClassName = getChangeClassName(
+    currentMonth,
+    previousMonth,
+  );
+
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 transition hover:border-white/20 hover:bg-white/[0.055]">
-      <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">
-        {label}
-      </p>
+      <div className="flex items-start justify-between gap-4">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">
+          {label}
+        </p>
+
+        <span className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+          Total
+        </span>
+      </div>
 
       <p className="mt-3 text-4xl font-black tracking-tight text-white">
         {formatNumber(value)}
@@ -71,6 +139,41 @@ function KpiCard({
       <p className="mt-2 text-sm text-slate-500">
         {description}
       </p>
+
+      <div className="mt-5 border-t border-white/10 pt-4">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-600">
+              Mois en cours
+            </p>
+            <p className="mt-2 text-lg font-black text-white">
+              {formatNumber(currentMonth)}
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-600">
+              Mois précédent
+            </p>
+            <p className="mt-2 text-lg font-semibold text-slate-400">
+              {formatNumber(previousMonth)}
+            </p>
+          </div>
+        </div>
+        <div className="mt-3 flex min-h-8 items-center justify-between gap-3">
+          <span className={`text-xs font-medium ${changeClassName}`}>
+            {getChangeLabel(currentMonth, previousMonth)}
+          </span>
+          {change === null ? (
+            <span className="shrink-0 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-bold text-slate-500">
+              Base 0
+            </span>
+          ) : (
+            <span className={`shrink-0 whitespace-nowrap rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs font-black ${changeClassName}`}>
+              {formatPercentage(change)}
+            </span>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -129,6 +232,27 @@ function TrendChart({
     return Math.max(...values, 1);
   }, [months]);
 
+  const scale = useMemo(() => {
+    const step = Math.max(
+      1,
+      Math.ceil(maximum / 4),
+    );
+
+    const top = step * 4;
+
+    return {
+      step,
+      top,
+      values: [
+        top,
+        step * 3,
+        step * 2,
+        step,
+        0,
+      ],
+    };
+  }, [maximum]);
+
   if (months.length === 0) {
     return (
       <div className="flex h-72 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.02]">
@@ -141,8 +265,7 @@ function TrendChart({
 
   return (
     <div className="overflow-x-auto">
-      <div className="min-w-[760px] rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-        {/* Legend */}
+      <div className="min-w-[820px] rounded-2xl border border-white/10 bg-white/[0.02] p-6">
         <div className="mb-6 flex flex-wrap justify-center gap-x-6 gap-y-3">
           {TREND_SERIES.map((series) => (
             <LegendItem
@@ -153,136 +276,173 @@ function TrendChart({
           ))}
         </div>
 
-        {/* Chart */}
         <div className="relative">
-          {/* Horizontal grid */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-56">
-            <div className="absolute inset-x-0 top-0 border-t border-white/[0.05]" />
+          <div className="flex">
+            <div className="relative mr-4 h-56 w-10 shrink-0">
+              {scale.values.map((value, index) => {
+                const position =
+                  index === 0
+                    ? "top-0"
+                    : index === 1
+                      ? "top-1/4 -translate-y-1/2"
+                      : index === 2
+                        ? "top-1/2 -translate-y-1/2"
+                        : index === 3
+                          ? "top-3/4 -translate-y-1/2"
+                          : "bottom-0";
 
-            <div className="absolute inset-x-0 top-1/4 border-t border-white/[0.04]" />
+                return (
+                  <span
+                    key={value}
+                    className={`absolute right-0 text-[10px] font-medium text-slate-600 ${position}`}
+                  >
+                    {formatNumber(value)}
+                  </span>
+                );
+              })}
+            </div>
 
-            <div className="absolute inset-x-0 top-1/2 border-t border-white/[0.04]" />
+            <div className="relative flex-1">
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-56">
+                <div className="absolute inset-x-0 top-0 border-t border-white/[0.06]" />
+                <div className="absolute inset-x-0 top-1/4 border-t border-white/[0.04]" />
+                <div className="absolute inset-x-0 top-1/2 border-t border-white/[0.04]" />
+                <div className="absolute inset-x-0 top-3/4 border-t border-white/[0.04]" />
+                <div className="absolute inset-x-0 bottom-0 border-t border-white/[0.06]" />
+              </div>
 
-            <div className="absolute inset-x-0 top-3/4 border-t border-white/[0.04]" />
+              <div className="relative flex h-72 items-end gap-5">
+                {months.map((item, index) => {
+                  const values: Record<
+                    TrendSeriesKey,
+                    number
+                  > = {
+                    members: item.members,
+                    events: item.events,
+                    activities: item.activities,
+                    news: item.news,
+                  };
 
-            <div className="absolute inset-x-0 bottom-0 border-t border-white/[0.06]" />
+                  const isFirstMonth =
+                    index === 0;
+
+                  const isLastMonth =
+                    index === months.length - 1;
+
+                  const tooltipPosition =
+                    isFirstMonth
+                      ? "left-0 translate-x-0"
+                      : isLastMonth
+                        ? "right-0 translate-x-0"
+                        : "left-1/2 -translate-x-1/2";
+
+                  return (
+                    <div
+                      key={item.month}
+                      className="group relative flex min-w-[86px] flex-1 flex-col items-center justify-end"
+                    >
+                      <div
+                        className={`pointer-events-none absolute bottom-[calc(100%-3.5rem)] z-30 w-52 rounded-xl border border-white/10 bg-[#101010] p-4 shadow-2xl opacity-0 transition duration-150 group-hover:translate-y-0 group-hover:opacity-100 ${tooltipPosition} translate-y-2`}
+                      >
+                        <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#f5c400]">
+                          {formatMonth(item.month)}{" "}
+                          {item.month.slice(0, 4)}
+                        </p>
+
+                        <div className="mt-3 space-y-2">
+                          {TREND_SERIES.map(
+                            (series) => (
+                              <div
+                                key={series.key}
+                                className="flex items-center justify-between gap-4"
+                              >
+                                <span className="flex items-center gap-2 text-xs text-slate-400">
+                                  <span
+                                    className={`h-2 w-2 rounded-full ${series.color}`}
+                                  />
+
+                                  {series.label}
+                                </span>
+
+                                <span className="text-xs font-black text-white">
+                                  {formatNumber(
+                                    values[
+                                      series.key
+                                    ],
+                                  )}
+                                </span>
+                              </div>
+                            ),
+                          )}
+                        </div>
+                      </div>
+
+                      <div
+                        className="flex h-56 w-full items-end justify-center gap-1"
+                        aria-label={`Données de ${formatMonth(
+                          item.month,
+                        )} ${item.month.slice(0, 4)}`}
+                      >
+                        {TREND_SERIES.map(
+                          (series) => {
+                            const value =
+                              values[series.key];
+
+                            const height =
+                              value === 0
+                                ? 0
+                                : Math.max(
+                                    8,
+                                    (value /
+                                      scale.top) *
+                                      100,
+                                  );
+
+                            return (
+                              <div
+                                key={
+                                  series.key
+                                }
+                                role="img"
+                                aria-label={`${series.label}: ${formatNumber(
+                                  value,
+                                )}`}
+                                title={`${series.label}: ${formatNumber(
+                                  value,
+                                )}`}
+                                className={`w-3 rounded-t-md ${series.color} ${series.hoverColor} transition-all duration-200`}
+                                style={{
+                                  height: `${height}%`,
+                                }}
+                              />
+                            );
+                          },
+                        )}
+                      </div>
+
+                      <div className="mt-4 text-center">
+                        <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                          {formatMonth(item.month)}
+                        </p>
+
+                        <p className="mt-1 text-[10px] text-slate-600">
+                          {item.month.slice(0, 4)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
-          <div className="relative flex h-72 items-end gap-5">
-            {months.map((item, index) => {
-              const values: Record<
-                TrendSeriesKey,
-                number
-              > = {
-                members: item.members,
-                events: item.events,
-                activities: item.activities,
-                news: item.news,
-              };
-
-              const isFirstMonth = index === 0;
-              const isLastMonth =
-                index === months.length - 1;
-
-              const tooltipPosition = isFirstMonth
-                ? "left-0 translate-x-0"
-                : isLastMonth
-                  ? "right-0 translate-x-0"
-                  : "left-1/2 -translate-x-1/2";
-
-              return (
-                <div
-                  key={item.month}
-                  className="group relative flex min-w-[86px] flex-1 flex-col items-center justify-end"
-                >
-                  {/* Tooltip */}
-                  <div
-                    className={`pointer-events-none absolute bottom-[calc(100%-3.5rem)] z-30 w-52 rounded-xl border border-white/10 bg-[#101010] p-4 shadow-2xl opacity-0 transition duration-150 group-hover:translate-y-0 group-hover:opacity-100 ${tooltipPosition} translate-y-2`}
-                  >
-                    <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#f5c400]">
-                      {formatMonth(item.month)}{" "}
-                      {item.month.slice(0, 4)}
-                    </p>
-
-                    <div className="mt-3 space-y-2">
-                      {TREND_SERIES.map((series) => (
-                        <div
-                          key={series.key}
-                          className="flex items-center justify-between gap-4"
-                        >
-                          <span className="flex items-center gap-2 text-xs text-slate-400">
-                            <span
-                              className={`h-2 w-2 rounded-full ${series.color}`}
-                            />
-
-                            {series.label}
-                          </span>
-
-                          <span className="text-xs font-black text-white">
-                            {formatNumber(
-                              values[series.key],
-                            )}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Bars */}
-                  <div
-                    className="flex h-56 w-full items-end justify-center gap-1"
-                    aria-label={`Données de ${formatMonth(
-                      item.month,
-                    )} ${item.month.slice(0, 4)}`}
-                  >
-                    {TREND_SERIES.map((series) => {
-                      const value =
-                        values[series.key];
-
-                      const height =
-                        value === 0
-                          ? 0
-                          : Math.max(
-                              8,
-                              (value / maximum) * 100,
-                            );
-
-                      return (
-                        <div
-                          key={series.key}
-                          role="img"
-                          aria-label={`${series.label}: ${formatNumber(
-                            value,
-                          )}`}
-                          title={`${series.label}: ${formatNumber(
-                            value,
-                          )}`}
-                          className={`w-3 rounded-t-md ${series.color} ${series.hoverColor} transition-all duration-200`}
-                          style={{
-                            height: `${height}%`,
-                          }}
-                        />
-                      );
-                    })}
-                  </div>
-
-                  {/* Month */}
-                  <div className="mt-4 text-center">
-                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                      {formatMonth(item.month)}
-                    </p>
-
-                    <p className="mt-1 text-[10px] text-slate-600">
-                      {item.month.slice(0, 4)}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="mt-2 pl-14">
+            <p className="text-[10px] uppercase tracking-[0.15em] text-slate-700">
+              Éléments créés
+            </p>
           </div>
         </div>
 
-        {/* Chart help */}
         <div className="mt-6 border-t border-white/10 pt-5">
           <p className="text-center text-xs text-slate-600">
             Survolez un mois pour afficher le détail des
@@ -317,10 +477,380 @@ function LegendItem({
   );
 }
 
+interface StatusBarItemProps {
+  label: string;
+  value: number;
+  total: number;
+}
+
+function StatusBarItem({
+  label,
+  value,
+  total,
+}: StatusBarItemProps) {
+  const percentage =
+    total > 0
+      ? (value / total) * 100
+      : 0;
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-4">
+        <span className="text-sm font-medium text-slate-400">
+          {label}
+        </span>
+
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-black text-white">
+            {formatNumber(value)}
+          </span>
+
+          <span className="w-12 text-right text-xs text-slate-600">
+            {percentage.toFixed(0)}%
+          </span>
+        </div>
+      </div>
+
+      <div className="h-2 overflow-hidden rounded-full bg-white/5">
+        <div
+          className="h-full rounded-full bg-[#f5c400] transition-all duration-500"
+          style={{
+            width: `${percentage}%`,
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function StatusDistribution({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-6">
+      <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-600">
+        Répartition
+      </p>
+
+      <h3 className="mt-2 text-lg font-black text-white">
+        {title}
+      </h3>
+
+      <p className="mt-1 text-sm text-slate-500">
+        {description}
+      </p>
+
+      <div className="mt-6 space-y-5">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   RECENT BUSINESS ACTIVITY
+================================================================ */
+
+const BUSINESS_ACTION_LABELS: Record<
+  string,
+  string
+> = {
+  ACTIVITY_CREATED: "Activité créée",
+  ACTIVITY_UPDATED: "Activité modifiée",
+  ACTIVITY_PUBLISHED: "Activité publiée",
+  ACTIVITY_DELETED: "Activité supprimée",
+
+  EVENT_CREATED: "Événement créé",
+  EVENT_UPDATED: "Événement modifié",
+  EVENT_PUBLISHED: "Événement publié",
+  EVENT_CANCELLED: "Événement annulé",
+  EVENT_DELETED: "Événement supprimé",
+
+  NEWS_CREATED: "Actualité créée",
+  NEWS_UPDATED: "Actualité modifiée",
+  NEWS_PUBLISHED: "Actualité publiée",
+  NEWS_UNPUBLISHED: "Actualité dépubliée",
+  NEWS_DELETED: "Actualité supprimée",
+
+  MEMBER_UPDATED: "Membre modifié",
+  MEMBER_DEACTIVATED: "Membre désactivé",
+  MEMBER_REACTIVATED: "Membre réactivé",
+  MEMBER_ARCHIVED: "Membre archivé",
+  MEMBER_DELETED: "Membre supprimé",
+
+  USER_ACTIVATED: "Utilisateur activé",
+};
+
+const BUSINESS_RESOURCE_LABELS: Record<
+  string,
+  string
+> = {
+  activity: "Activité",
+  event: "Événement",
+  news: "Actualité",
+  member: "Membre",
+  user: "Utilisateur",
+};
+
+function getBusinessActionLabel(
+  action: string,
+): string {
+  return (
+    BUSINESS_ACTION_LABELS[action] ??
+    action.replaceAll("_", " ")
+  );
+}
+
+function getBusinessResourceLabel(
+  resourceType: string | null,
+): string {
+  if (!resourceType) {
+    return "Ressource";
+  }
+
+  return (
+    BUSINESS_RESOURCE_LABELS[
+      resourceType.toLowerCase()
+    ] ?? resourceType
+  );
+}
+
+function getBusinessActionSymbol(
+  action: string,
+): string {
+  if (action.includes("DELETED")) {
+    return "×";
+  }
+
+  if (
+    action.includes("PUBLISHED") ||
+    action.includes("REACTIVATED") ||
+    action.includes("ACTIVATED")
+  ) {
+    return "✓";
+  }
+
+  if (
+    action.includes("CANCELLED") ||
+    action.includes("DEACTIVATED") ||
+    action.includes("ARCHIVED")
+  ) {
+    return "!";
+  }
+
+  if (action.includes("UPDATED")) {
+    return "↻";
+  }
+
+  return "+";
+}
+
+function getBusinessActionTone(
+  action: string,
+): string {
+  if (action.includes("DELETED")) {
+    return "border-red-500/20 bg-red-500/10 text-red-300";
+  }
+
+  if (
+    action.includes("PUBLISHED") ||
+    action.includes("REACTIVATED") ||
+    action.includes("ACTIVATED")
+  ) {
+    return "border-emerald-500/20 bg-emerald-500/10 text-emerald-300";
+  }
+
+  if (
+    action.includes("CANCELLED") ||
+    action.includes("DEACTIVATED") ||
+    action.includes("ARCHIVED")
+  ) {
+    return "border-amber-500/20 bg-amber-500/10 text-amber-300";
+  }
+
+  return "border-[#f5c400]/20 bg-[#f5c400]/10 text-[#f5c400]";
+}
+
+function formatActivityDetails(
+  details: string | null,
+): string | null {
+  if (!details) return null;
+  return details.replace(/^SEED:\S+\s*/i, "").trim();
+}
+
+function formatActivityTimestamp(
+  timestamp: string,
+): string {
+  const date = new Date(timestamp);
+
+  if (Number.isNaN(date.getTime())) {
+    return timestamp;
+  }
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function BusinessActivityItem({
+  activity,
+}: {
+  activity: RecentBusinessActivity;
+}) {
+  const actionLabel =
+    getBusinessActionLabel(activity.action);
+
+  const resourceLabel =
+    getBusinessResourceLabel(
+      activity.resource_type,
+    );
+
+  const symbol = getBusinessActionSymbol(
+    activity.action,
+  );
+
+  const tone = getBusinessActionTone(
+    activity.action,
+  );
+
+  const displayDetails = formatActivityDetails(activity.details);
+
+  return (
+    <div className="flex gap-4 rounded-xl border border-white/10 bg-white/[0.02] p-4 transition hover:border-white/15 hover:bg-white/[0.035]">
+      <div
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border text-sm font-black ${tone}`}
+        aria-hidden="true"
+      >
+        {symbol}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <p className="text-sm font-black text-white">
+            {actionLabel}
+          </p>
+
+          <time
+            dateTime={activity.occurred_at}
+            className="shrink-0 text-xs text-slate-600"
+          >
+            {formatActivityTimestamp(
+              activity.occurred_at,
+            )}
+          </time>
+        </div>
+
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <span className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+            {resourceLabel}
+          </span>
+        </div>
+
+        {displayDetails ? (
+          <p className="mt-2 break-words text-sm leading-5 text-slate-400">
+            {displayDetails}
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function RecentBusinessActivity({
+  activities,
+  isLoading,
+  isError,
+}: {
+  activities: RecentBusinessActivity[];
+  isLoading: boolean;
+  isError: boolean;
+}) {
+  return (
+    <section className="mt-10">
+      <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-600">
+            Activité opérationnelle
+          </p>
+
+          <h2 className="mt-1 text-lg font-black text-white">
+            Activité récente
+          </h2>
+
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+            Dernières actions métier enregistrées sur la
+            plateforme KBR.
+          </p>
+        </div>
+
+        <Link
+          to="/admin/activity-logs"
+          className="inline-flex w-fit items-center rounded-xl border border-white/10 px-4 py-2.5 text-xs font-bold text-slate-400 transition hover:border-white/20 hover:bg-white/5 hover:text-white"
+        >
+          Voir tous les journaux →
+        </Link>
+      </div>
+
+      <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-5 sm:p-6">
+        {isLoading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map(
+              (_, index) => (
+                <div
+                  key={`activity-skeleton-${index}`}
+                  className="h-24 animate-pulse rounded-xl border border-white/10 bg-white/[0.03]"
+                />
+              ),
+            )}
+          </div>
+        ) : isError ? (
+          <div className="rounded-xl border border-red-500/20 bg-red-500/[0.05] p-5">
+            <p className="text-sm font-bold text-red-300">
+              Impossible de charger l'activité récente.
+            </p>
+
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Les autres indicateurs du tableau de bord
+              restent disponibles.
+            </p>
+          </div>
+        ) : activities.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.02] p-8 text-center">
+            <p className="text-sm font-bold text-white">
+              Aucune activité métier récente.
+            </p>
+
+            <p className="mt-2 text-sm text-slate-600">
+              Les nouvelles actions importantes apparaîtront
+              ici automatiquement.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {activities.map((activity) => (
+              <BusinessActivityItem
+                key={activity.id}
+                activity={activity}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 interface ResultShellProps {
   eyebrow: string;
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 function ResultShell({
@@ -653,6 +1183,12 @@ export default function AdminAIAnalyticsPage() {
     isError: trendsError,
   } = useStatisticsTrends(6);
 
+  const {
+    data: recentActivity,
+    isLoading: recentActivityLoading,
+    isError: recentActivityError,
+  } = useRecentBusinessActivity(10);
+
   const analyticsMutation = useAnalyticsQuery();
 
   const [query, setQuery] = useState("");
@@ -693,7 +1229,10 @@ export default function AdminAIAnalyticsPage() {
   return (
     <section className="min-h-screen bg-[#050505] px-6 py-10 text-white">
       <div className="mx-auto max-w-7xl">
-        {/* Header */}
+        {/* ============================================================
+            HEADER
+        ============================================================ */}
+
         <div className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.25em] text-[#f5c400]">
@@ -719,11 +1258,14 @@ export default function AdminAIAnalyticsPage() {
           </Link>
         </div>
 
-        {/* Overview */}
+        {/* ============================================================
+            EXECUTIVE OVERVIEW
+        ============================================================ */}
+
         <section>
           <div className="mb-5">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-600">
-              Vue analytique
+              Vue exécutive
             </p>
 
             <h2 className="mt-1 text-lg font-black text-white">
@@ -731,8 +1273,9 @@ export default function AdminAIAnalyticsPage() {
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              Données actuelles provenant de la plateforme
-              KBR.
+              Vue synthétique de l'activité actuelle de la
+              plateforme KBR. Les variations comparent le
+              mois en cours au mois précédent.
             </p>
           </div>
 
@@ -742,7 +1285,7 @@ export default function AdminAIAnalyticsPage() {
                 (_, index) => (
                   <div
                     key={`overview-skeleton-${index}`}
-                    className="h-40 animate-pulse rounded-2xl border border-white/10 bg-white/[0.04]"
+                    className="h-56 animate-pulse rounded-2xl border border-white/10 bg-white/[0.04]"
                   />
                 ),
               )}
@@ -764,31 +1307,167 @@ export default function AdminAIAnalyticsPage() {
               <KpiCard
                 label="Membres"
                 value={overview.members.total}
+                currentMonth={
+                  overview.members.created_this_month
+                }
+                previousMonth={
+                  overview.members.created_last_month
+                }
                 description="Membres enregistrés"
               />
 
               <KpiCard
                 label="Événements"
                 value={overview.events.total}
+                currentMonth={
+                  overview.events.created_this_month
+                }
+                previousMonth={
+                  overview.events.created_last_month
+                }
                 description="Événements enregistrés"
               />
 
               <KpiCard
                 label="Activités"
                 value={overview.activities.total}
+                currentMonth={
+                  overview.activities.created_this_month
+                }
+                previousMonth={
+                  overview.activities.created_last_month
+                }
                 description="Activités enregistrées"
               />
 
               <KpiCard
                 label="Actualités"
                 value={overview.news.total}
+                currentMonth={
+                  overview.news.created_this_month
+                }
+                previousMonth={
+                  overview.news.created_last_month
+                }
                 description="Articles enregistrés"
               />
             </div>
           )}
         </section>
 
-        {/* Trends */}
+        {/* ============================================================
+            STATUS DISTRIBUTION
+        ============================================================ */}
+
+        {!overviewLoading &&
+        !overviewError &&
+        overview ? (
+          <section className="mt-10">
+            <div className="mb-5">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-600">
+                État actuel
+              </p>
+
+              <h2 className="mt-1 text-lg font-black text-white">
+                Répartition des ressources
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Distribution actuelle des membres et des
+                événements selon leur statut.
+              </p>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <StatusDistribution
+                title="Membres"
+                description="État des membres enregistrés dans KBR."
+              >
+                <StatusBarItem
+                  label="Actifs"
+                  value={overview.members.active}
+                  total={overview.members.total}
+                />
+
+                <StatusBarItem
+                  label="En attente"
+                  value={overview.members.pending}
+                  total={overview.members.total}
+                />
+
+                <StatusBarItem
+                  label="Suspendus"
+                  value={overview.members.suspended}
+                  total={overview.members.total}
+                />
+
+                <StatusBarItem
+                  label="Inactifs"
+                  value={overview.members.inactive}
+                  total={overview.members.total}
+                />
+
+                <StatusBarItem
+                  label="Archivés"
+                  value={overview.members.archived}
+                  total={overview.members.total}
+                />
+              </StatusDistribution>
+
+              <StatusDistribution
+                title="Événements"
+                description="État des événements actuellement enregistrés."
+              >
+                <StatusBarItem
+                  label="Publiés"
+                  value={overview.events.published}
+                  total={overview.events.total}
+                />
+
+                <StatusBarItem
+                  label="Brouillons"
+                  value={overview.events.draft}
+                  total={overview.events.total}
+                />
+
+                <StatusBarItem
+                  label="Annulés"
+                  value={overview.events.cancelled}
+                  total={overview.events.total}
+                />
+
+                <StatusBarItem
+                  label="À venir"
+                  value={overview.events.upcoming}
+                  total={overview.events.total}
+                />
+
+                <StatusBarItem
+                  label="Passés"
+                  value={overview.events.past}
+                  total={overview.events.total}
+                />
+              </StatusDistribution>
+            </div>
+          </section>
+        ) : null}
+
+        {/* ============================================================
+            RECENT BUSINESS ACTIVITY
+        ============================================================ */}
+
+        <RecentBusinessActivity
+          activities={
+            recentActivity?.activities ?? []
+          }
+          isLoading={recentActivityLoading}
+          isError={recentActivityError}
+        />
+
+        {/* ============================================================
+            TRENDS
+        ============================================================ */}
+
         <section className="mt-10">
           <div className="mb-5">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-600">
@@ -801,7 +1480,8 @@ export default function AdminAIAnalyticsPage() {
 
             <p className="mt-1 text-sm text-slate-500">
               Création de nouveaux éléments dans KBR au fil
-              du temps.
+              du temps. Le dernier mois correspond au mois
+              en cours et peut donc être partiel.
             </p>
           </div>
 
@@ -824,7 +1504,10 @@ export default function AdminAIAnalyticsPage() {
           )}
         </section>
 
-        {/* AI Analyst */}
+        {/* ============================================================
+            AI ANALYST
+        ============================================================ */}
+
         <section className="mt-10">
           <div className="mb-5">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-600">
@@ -872,7 +1555,6 @@ export default function AdminAIAnalyticsPage() {
               </button>
             </form>
 
-            {/* Quick questions */}
             <div className="mt-6">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-600">
                 Questions rapides
@@ -913,7 +1595,6 @@ export default function AdminAIAnalyticsPage() {
               </div>
             </div>
 
-            {/* Query error */}
             {analyticsMutation.isError ? (
               <div className="mt-6 rounded-2xl border border-red-500/20 bg-red-500/[0.05] p-5">
                 <p className="text-sm font-bold text-red-300">
@@ -928,7 +1609,6 @@ export default function AdminAIAnalyticsPage() {
               </div>
             ) : null}
 
-            {/* Analysis result */}
             {hasSubmittedQuery &&
             !analyticsMutation.isPending &&
             !analyticsMutation.isError ? (
@@ -959,7 +1639,6 @@ export default function AdminAIAnalyticsPage() {
               </div>
             ) : null}
 
-            {/* Initial state */}
             {!hasSubmittedQuery &&
             !analyticsMutation.isPending ? (
               <div className="mt-8">
@@ -967,7 +1646,6 @@ export default function AdminAIAnalyticsPage() {
               </div>
             ) : null}
 
-            {/* Loading */}
             {analyticsMutation.isPending ? (
               <div className="mt-8 rounded-2xl border border-[#f5c400]/20 bg-[#f5c400]/[0.03] p-8">
                 <div className="flex items-center gap-4">
@@ -988,7 +1666,10 @@ export default function AdminAIAnalyticsPage() {
           </div>
         </section>
 
-        {/* Architecture */}
+        {/* ============================================================
+            ARCHITECTURE
+        ============================================================ */}
+
         <section className="mt-10">
           <div className="mb-5">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-600">
