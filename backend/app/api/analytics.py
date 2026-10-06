@@ -5,7 +5,10 @@ from sqlalchemy.orm import Session
 
 from backend.app.analytics import (
     AnalyticsComparisonResult,
+    AnalyticsDistributionResult,
     AnalyticsEngine,
+    AnalyticsGrowthResult,
+    AnalyticsRankingResult,
     AnalyticsResult,
     AnalyticsTrendResult,
 )
@@ -17,7 +20,6 @@ from backend.app.schemas.analytics import (
     AnalyticsQueryResponse,
     AnalyticsResultResponse,
 )
-
 
 router = APIRouter(
     prefix="/admin/analytics",
@@ -34,13 +36,9 @@ def analytics_query(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> AnalyticsQueryResponse:
-    engine = AnalyticsEngine(
-        db,
-    )
+    engine = AnalyticsEngine(db)
 
-    result = engine.analyze(
-        request.query,
-    )
+    result = engine.analyze(request.query)
 
     if result is None:
         return AnalyticsQueryResponse(
@@ -50,9 +48,7 @@ def analytics_query(
 
     return AnalyticsQueryResponse(
         supported=True,
-        result=_serialize_result(
-            result,
-        ),
+        result=_serialize_result(result),
     )
 
 
@@ -61,12 +57,13 @@ def _serialize_result(
         AnalyticsResult
         | AnalyticsTrendResult
         | AnalyticsComparisonResult
+        | AnalyticsDistributionResult
+        | AnalyticsGrowthResult
+        | AnalyticsRankingResult
     ),
 ) -> AnalyticsResultResponse:
-    if isinstance(
-        result,
-        AnalyticsComparisonResult,
-    ):
+
+    if isinstance(result, AnalyticsComparisonResult):
         return AnalyticsResultResponse(
             type="comparison",
             metric=result.metric,
@@ -80,10 +77,7 @@ def _serialize_result(
             percentage_change=result.percentage_change,
         )
 
-    if isinstance(
-        result,
-        AnalyticsTrendResult,
-    ):
+    if isinstance(result, AnalyticsTrendResult):
         return AnalyticsResultResponse(
             type="trend",
             metric=result.metric,
@@ -92,6 +86,42 @@ def _serialize_result(
             start_date=result.start_date,
             end_date=result.end_date,
             months=result.months,
+        )
+
+    if isinstance(result, AnalyticsDistributionResult):
+        return AnalyticsResultResponse(
+            type="distribution",
+            metric=result.metric,
+            label=result.label,
+            source=result.source,
+            categories=result.categories,
+        )
+
+    if isinstance(result, AnalyticsGrowthResult):
+        return AnalyticsResultResponse(
+            type="growth",
+            metric=result.metric,
+            label=result.label,
+            source=result.source,
+            current_period_label=result.current_period_label,
+            current_value=result.current_value,
+            previous_period_label=result.previous_period_label,
+            previous_value=result.previous_value,
+            difference=result.difference,
+            percentage_change=result.percentage_change,
+            direction=result.direction,
+        )
+
+    if isinstance(result, AnalyticsRankingResult):
+        return AnalyticsResultResponse(
+            type="ranking",
+            metric=result.metric,
+            label=result.label,
+            source=result.source,
+            period_label=result.period_label,
+            rank=result.rank,
+            value=result.value,
+            direction=result.direction,
         )
 
     return AnalyticsResultResponse(

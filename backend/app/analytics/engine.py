@@ -8,6 +8,9 @@ from sqlalchemy.orm import Session
 
 from backend.app.analytics.models import (
     AnalyticsComparisonResult,
+    AnalyticsDistributionResult,
+    AnalyticsGrowthResult,
+    AnalyticsRankingResult,
     AnalyticsResult,
     AnalyticsTrendResult,
 )
@@ -33,6 +36,7 @@ class AnalyticsEngine:
     """
 
     DEFAULT_TREND_MONTHS = 6
+    MAX_TREND_MONTHS = 24
 
     _TREND_KEYWORDS = (
         "trend",
@@ -50,7 +54,6 @@ class AnalyticsEngine:
         "change",
         "changed",
         "changing",
-        "evolution",
         "evolution",
         "evolve",
         "evolves",
@@ -72,7 +75,6 @@ class AnalyticsEngine:
         "mensuelles",
         "croissance",
         "croître",
-        "croissance",
         "tendance",
         "tendances",
         "augmentation",
@@ -80,6 +82,68 @@ class AnalyticsEngine:
         "variation",
         "au fil du temps",
         "over time",
+    )
+
+    _DISTRIBUTION_KEYWORDS = (
+        "distribution",
+        "distributions",
+        "breakdown",
+        "break down",
+        "breakdown by",
+        "répartition",
+        "repartition",
+        "répartis",
+        "repartis",
+        "status distribution",
+        "status breakdown",
+        "statut",
+        "statuts",
+    )
+
+    _RANKING_KEYWORDS = (
+        "best month",
+        "best months",
+        "worst month",
+        "worst months",
+        "highest month",
+        "lowest month",
+        "highest months",
+        "lowest months",
+        "top month",
+        "top months",
+        "bottom month",
+        "bottom months",
+        "maximum month",
+        "minimum month",
+        "max month",
+        "min month",
+        "meilleur mois",
+        "meilleurs mois",
+        "pire mois",
+        "pires mois",
+        "mois avec le plus",
+        "mois avec le moins",
+        "mois record",
+        "mois le plus",
+        "mois le moins",
+    )
+
+    _GROWTH_COMPARISON_KEYWORDS = (
+        "month over month",
+        "month-on-month",
+        "mom",
+        "versus last month",
+        "vs last month",
+        "compared with last month",
+        "compared to last month",
+        "compared with the previous month",
+        "compared to the previous month",
+        "previous month",
+        "last month",
+        "mois précédent",
+        "mois dernier",
+        "par rapport au mois précédent",
+        "par rapport au mois dernier",
     )
 
     _MEMBER_KEYWORDS = (
@@ -92,7 +156,6 @@ class AnalyticsEngine:
         "adhesion",
         "adhésions",
         "adhésion",
-        "adhésions",
     )
 
     _USER_KEYWORDS = (
@@ -202,10 +265,14 @@ class AnalyticsEngine:
         12: "décembre",
     }
 
-    def __init__(
-        self,
-        db: Session,
-    ) -> None:
+    _DOMAIN_LABELS = {
+        "members": "membres",
+        "events": "événements",
+        "activities": "activités",
+        "news": "articles d'actualité",
+    }
+
+    def __init__(self, db: Session) -> None:
         self.db = db
 
     def analyze(
@@ -215,24 +282,30 @@ class AnalyticsEngine:
         AnalyticsResult
         | AnalyticsTrendResult
         | AnalyticsComparisonResult
+        | AnalyticsDistributionResult
+        | AnalyticsGrowthResult
+        | AnalyticsRankingResult
         | None
     ):
-        """
-        Analyze a supported analytical query.
-        """
-
         normalized = self._normalize(query)
 
-        comparison = self._analyze_comparison(
-            normalized,
-        )
+        distribution = self._analyze_distribution(normalized)
+        if distribution is not None:
+            return distribution
 
+        ranking = self._analyze_ranking(normalized)
+        if ranking is not None:
+            return ranking
+
+        growth = self._analyze_month_over_month_growth(normalized)
+        if growth is not None:
+            return growth
+
+        comparison = self._analyze_comparison(normalized)
         if comparison is not None:
             return comparison
 
-        period = self._extract_period(
-            normalized,
-        )
+        period = self._extract_period(normalized)
 
         if self._is_trend_query(normalized):
             return self._analyze_trend(
@@ -248,19 +321,18 @@ class AnalyticsEngine:
             period=period,
         )
 
+    # ------------------------------------------------------------------
+    # Count analytics
+    # ------------------------------------------------------------------
+
     def _analyze_count(
         self,
         query: str,
         period: tuple[date, date] | None = None,
     ) -> AnalyticsResult | None:
-        overview = get_statistics_overview(
-            self.db,
-        )
+        overview = get_statistics_overview(self.db)
 
-        if self._contains_any(
-            query,
-            self._MEMBER_KEYWORDS,
-        ):
+        if self._contains_any(query, self._MEMBER_KEYWORDS):
             if period is not None:
                 value = self._count_created_records(
                     "members",
@@ -271,10 +343,7 @@ class AnalyticsEngine:
                 return AnalyticsResult(
                     metric="members_created_in_period",
                     value=value,
-                    label=(
-                        "Nombre de membres créés pendant "
-                        "la période demandée."
-                    ),
+                    label="Nombre de membres créés pendant la période demandée.",
                     start_date=period[0],
                     end_date=period[1],
                 )
@@ -348,8 +417,6 @@ class AnalyticsEngine:
                     "archives",
                     "archivé",
                     "archivés",
-                    "archived members",
-                    "membres archivés",
                 ),
             ):
                 return AnalyticsResult(
@@ -364,10 +431,7 @@ class AnalyticsEngine:
                 label="Nombre total de membres KBR.",
             )
 
-        if self._contains_any(
-            query,
-            self._USER_KEYWORDS,
-        ):
+        if self._contains_any(query, self._USER_KEYWORDS):
             if self._contains_any(
                 query,
                 (
@@ -385,10 +449,7 @@ class AnalyticsEngine:
                     label="Nombre d'utilisateurs administrateurs.",
                 )
 
-            if self._contains_any(
-                query,
-                ("staff",),
-            ):
+            if self._contains_any(query, ("staff",)):
                 return AnalyticsResult(
                     metric="staff_users",
                     value=overview.users.staff,
@@ -401,10 +462,7 @@ class AnalyticsEngine:
                 label="Nombre total d'utilisateurs.",
             )
 
-        if self._contains_any(
-            query,
-            self._EVENT_KEYWORDS,
-        ):
+        if self._contains_any(query, self._EVENT_KEYWORDS):
             if period is not None:
                 value = self._count_created_records(
                     "events",
@@ -415,10 +473,7 @@ class AnalyticsEngine:
                 return AnalyticsResult(
                     metric="events_created_in_period",
                     value=value,
-                    label=(
-                        "Nombre d'événements créés pendant "
-                        "la période demandée."
-                    ),
+                    label="Nombre d'événements créés pendant la période demandée.",
                     start_date=period[0],
                     end_date=period[1],
                 )
@@ -431,8 +486,6 @@ class AnalyticsEngine:
                     "publié",
                     "publiés",
                     "publiées",
-                    "événements publiés",
-                    "evenements publies",
                 ),
             ):
                 return AnalyticsResult(
@@ -458,10 +511,7 @@ class AnalyticsEngine:
                 return AnalyticsResult(
                     metric="upcoming_events",
                     value=overview.events.upcoming,
-                    label=(
-                        "Nombre d'événements KBR publiés "
-                        "à venir."
-                    ),
+                    label="Nombre d'événements KBR publiés à venir.",
                 )
 
             if self._contains_any(
@@ -502,10 +552,7 @@ class AnalyticsEngine:
                 label="Nombre total d'événements KBR.",
             )
 
-        if self._contains_any(
-            query,
-            self._ACTIVITY_KEYWORDS,
-        ):
+        if self._contains_any(query, self._ACTIVITY_KEYWORDS):
             if period is not None:
                 value = self._count_created_records(
                     "activities",
@@ -516,10 +563,7 @@ class AnalyticsEngine:
                 return AnalyticsResult(
                     metric="activities_created_in_period",
                     value=value,
-                    label=(
-                        "Nombre d'activités créées pendant "
-                        "la période demandée."
-                    ),
+                    label="Nombre d'activités créées pendant la période demandée.",
                     start_date=period[0],
                     end_date=period[1],
                 )
@@ -529,9 +573,10 @@ class AnalyticsEngine:
                 (
                     "published",
                     "publish",
-                    "publiée",
+                    "publiquée",
+                    "publiquées",
+                    "publiés",
                     "publiées",
-                    "publiees",
                 ),
             ):
                 return AnalyticsResult(
@@ -553,10 +598,7 @@ class AnalyticsEngine:
                 return AnalyticsResult(
                     metric="upcoming_activities",
                     value=overview.activities.upcoming,
-                    label=(
-                        "Nombre d'activités KBR publiées "
-                        "à venir."
-                    ),
+                    label="Nombre d'activités KBR publiées à venir.",
                 )
 
             if self._contains_any(
@@ -580,10 +622,7 @@ class AnalyticsEngine:
                 label="Nombre total d'activités KBR.",
             )
 
-        if self._contains_any(
-            query,
-            self._NEWS_KEYWORDS,
-        ):
+        if self._contains_any(query, self._NEWS_KEYWORDS):
             if period is not None:
                 value = self._count_created_records(
                     "news",
@@ -594,10 +633,7 @@ class AnalyticsEngine:
                 return AnalyticsResult(
                     metric="news_created_in_period",
                     value=value,
-                    label=(
-                        "Nombre d'articles d'actualité créés "
-                        "pendant la période demandée."
-                    ),
+                    label="Nombre d'articles d'actualité créés pendant la période demandée.",
                     start_date=period[0],
                     end_date=period[1],
                 )
@@ -609,8 +645,6 @@ class AnalyticsEngine:
                     "publish",
                     "publiées",
                     "publiés",
-                    "actualités publiées",
-                    "actualites publiees",
                 ),
             ):
                 return AnalyticsResult(
@@ -642,6 +676,210 @@ class AnalyticsEngine:
 
         return None
 
+    # ------------------------------------------------------------------
+    # Distribution analytics
+    # ------------------------------------------------------------------
+
+    def _analyze_distribution(
+        self,
+        query: str,
+    ) -> AnalyticsDistributionResult | None:
+        if not self._contains_any(query, self._DISTRIBUTION_KEYWORDS):
+            return None
+
+        overview = get_statistics_overview(self.db)
+
+        if self._contains_any(query, self._MEMBER_KEYWORDS):
+            return AnalyticsDistributionResult(
+                metric="member_status_distribution",
+                categories=[
+                    ("pending", overview.members.pending),
+                    ("active", overview.members.active),
+                    ("suspended", overview.members.suspended),
+                    ("inactive", overview.members.inactive),
+                    ("archived", overview.members.archived),
+                ],
+                label="Répartition actuelle des membres par statut.",
+            )
+
+        if self._contains_any(query, self._EVENT_KEYWORDS):
+            return AnalyticsDistributionResult(
+                metric="event_status_distribution",
+                categories=[
+                    ("draft", overview.events.draft),
+                    ("published", overview.events.published),
+                    ("cancelled", overview.events.cancelled),
+                ],
+                label="Répartition actuelle des événements par statut.",
+            )
+
+        if self._contains_any(query, self._ACTIVITY_KEYWORDS):
+            return AnalyticsDistributionResult(
+                metric="activity_status_distribution",
+                categories=[
+                    ("draft", overview.activities.draft),
+                    ("published", overview.activities.published),
+                ],
+                label="Répartition actuelle des activités par statut.",
+            )
+
+        if self._contains_any(query, self._NEWS_KEYWORDS):
+            return AnalyticsDistributionResult(
+                metric="news_status_distribution",
+                categories=[
+                    ("draft", overview.news.draft),
+                    ("published", overview.news.published),
+                ],
+                label="Répartition actuelle des actualités par statut.",
+            )
+
+        return None
+
+    # ------------------------------------------------------------------
+    # Growth analytics
+    # ------------------------------------------------------------------
+
+    def _analyze_month_over_month_growth(
+        self,
+        query: str,
+    ) -> AnalyticsGrowthResult | None:
+        if not self._contains_any(
+            query,
+            self._GROWTH_COMPARISON_KEYWORDS,
+        ):
+            return None
+
+        domain = self._detect_domain(query)
+
+        if domain is None:
+            return None
+
+        now = datetime.now(timezone.utc).date()
+
+        current_start = now.replace(day=1)
+        previous_end = current_start - timedelta(days=1)
+        previous_start = previous_end.replace(day=1)
+
+        current_value = self._count_created_records(
+            domain,
+            current_start,
+            now,
+        )
+
+        previous_value = self._count_created_records(
+            domain,
+            previous_start,
+            previous_end,
+        )
+
+        difference = current_value - previous_value
+        percentage_change = self._percentage_change(
+            previous_value,
+            current_value,
+        )
+
+        domain_label = self._domain_label(domain)
+
+        return AnalyticsGrowthResult(
+            metric=f"{domain}_month_over_month_growth",
+            current_period_label=self._format_month_label(
+                current_start.month,
+                current_start.year,
+            ),
+            current_value=current_value,
+            previous_period_label=self._format_month_label(
+                previous_start.month,
+                previous_start.year,
+            ),
+            previous_value=previous_value,
+            difference=difference,
+            percentage_change=percentage_change,
+            label=(
+                f"Évolution mensuelle des {domain_label} créés "
+                "entre le mois en cours et le mois précédent."
+            ),
+        )
+
+    # ------------------------------------------------------------------
+    # Ranking analytics
+    # ------------------------------------------------------------------
+
+    def _analyze_ranking(
+        self,
+        query: str,
+    ) -> AnalyticsRankingResult | None:
+        if not self._contains_any(query, self._RANKING_KEYWORDS):
+            return None
+
+        domain = self._detect_domain(query)
+
+        if domain is None:
+            return None
+
+        trends = get_statistics_trends(
+            self.db,
+            months=self.DEFAULT_TREND_MONTHS,
+        )
+
+        values = self._extract_domain_trend(
+            trends,
+            domain,
+        )
+
+        if not values:
+            return None
+
+        descending = self._is_highest_ranking(query)
+
+        sorted_values = sorted(
+            values,
+            key=lambda item: item[1],
+            reverse=descending,
+        )
+
+        period, value = sorted_values[0]
+
+        direction = "highest" if descending else "lowest"
+
+        return AnalyticsRankingResult(
+            metric=f"{domain}_created_monthly_ranking",
+            direction=direction,
+            period_label=period,
+            value=value,
+            rank=1,
+            label=(
+                f"Mois avec le {'plus grand' if descending else 'plus faible'} "
+                f"nombre de {self._domain_label(domain)} créés."
+            ),
+        )
+
+    def _is_highest_ranking(
+        self,
+        query: str,
+    ) -> bool:
+        return self._contains_any(
+            query,
+            (
+                "best",
+                "highest",
+                "top",
+                "maximum",
+                "max",
+                "most",
+                "plus",
+                "meilleur",
+                "meilleurs",
+                "plus grand",
+                "plus élevée",
+                "plus élevé",
+                "record",
+            ),
+        )
+
+    # ------------------------------------------------------------------
+    # Trend analytics
+    # ------------------------------------------------------------------
+
     def _analyze_trend(
         self,
         query: str,
@@ -650,9 +888,15 @@ class AnalyticsEngine:
         months = self.DEFAULT_TREND_MONTHS
 
         if period is not None:
-            months = self._number_of_months(
-                period[0],
-                period[1],
+            months = max(
+                1,
+                min(
+                    self._number_of_months(
+                        period[0],
+                        period[1],
+                    ),
+                    self.MAX_TREND_MONTHS,
+                ),
             )
 
         trends = get_statistics_trends(
@@ -660,89 +904,61 @@ class AnalyticsEngine:
             months=months,
         )
 
-        if self._contains_any(
-            query,
-            self._MEMBER_KEYWORDS,
-        ):
+        if self._contains_any(query, self._MEMBER_KEYWORDS):
             return AnalyticsTrendResult(
                 metric="members_created_per_month",
                 months=[
-                    (
-                        point.month,
-                        point.members,
-                    )
+                    (point.month, point.members)
                     for point in trends.months
                 ],
                 label=(
-                    "Évolution mensuelle du nombre de "
-                    f"membres créés sur les {months} "
-                    "derniers mois."
+                    "Évolution mensuelle du nombre de membres créés "
+                    f"sur les {months} derniers mois."
                 ),
                 start_date=period[0] if period else None,
                 end_date=period[1] if period else None,
             )
 
-        if self._contains_any(
-            query,
-            self._EVENT_KEYWORDS,
-        ):
+        if self._contains_any(query, self._EVENT_KEYWORDS):
             return AnalyticsTrendResult(
                 metric="events_created_per_month",
                 months=[
-                    (
-                        point.month,
-                        point.events,
-                    )
+                    (point.month, point.events)
                     for point in trends.months
                 ],
                 label=(
-                    "Évolution mensuelle du nombre "
-                    f"d'événements créés sur les {months} "
-                    "derniers mois."
+                    "Évolution mensuelle du nombre d'événements créés "
+                    f"sur les {months} derniers mois."
                 ),
                 start_date=period[0] if period else None,
                 end_date=period[1] if period else None,
             )
 
-        if self._contains_any(
-            query,
-            self._ACTIVITY_KEYWORDS,
-        ):
+        if self._contains_any(query, self._ACTIVITY_KEYWORDS):
             return AnalyticsTrendResult(
                 metric="activities_created_per_month",
                 months=[
-                    (
-                        point.month,
-                        point.activities,
-                    )
+                    (point.month, point.activities)
                     for point in trends.months
                 ],
                 label=(
-                    "Évolution mensuelle du nombre "
-                    f"d'activités créées sur les {months} "
-                    "derniers mois."
+                    "Évolution mensuelle du nombre d'activités créées "
+                    f"sur les {months} derniers mois."
                 ),
                 start_date=period[0] if period else None,
                 end_date=period[1] if period else None,
             )
 
-        if self._contains_any(
-            query,
-            self._NEWS_KEYWORDS,
-        ):
+        if self._contains_any(query, self._NEWS_KEYWORDS):
             return AnalyticsTrendResult(
                 metric="news_created_per_month",
                 months=[
-                    (
-                        point.month,
-                        point.news,
-                    )
+                    (point.month, point.news)
                     for point in trends.months
                 ],
                 label=(
-                    "Évolution mensuelle du nombre "
-                    f"d'articles d'actualité créés sur les "
-                    f"{months} derniers mois."
+                    "Évolution mensuelle du nombre d'articles "
+                    f"d'actualité créés sur les {months} derniers mois."
                 ),
                 start_date=period[0] if period else None,
                 end_date=period[1] if period else None,
@@ -750,17 +966,14 @@ class AnalyticsEngine:
 
         return None
 
+    # ------------------------------------------------------------------
+    # Explicit period comparison
+    # ------------------------------------------------------------------
+
     def _analyze_comparison(
         self,
         query: str,
     ) -> AnalyticsComparisonResult | None:
-        """
-        Handle simple period comparisons such as:
-
-        - compare June and September events
-        - compare member growth between June and September
-        """
-
         if "compare" not in query and "compar" not in query:
             return None
 
@@ -773,9 +986,7 @@ class AnalyticsEngine:
             )
         ]
 
-        month_numbers = list(
-            dict.fromkeys(month_numbers),
-        )
+        month_numbers = list(dict.fromkeys(month_numbers))
 
         if len(month_numbers) < 2:
             return None
@@ -783,9 +994,15 @@ class AnalyticsEngine:
         first_month = month_numbers[0]
         second_month = month_numbers[1]
 
-        year = datetime.now(
-            timezone.utc,
-        ).year
+        years = [
+            int(value)
+            for value in re.findall(
+                r"\b(20\d{2})\b",
+                query,
+            )
+        ]
+
+        year = years[0] if years else datetime.now(timezone.utc).year
 
         first_start = date(
             year,
@@ -817,9 +1034,7 @@ class AnalyticsEngine:
             )[1],
         )
 
-        domain = self._detect_domain(
-            query,
-        )
+        domain = self._detect_domain(query)
 
         if domain is None:
             return None
@@ -838,13 +1053,6 @@ class AnalyticsEngine:
 
         difference = second_value - first_value
 
-        percentage_change = None
-
-        if first_value != 0:
-            percentage_change = (
-                difference / first_value
-            ) * 100
-
         return AnalyticsComparisonResult(
             metric=f"{domain}_created_comparison",
             first_period_label=self._format_month_label(
@@ -858,169 +1066,25 @@ class AnalyticsEngine:
             ),
             second_value=second_value,
             difference=difference,
-            percentage_change=percentage_change,
+            percentage_change=self._percentage_change(
+                first_value,
+                second_value,
+            ),
             label=(
                 f"Comparaison des {self._domain_label(domain)} "
                 "créés entre les deux mois demandés."
             ),
         )
 
+    # ------------------------------------------------------------------
+    # Period parsing
+    # ------------------------------------------------------------------
+
     def _extract_period(
         self,
         query: str,
     ) -> tuple[date, date] | None:
-        """
-        Extract supported periods from natural-language queries.
-
-        Supported examples:
-
-        - in August
-        - in August 2026
-        - last 3 months
-        - past 6 months
-        - last month
-        - this month
-        - this year
-        - between June and September
-        """
-
-        now = datetime.now(
-            timezone.utc,
-        ).date()
-
-        month_match = re.search(
-            r"\b("
-            + "|".join(
-                re.escape(month)
-                for month in self._MONTHS
-            )
-            + r")"
-            r"(?:\s+(\d{4}))?\b",
-            query,
-        )
-
-        if month_match:
-            month_name = month_match.group(1)
-            year_text = month_match.group(2)
-
-            month = self._MONTHS[
-                month_name
-            ]
-
-            year = (
-                int(year_text)
-                if year_text
-                else now.year
-            )
-
-            start = date(
-                year,
-                month,
-                1,
-            )
-
-            end = date(
-                year,
-                month,
-                calendar.monthrange(
-                    year,
-                    month,
-                )[1],
-            )
-
-            return start, end
-
-        relative_match = re.search(
-            r"\b(?:last|past|previous|derniers?|"
-            r"dernières?|dernieres?)\s+"
-            r"(\d+)\s+"
-            r"(?:months?|mois)\b",
-            query,
-        )
-
-        if relative_match:
-            count = int(
-                relative_match.group(1),
-            )
-
-            count = max(
-                1,
-                min(count, 24),
-            )
-
-            first_month = (
-                now.replace(
-                    day=1,
-                )
-                - timedelta(
-                    days=1,
-                )
-            )
-
-            for _ in range(
-                count - 1,
-            ):
-                first_month = (
-                    first_month.replace(
-                        day=1,
-                    )
-                    - timedelta(
-                        days=1,
-                    )
-                )
-
-            start = first_month.replace(
-                day=1,
-            )
-
-            return start, now
-
-        if re.search(
-            r"\b(?:last|past|previous|dernier|"
-            r"dernière|derniere)\s+month\b",
-            query,
-        ):
-            first_day_this_month = now.replace(
-                day=1,
-            )
-
-            end = (
-                first_day_this_month
-                - timedelta(
-                    days=1,
-                )
-            )
-
-            start = end.replace(
-                day=1,
-            )
-
-            return start, end
-
-        if re.search(
-            r"\b(?:this|current)\s+month\b",
-            query,
-        ):
-            start = now.replace(
-                day=1,
-            )
-
-            end = now
-
-            return start, end
-
-        if re.search(
-            r"\b(?:this|current)\s+year\b",
-            query,
-        ):
-            return (
-                date(
-                    now.year,
-                    1,
-                    1,
-                ),
-                now,
-            )
+        now = datetime.now(timezone.utc).date()
 
         between_match = re.search(
             r"\bbetween\s+"
@@ -1047,13 +1111,8 @@ class AnalyticsEngine:
                     else now.year
                 )
 
-                first_month = self._MONTHS[
-                    first_name
-                ]
-
-                second_month = self._MONTHS[
-                    second_name
-                ]
+                first_month = self._MONTHS[first_name]
+                second_month = self._MONTHS[second_name]
 
                 start = date(
                     year,
@@ -1072,7 +1131,103 @@ class AnalyticsEngine:
 
                 return start, end
 
+        relative_match = re.search(
+            r"\b(?:last|past|previous|derniers?|"
+            r"dernières?|dernieres?)\s+"
+            r"(\d+)\s+"
+            r"(?:months?|mois)\b",
+            query,
+        )
+
+        if relative_match:
+            count = int(relative_match.group(1))
+            count = max(
+                1,
+                min(count, self.MAX_TREND_MONTHS),
+            )
+
+            first_month = (
+                now.replace(day=1)
+                - timedelta(days=1)
+            )
+
+            for _ in range(count - 1):
+                first_month = (
+                    first_month.replace(day=1)
+                    - timedelta(days=1)
+                )
+
+            return first_month.replace(day=1), now
+
+        if re.search(
+            r"\b(?:last|past|previous|dernier|"
+            r"dernière|derniere)\s+month\b",
+            query,
+        ):
+            first_day_this_month = now.replace(day=1)
+
+            end = first_day_this_month - timedelta(days=1)
+            start = end.replace(day=1)
+
+            return start, end
+
+        if re.search(
+            r"\b(?:this|current)\s+month\b",
+            query,
+        ):
+            return now.replace(day=1), now
+
+        if re.search(
+            r"\b(?:this|current)\s+year\b",
+            query,
+        ):
+            return date(now.year, 1, 1), now
+
+        month_match = re.search(
+            r"\b("
+            + "|".join(
+                re.escape(month)
+                for month in self._MONTHS
+            )
+            + r")"
+            r"(?:\s+(\d{4}))?\b",
+            query,
+        )
+
+        if month_match:
+            month_name = month_match.group(1)
+            year_text = month_match.group(2)
+
+            month = self._MONTHS[month_name]
+
+            year = (
+                int(year_text)
+                if year_text
+                else now.year
+            )
+
+            start = date(
+                year,
+                month,
+                1,
+            )
+
+            end = date(
+                year,
+                month,
+                calendar.monthrange(
+                    year,
+                    month,
+                )[1],
+            )
+
+            return start, end
+
         return None
+
+    # ------------------------------------------------------------------
+    # Database helpers
+    # ------------------------------------------------------------------
 
     def _count_created_records(
         self,
@@ -1129,6 +1284,10 @@ class AnalyticsEngine:
 
         return query.count()
 
+    # ------------------------------------------------------------------
+    # Domain / parsing helpers
+    # ------------------------------------------------------------------
+
     def _detect_domain(
         self,
         query: str,
@@ -1159,6 +1318,33 @@ class AnalyticsEngine:
 
         return None
 
+    @staticmethod
+    def _extract_domain_trend(
+        trends: object,
+        domain: str,
+    ) -> list[tuple[str, int]]:
+        attribute_map = {
+            "members": "members",
+            "events": "events",
+            "activities": "activities",
+            "news": "news",
+        }
+
+        attribute = attribute_map.get(domain)
+
+        if attribute is None:
+            return []
+
+        points = getattr(trends, "months", [])
+
+        return [
+            (
+                point.month,
+                int(getattr(point, attribute)),
+            )
+            for point in points
+        ]
+
     def _number_of_months(
         self,
         start: date,
@@ -1184,17 +1370,6 @@ class AnalyticsEngine:
         self,
         query: str,
     ) -> bool:
-        """
-        Determine whether the user is asking for a trend.
-
-        This explicitly handles French constructions such as:
-
-        - Comment évolue le nombre de membres ?
-        - Comment évoluent les événements ?
-        - Quelle est l'évolution des membres ?
-        - Comment les membres évoluent-ils ?
-        """
-
         if self._contains_any(
             query,
             self._TREND_KEYWORDS,
@@ -1238,25 +1413,30 @@ class AnalyticsEngine:
         month: int,
         year: int,
     ) -> str:
-        return (
-            f"{cls._MONTH_LABELS[month]} {year}"
+        return f"{cls._MONTH_LABELS[month]} {year}"
+
+    @classmethod
+    def _domain_label(
+        cls,
+        domain: str,
+    ) -> str:
+        return cls._DOMAIN_LABELS.get(
+            domain,
+            domain,
         )
 
     @staticmethod
-    def _domain_label(
-        domain: str,
-    ) -> str:
-        labels = {
-            "members": "membres",
-            "events": "événements",
-            "activities": "activités",
-            "news": "articles d'actualité",
-        }
+    def _percentage_change(
+        previous_value: int,
+        current_value: int,
+    ) -> float | None:
+        if previous_value == 0:
+            return None
 
-        return labels.get(
-            domain,
-            domain,
-        )
+        return (
+            (current_value - previous_value)
+            / previous_value
+        ) * 100
 
     @staticmethod
     def _normalize(

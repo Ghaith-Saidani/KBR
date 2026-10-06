@@ -20,17 +20,38 @@ class IntentDetector:
     This avoids an additional LLM call just to determine intent.
 
     Analytics is checked before content-specific intents because
-    questions such as "How many events does KBR have?" contain an
-    event keyword but require a database aggregation rather than
-    content retrieval.
+    questions such as "How many events does KBR have?" contain
+    an entity keyword but require a database aggregation rather
+    than content retrieval.
     """
 
     _ANALYTICS_KEYWORDS = (
+        # Explicit analytics language
+        "analytics",
+        "analytic",
+        "analyse",
+        "analysis",
+        "analytical",
+        "data analysis",
+        "analytics report",
+        "statistical",
+
+        # English quantitative questions
         "how many",
         "how much",
         "count",
         "number of",
         "total",
+        "average",
+        "avg",
+        "mean",
+        "median",
+        "minimum",
+        "maximum",
+        "min",
+        "max",
+
+        # English analytics concepts
         "statistics",
         "statistic",
         "stats",
@@ -38,24 +59,93 @@ class IntentDetector:
         "trend",
         "trends",
         "monthly",
+        "month over month",
         "per month",
+        "how has",
+        "how have",
+        "how did",
+        "how is",
+        "how are",
         "increase",
         "decrease",
+        "change",
         "evolution",
+        "distribution",
+        "breakdown",
+        "percentage",
+        "percent",
+        "compare",
+        "comparison",
+        "compared",
+        "versus",
+        "vs",
+        "ranking",
+        "rank",
+        "ranked",
+        "highest",
+        "lowest",
+        "top",
+        "bottom",
+        "most",
+        "least",
+
+        # English time-period analytics
+        "this month",
+        "last month",
+        "previous month",
+        "current month",
+        "this year",
+        "last year",
+        "previous year",
+        "past month",
+        "past year",
+        "last week",
+        "previous week",
+        "between",
+        "from",
+        "during",
+        "in 2025",
+        "in 2026",
+
+        # French analytics language
         "combien",
         "nombre",
         "statistique",
         "statistiques",
         "croissance",
         "tendance",
+        "tendances",
         "mensuel",
         "mensuelle",
+        "mensuels",
+        "mensuelles",
         "par mois",
         "augmentation",
         "diminution",
         "évolution",
-        "grown",
-        "growing",
+        "analyse",
+        "analytique",
+        "statistique",
+        "moyenne",
+        "médiane",
+        "minimum",
+        "maximum",
+        "répartition",
+        "distribution",
+        "comparaison",
+        "comparer",
+        "comparé",
+        "classement",
+        "classé",
+        "plus élevé",
+        "plus élevée",
+        "plus bas",
+        "plus basse",
+        "le plus",
+        "la plus",
+        "pourcentage",
+        "variation",
+        "progression",
     )
 
     _EVENT_KEYWORDS = (
@@ -157,9 +247,7 @@ class IntentDetector:
         or "news".
         """
 
-        normalized = self._normalize(
-            message,
-        )
+        normalized = self._normalize(message)
 
         if self._contains_any(
             normalized,

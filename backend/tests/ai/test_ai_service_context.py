@@ -488,8 +488,7 @@ async def test_ai_service_does_not_hallucinate_unsupported_analytics():
 
     analytics_context = received.messages[2].content
 
-    assert "ANALYTICS REQUEST" in analytics_context
-    assert "not currently supported" in analytics_context
+    assert "ANALYTICS EXPLANATION MODE" in analytics_context
     assert "Do not invent" in analytics_context
 
 

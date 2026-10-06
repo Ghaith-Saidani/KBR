@@ -283,55 +283,60 @@ describe(
           <AdminAIAnalyticsPage />,
         );
 
-        const totalLabels = [
-          "Membres",
-          "Événements",
-          "Activités",
-          "Actualités",
+        const expectedKpis = [
+          {
+            label: "Membres",
+            value: "13",
+          },
+          {
+            label: "Événements",
+            value: "7",
+          },
+          {
+            label: "Activités",
+            value: "9",
+          },
+          {
+            label: "Actualités",
+            value: "8",
+          },
         ];
 
-        for (const label of totalLabels) {
-          const labelElement = screen.getByText(label, {
-            selector: "p",
-          });
+        for (const { label, value } of expectedKpis) {
+          const labelElements = screen.getAllByText(
+            label,
+            {
+              selector: "p",
+            },
+          );
 
-          const card = labelElement.closest("div.rounded-2xl");
+          const kpiLabel = labelElements.find(
+            (element) =>
+              element.className.includes(
+                "text-slate-500",
+              ),
+          );
+
+          expect(kpiLabel).toBeDefined();
+
+          const card =
+            kpiLabel?.closest("div.rounded-2xl");
 
           expect(card).not.toBeNull();
 
-          expect(
+          const valueElement =
             card?.querySelector(
               "p.mt-3.text-4xl.font-black",
-            ),
-          ).toBeInTheDocument();
+            );
+
+          expect(valueElement).not.toBeNull();
+
+          expect(valueElement).toHaveTextContent(
+            value,
+          );
         }
-
-        expect(
-          screen.getByText("13", {
-            selector: "p.mt-3.text-4xl.font-black",
-          }),
-        ).toBeInTheDocument();
-
-        expect(
-          screen.getByText("7", {
-            selector: "p.mt-3.text-4xl.font-black",
-          }),
-        ).toBeInTheDocument();
-
-        expect(
-          screen.getByText("9", {
-            selector: "p.mt-3.text-4xl.font-black",
-          }),
-        ).toBeInTheDocument();
-
-        expect(
-          screen.getByText("8", {
-            selector: "p.mt-3.text-4xl.font-black",
-          }),
-        ).toBeInTheDocument();
       },
     );
-
     it(
       "renders recent business activity",
       () => {
@@ -558,9 +563,9 @@ describe(
         );
 
         expect(
-          screen.getByText(
-            /Analyse.*cours/i,
-          ),
+          screen.getByText("Analyse en cours", {
+            exact: true,
+          }),
         ).toBeInTheDocument();
       },
     );
