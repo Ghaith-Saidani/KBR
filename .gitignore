@@ -98,3 +98,10 @@ playwright-report/
 test-results/
 blob-report/
 playwright/.cache/
+
+# ==============================
+# KBR generated data
+# ==============================
+data/raw/*.csv
+data/processed/*.csv
+data/reports/*.csv
