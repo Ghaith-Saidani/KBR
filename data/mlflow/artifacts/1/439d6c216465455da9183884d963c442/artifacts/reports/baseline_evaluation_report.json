@@ -1,0 +1,591 @@
+{
+  "report_version": 1,
+  "model_type": "IsolationForest",
+  "purpose": "Temporal baseline, anomaly stability and drift diagnostics",
+  "total_rows": 1814,
+  "http_rows": 647,
+  "business_rows": 1167,
+  "existing_models_modified": false,
+  "existing_risk_report_modified": false,
+  "populations": {
+    "http": {
+      "population": "http",
+      "methodology": {
+        "split": "chronological by row timestamp",
+        "training_fraction": 0.8,
+        "threshold_percentile": 95.0,
+        "n_estimators": 300,
+        "random_state": 42,
+        "model_saved": false,
+        "evaluation_windows": "4 equal-duration calendar intervals"
+      },
+      "training": {
+        "rows": 517,
+        "timeline": {
+          "rows": 517,
+          "start": "2026-08-30 19:57:12.439525+00:00",
+          "end": "2026-08-30 20:09:34.188698+00:00",
+          "active_calendar_days": 1,
+          "daily_counts": {
+            "2026-08-30": 517
+          },
+          "inter_event_gap_seconds": {
+            "median": 0.02,
+            "p95": 0.084,
+            "maximum": 229.6
+          },
+          "maximum_rolling_5min_events": 463
+        },
+        "score_distribution": {
+          "count": 517,
+          "min": -0.18244,
+          "max": -0.123248,
+          "mean": -0.163046,
+          "median": -0.16618,
+          "std": 0.011484,
+          "p90": -0.147153,
+          "p95": -0.140206,
+          "p99": -0.127925
+        }
+      },
+      "evaluation": {
+        "rows": 130,
+        "timeline": {
+          "rows": 130,
+          "start": "2026-08-30 20:09:34.216054+00:00",
+          "end": "2026-09-20 10:44:00.625702+00:00",
+          "active_calendar_days": 2,
+          "daily_counts": {
+            "2026-08-30": 124,
+            "2026-09-20": 6
+          },
+          "inter_event_gap_seconds": {
+            "median": 0.029,
+            "p95": 111.948,
+            "maximum": 1778650.434
+          },
+          "maximum_rolling_5min_events": 72
+        },
+        "score_distribution": {
+          "count": 130,
+          "min": -0.170171,
+          "max": -0.106005,
+          "mean": -0.147688,
+          "median": -0.148935,
+          "std": 0.014127,
+          "p90": -0.128357,
+          "p95": -0.124623,
+          "p99": -0.110338
+        },
+        "anomaly_count": 39,
+        "anomaly_percentage": 30.0,
+        "threshold": -0.140206,
+        "windows": [
+          {
+            "window": 1,
+            "start": "2026-08-30 20:09:34.216054016+00:00",
+            "end": "2026-09-04 23:48:10.818466048+00:00",
+            "rows": 123,
+            "anomaly_count": 37,
+            "anomaly_percentage": 30.08,
+            "score_distribution": {
+              "count": 123,
+              "min": -0.170171,
+              "max": -0.106005,
+              "mean": -0.147962,
+              "median": -0.149141,
+              "std": 0.013972,
+              "p90": -0.128933,
+              "p95": -0.12485,
+              "p99": -0.110289
+            }
+          },
+          {
+            "window": 2,
+            "start": "2026-09-04 23:48:10.818466048+00:00",
+            "end": "2026-09-10 03:26:47.420877824+00:00",
+            "rows": 0,
+            "anomaly_count": 0,
+            "anomaly_percentage": null,
+            "score_distribution": null
+          },
+          {
+            "window": 3,
+            "start": "2026-09-10 03:26:47.420877824+00:00",
+            "end": "2026-09-15 07:05:24.023289856+00:00",
+            "rows": 0,
+            "anomaly_count": 0,
+            "anomaly_percentage": null,
+            "score_distribution": null
+          },
+          {
+            "window": 4,
+            "start": "2026-09-15 07:05:24.023289856+00:00",
+            "end": "2026-09-20 10:44:00.625701888+00:00",
+            "rows": 5,
+            "anomaly_count": 2,
+            "anomaly_percentage": 40.0,
+            "score_distribution": {
+              "count": 5,
+              "min": -0.14437,
+              "max": -0.118182,
+              "mean": -0.134849,
+              "median": -0.142125,
+              "std": 0.011542,
+              "p90": -0.121836,
+              "p95": -0.120009,
+              "p99": -0.118547
+            }
+          }
+        ]
+      },
+      "score_distribution_shift": {
+        "mean_delta": 0.015358,
+        "median_delta": 0.017245,
+        "p95_delta": 0.015584
+      },
+      "continuous_feature_drift": {
+        "method": "PSI using training quantile bins",
+        "mean_psi": 11.466906,
+        "features": {
+          "activity_count_5m": 12.465006,
+          "activity_count_1h": 15.04609,
+          "activity_count_24h": 15.04609,
+          "log_time_since_previous_activity": 0.566173,
+          "user_activity_count_1h": 12.839037,
+          "user_activity_count_24h": 12.839037
+        },
+        "interpretation": "PSI is a descriptive indicator. Common thresholds (<0.10, 0.10-0.25, >0.25) are heuristics, not statistical tests."
+      },
+      "discrete_and_categorical_drift": {
+        "method": {
+          "training_unique_values": 5,
+          "evaluation_unique_values": 5,
+          "unseen_evaluation_rows": 0,
+          "unseen_evaluation_percentage": 0.0,
+          "distribution_psi": 0.582213
+        },
+        "endpoint_normalized": {
+          "training_unique_values": 157,
+          "evaluation_unique_values": 50,
+          "unseen_evaluation_rows": 53,
+          "unseen_evaluation_percentage": 40.77,
+          "distribution_psi": 15.110765
+        },
+        "hour": {
+          "training_unique_values": 2,
+          "evaluation_unique_values": 2,
+          "unseen_evaluation_rows": 6,
+          "unseen_evaluation_percentage": 4.62,
+          "distribution_psi": 17.99026
+        },
+        "day_of_week": {
+          "training_unique_values": 1,
+          "evaluation_unique_values": 1,
+          "unseen_evaluation_rows": 0,
+          "unseen_evaluation_percentage": 0.0,
+          "distribution_psi": 0.0
+        },
+        "is_weekend": {
+          "training_unique_values": 1,
+          "evaluation_unique_values": 1,
+          "unseen_evaluation_rows": 0,
+          "unseen_evaluation_percentage": 0.0,
+          "distribution_psi": 0.0
+        },
+        "status_code": {
+          "training_unique_values": 9,
+          "evaluation_unique_values": 8,
+          "unseen_evaluation_rows": 0,
+          "unseen_evaluation_percentage": 0.0,
+          "distribution_psi": 0.724386
+        },
+        "is_error_status": {
+          "training_unique_values": 2,
+          "evaluation_unique_values": 2,
+          "unseen_evaluation_rows": 0,
+          "unseen_evaluation_percentage": 0.0,
+          "distribution_psi": 0.015836
+        },
+        "is_auth_failure": {
+          "training_unique_values": 2,
+          "evaluation_unique_values": 2,
+          "unseen_evaluation_rows": 0,
+          "unseen_evaluation_percentage": 0.0,
+          "distribution_psi": 0.010968
+        },
+        "query_parameter_count": {
+          "training_unique_values": 3,
+          "evaluation_unique_values": 4,
+          "unseen_evaluation_rows": 6,
+          "unseen_evaluation_percentage": 4.62,
+          "distribution_psi": 0.942561
+        }
+      },
+      "limitations": [
+        "No labeled incidents are available; precision, recall, F1 and accuracy cannot be calculated.",
+        "Anomaly scores indicate deviation from learned patterns, not proof of malicious activity.",
+        "The evaluation is later data from the same dataset, not an independent external test.",
+        "Equal-duration windows may contain very different numbers of events.",
+        "Large temporal gaps and concentrated bursts can dominate these results.",
+        "The evaluation model is not saved and does not replace the dashboard model."
+      ]
+    },
+    "business": {
+      "population": "business",
+      "methodology": {
+        "split": "chronological by row timestamp",
+        "training_fraction": 0.8,
+        "threshold_percentile": 95.0,
+        "n_estimators": 300,
+        "random_state": 42,
+        "model_saved": false,
+        "evaluation_windows": "4 equal-duration calendar intervals"
+      },
+      "training": {
+        "rows": 933,
+        "timeline": {
+          "rows": 933,
+          "start": "2025-01-02 09:00:00+00:00",
+          "end": "2026-09-23 10:14:01.774919+00:00",
+          "active_calendar_days": 162,
+          "daily_counts": {
+            "2025-01-02": 1,
+            "2025-01-05": 1,
+            "2025-01-08": 1,
+            "2025-01-11": 1,
+            "2025-01-14": 1,
+            "2025-01-17": 1,
+            "2025-01-20": 1,
+            "2025-01-23": 1,
+            "2025-02-03": 1,
+            "2025-02-06": 1,
+            "2025-02-09": 1,
+            "2025-02-12": 1,
+            "2025-02-15": 1,
+            "2025-02-18": 1,
+            "2025-02-21": 1,
+            "2025-02-24": 1,
+            "2025-03-04": 1,
+            "2025-03-07": 1,
+            "2025-03-10": 1,
+            "2025-03-13": 1,
+            "2025-03-16": 1,
+            "2025-03-19": 1,
+            "2025-03-22": 1,
+            "2025-03-25": 1,
+            "2025-04-02": 1,
+            "2025-04-05": 1,
+            "2025-04-08": 1,
+            "2025-04-11": 1,
+            "2025-04-14": 1,
+            "2025-04-17": 1,
+            "2025-04-20": 1,
+            "2025-04-23": 1,
+            "2025-05-03": 1,
+            "2025-05-06": 1,
+            "2025-05-09": 1,
+            "2025-05-12": 1,
+            "2025-05-15": 1,
+            "2025-05-18": 1,
+            "2025-05-21": 1,
+            "2025-05-24": 1,
+            "2025-06-04": 1,
+            "2025-06-07": 1,
+            "2025-06-10": 1,
+            "2025-06-13": 1,
+            "2025-06-16": 1,
+            "2025-06-19": 1,
+            "2025-06-22": 1,
+            "2025-06-25": 1,
+            "2025-07-02": 1,
+            "2025-07-05": 1,
+            "2025-07-08": 1,
+            "2025-07-11": 1,
+            "2025-07-14": 1,
+            "2025-07-17": 1,
+            "2025-07-20": 1,
+            "2025-07-23": 1,
+            "2025-08-03": 1,
+            "2025-08-06": 1,
+            "2025-08-09": 1,
+            "2025-08-12": 1,
+            "2025-08-15": 1,
+            "2025-08-18": 1,
+            "2025-08-21": 1,
+            "2025-08-24": 1,
+            "2025-09-04": 1,
+            "2025-09-07": 1,
+            "2025-09-10": 1,
+            "2025-09-13": 1,
+            "2025-09-16": 1,
+            "2025-09-19": 1,
+            "2025-09-22": 1,
+            "2025-09-25": 1,
+            "2025-10-02": 1,
+            "2025-10-05": 1,
+            "2025-10-08": 1,
+            "2025-10-11": 1,
+            "2025-10-14": 1,
+            "2025-10-17": 1,
+            "2025-10-20": 1,
+            "2025-10-23": 1,
+            "2025-11-03": 1,
+            "2025-11-06": 1,
+            "2025-11-09": 1,
+            "2025-11-12": 1,
+            "2025-11-15": 1,
+            "2025-11-18": 1,
+            "2025-11-21": 1,
+            "2025-11-24": 1,
+            "2025-12-04": 1,
+            "2025-12-07": 1,
+            "2025-12-10": 1,
+            "2025-12-13": 1,
+            "2025-12-16": 1,
+            "2025-12-19": 1,
+            "2025-12-22": 1,
+            "2025-12-25": 1,
+            "2026-01-02": 1,
+            "2026-01-05": 1,
+            "2026-01-08": 1,
+            "2026-01-11": 1,
+            "2026-01-14": 1,
+            "2026-01-17": 1,
+            "2026-01-20": 1,
+            "2026-01-23": 1,
+            "2026-02-03": 1,
+            "2026-02-06": 1,
+            "2026-02-09": 1,
+            "2026-02-12": 1,
+            "2026-02-15": 1,
+            "2026-02-21": 1,
+            "2026-02-24": 1,
+            "2026-03-04": 1,
+            "2026-03-07": 1,
+            "2026-03-10": 1,
+            "2026-03-13": 1,
+            "2026-03-16": 1,
+            "2026-03-22": 1,
+            "2026-03-25": 1,
+            "2026-04-02": 1,
+            "2026-04-05": 1,
+            "2026-04-08": 1,
+            "2026-04-11": 1,
+            "2026-04-14": 1,
+            "2026-04-17": 1,
+            "2026-04-23": 1,
+            "2026-05-03": 1,
+            "2026-05-06": 1,
+            "2026-05-09": 1,
+            "2026-05-12": 1,
+            "2026-05-15": 1,
+            "2026-05-18": 1,
+            "2026-05-24": 1,
+            "2026-06-04": 1,
+            "2026-06-07": 1,
+            "2026-06-10": 1,
+            "2026-06-13": 1,
+            "2026-06-16": 1,
+            "2026-06-19": 1,
+            "2026-06-25": 1,
+            "2026-07-02": 1,
+            "2026-07-05": 1,
+            "2026-07-08": 1,
+            "2026-07-11": 1,
+            "2026-07-14": 1,
+            "2026-07-17": 1,
+            "2026-07-20": 1,
+            "2026-08-03": 1,
+            "2026-08-06": 1,
+            "2026-08-09": 1,
+            "2026-08-12": 1,
+            "2026-08-15": 1,
+            "2026-08-18": 1,
+            "2026-08-21": 1,
+            "2026-09-04": 1,
+            "2026-09-07": 1,
+            "2026-09-10": 1,
+            "2026-09-13": 1,
+            "2026-09-16": 1,
+            "2026-09-19": 1,
+            "2026-09-20": 426,
+            "2026-09-22": 281,
+            "2026-09-23": 67
+          },
+          "inter_event_gap_seconds": {
+            "median": 0.037,
+            "p95": 279180.0,
+            "maximum": 1216140.0
+          },
+          "maximum_rolling_5min_events": 66
+        },
+        "score_distribution": {
+          "count": 933,
+          "min": -0.194562,
+          "max": -0.134964,
+          "mean": -0.176551,
+          "median": -0.184419,
+          "std": 0.015324,
+          "p90": -0.151793,
+          "p95": -0.148459,
+          "p99": -0.142034
+        }
+      },
+      "evaluation": {
+        "rows": 234,
+        "timeline": {
+          "rows": 234,
+          "start": "2026-09-23 10:14:01.798159+00:00",
+          "end": "2026-10-06 21:34:22.909890+00:00",
+          "active_calendar_days": 2,
+          "daily_counts": {
+            "2026-09-23": 32,
+            "2026-10-06": 202
+          },
+          "inter_event_gap_seconds": {
+            "median": 0.035,
+            "p95": 329.609,
+            "maximum": 1107985.922
+          },
+          "maximum_rolling_5min_events": 42
+        },
+        "score_distribution": {
+          "count": 234,
+          "min": -0.194371,
+          "max": -0.13813,
+          "mean": -0.171875,
+          "median": -0.175987,
+          "std": 0.017992,
+          "p90": -0.14714,
+          "p95": -0.145414,
+          "p99": -0.141381
+        },
+        "anomaly_count": 35,
+        "anomaly_percentage": 14.96,
+        "threshold": -0.148459,
+        "windows": [
+          {
+            "window": 1,
+            "start": "2026-09-23 10:14:01.798159104+00:00",
+            "end": "2026-09-26 19:04:07.076091904+00:00",
+            "rows": 31,
+            "anomaly_count": 2,
+            "anomaly_percentage": 6.45,
+            "score_distribution": {
+              "count": 31,
+              "min": -0.190793,
+              "max": -0.140508,
+              "mean": -0.165557,
+              "median": -0.16158,
+              "std": 0.014697,
+              "p90": -0.150884,
+              "p95": -0.148826,
+              "p99": -0.142715
+            }
+          },
+          {
+            "window": 2,
+            "start": "2026-09-26 19:04:07.076091904+00:00",
+            "end": "2026-09-30 03:54:12.354024448+00:00",
+            "rows": 0,
+            "anomaly_count": 0,
+            "anomaly_percentage": null,
+            "score_distribution": null
+          },
+          {
+            "window": 3,
+            "start": "2026-09-30 03:54:12.354024448+00:00",
+            "end": "2026-10-03 12:44:17.631957248+00:00",
+            "rows": 0,
+            "anomaly_count": 0,
+            "anomaly_percentage": null,
+            "score_distribution": null
+          },
+          {
+            "window": 4,
+            "start": "2026-10-03 12:44:17.631957248+00:00",
+            "end": "2026-10-06 21:34:22.909890048+00:00",
+            "rows": 202,
+            "anomaly_count": 33,
+            "anomaly_percentage": 16.34,
+            "score_distribution": {
+              "count": 202,
+              "min": -0.194371,
+              "max": -0.13813,
+              "mean": -0.172751,
+              "median": -0.179579,
+              "std": 0.018284,
+              "p90": -0.146946,
+              "p95": -0.145254,
+              "p99": -0.143159
+            }
+          }
+        ]
+      },
+      "score_distribution_shift": {
+        "mean_delta": 0.004675,
+        "median_delta": 0.008432,
+        "p95_delta": 0.003044
+      },
+      "continuous_feature_drift": {
+        "method": "PSI using training quantile bins",
+        "mean_psi": 2.23121,
+        "features": {
+          "activity_count_5m": 0.442464,
+          "activity_count_1h": 7.454606,
+          "activity_count_24h": 4.176993,
+          "log_time_since_previous_activity": 0.586756,
+          "user_activity_count_1h": 0.306834,
+          "user_activity_count_24h": 0.419605
+        },
+        "interpretation": "PSI is a descriptive indicator. Common thresholds (<0.10, 0.10-0.25, >0.25) are heuristics, not statistical tests."
+      },
+      "discrete_and_categorical_drift": {
+        "action": {
+          "training_unique_values": 324,
+          "evaluation_unique_values": 66,
+          "unseen_evaluation_rows": 85,
+          "unseen_evaluation_percentage": 36.32,
+          "distribution_psi": 13.58428
+        },
+        "resource_type": {
+          "training_unique_values": 14,
+          "evaluation_unique_values": 7,
+          "unseen_evaluation_rows": 0,
+          "unseen_evaluation_percentage": 0.0,
+          "distribution_psi": 3.583609
+        },
+        "hour": {
+          "training_unique_values": 9,
+          "evaluation_unique_values": 6,
+          "unseen_evaluation_rows": 3,
+          "unseen_evaluation_percentage": 1.28,
+          "distribution_psi": 3.65216
+        },
+        "day_of_week": {
+          "training_unique_values": 7,
+          "evaluation_unique_values": 2,
+          "unseen_evaluation_rows": 0,
+          "unseen_evaluation_percentage": 0.0,
+          "distribution_psi": 10.961495
+        },
+        "is_weekend": {
+          "training_unique_values": 2,
+          "evaluation_unique_values": 1,
+          "unseen_evaluation_rows": 0,
+          "unseen_evaluation_percentage": 0.0,
+          "distribution_psi": 9.738102
+        }
+      },
+      "limitations": [
+        "No labeled incidents are available; precision, recall, F1 and accuracy cannot be calculated.",
+        "Anomaly scores indicate deviation from learned patterns, not proof of malicious activity.",
+        "The evaluation is later data from the same dataset, not an independent external test.",
+        "Equal-duration windows may contain very different numbers of events.",
+        "Large temporal gaps and concentrated bursts can dominate these results.",
+        "The evaluation model is not saved and does not replace the dashboard model."
+      ]
+    }
+  }
+}

@@ -1,0 +1,957 @@
+{
+  "report_version": 4,
+  "experiment": "KBR-Anomaly-Detection",
+  "dataset": {
+    "dataset": "data\\processed\\user_activities.csv",
+    "dataset_sha256": "261dee3a3eccb94f50042ad5d1015ff5beabdfb49147bf0832238f025f43915f",
+    "original_rows": 1814,
+    "valid_timestamp_rows": 1814,
+    "invalid_timestamp_rows": 0,
+    "timestamp_column": "occurred_at",
+    "population_column": null,
+    "population_filter_applied": false,
+    "rows_used": 1814,
+    "categorical_columns_present_or_created": [
+      "action",
+      "method",
+      "resource_type"
+    ]
+  },
+  "evaluation_method": "Shared chronological evaluation window for 1- and 5-minute session definitions. Sessions crossing the common cutoff are excluded. Threshold diagnostics use training score quantiles; fixed alert budgets compare rankings at equal alert counts.",
+  "common_cutoff": {
+    "method": "Common timestamp cutoff based on the latest provisional 80/20 chronological session split. Sessions crossing the cutoff are excluded from both train and evaluation.",
+    "common_evaluation_start": "2026-09-22T13:07:10.665831+00:00",
+    "provisional_splits": [
+      {
+        "gap_minutes": 1,
+        "session_count": 253,
+        "split_index": 202,
+        "provisional_cutoff": "2026-09-22T13:07:10.665831+00:00",
+        "provisional_training_sessions": 202,
+        "provisional_evaluation_sessions": 51
+      },
+      {
+        "gap_minutes": 5,
+        "session_count": 199,
+        "split_index": 159,
+        "provisional_cutoff": "2026-09-16T17:14:00+00:00",
+        "provisional_training_sessions": 159,
+        "provisional_evaluation_sessions": 40
+      }
+    ]
+  },
+  "session_gaps_minutes": [
+    1,
+    5
+  ],
+  "alert_budgets": [
+    0.01,
+    0.02,
+    0.05
+  ],
+  "labels_available": false,
+  "accuracy_metrics_available": false,
+  "interpretation": "Exploratory unsupervised detector comparison only. No labels are available, so flagged rows and ranking overlap do not establish precision, recall, F1, or real incident validity. A shared chronological window improves comparability but does not eliminate temporal distribution shift.",
+  "results_by_session_gap_minutes": {
+    "1": {
+      "session_gap_minutes": 1,
+      "split": {
+        "session_gap_minutes": 1,
+        "training_sessions": 202,
+        "evaluation_sessions": 51,
+        "crossing_sessions_excluded": 0,
+        "training_rows": 1253,
+        "evaluation_rows": 561,
+        "training_active_days": 162,
+        "evaluation_active_days": 3,
+        "training_start": "2025-01-02T09:00:00+00:00",
+        "training_end": "2026-09-22T13:02:24.149717+00:00",
+        "evaluation_start": "2026-09-22T13:07:10.665831+00:00",
+        "evaluation_end": "2026-10-06T21:34:22.909890+00:00",
+        "common_cutoff": "2026-09-22T13:07:10.665831+00:00",
+        "sessions_crossing_split": 0
+      },
+      "detectors": {
+        "isolation_forest": {
+          "training_score_distribution": {
+            "count": 1253,
+            "unique_exact_scores": 1031,
+            "unique_scores_rounded_8dp": 1031,
+            "mean": -0.1780759418380596,
+            "std": 0.010249311768330502,
+            "min": -0.1967600276551496,
+            "p01": -0.19308763972338316,
+            "p05": -0.19116042138600264,
+            "p10": -0.18916463861815452,
+            "p25": -0.1856299818717938,
+            "median": -0.18101029120044765,
+            "p75": -0.17269014421027207,
+            "p90": -0.16160177190384223,
+            "p95": -0.15632060246213908,
+            "p99": -0.1516871116115657,
+            "max": -0.1466311552952202
+          },
+          "evaluation_score_distribution": {
+            "count": 561,
+            "unique_exact_scores": 301,
+            "unique_scores_rounded_8dp": 301,
+            "mean": -0.18566497301013932,
+            "std": 0.010528875553205362,
+            "min": -0.19676026083340897,
+            "p01": -0.19651966344853922,
+            "p05": -0.19650042147389718,
+            "p10": -0.1959501399486625,
+            "p25": -0.19327745806767016,
+            "median": -0.1885012596603432,
+            "p75": -0.18423107937856653,
+            "p90": -0.1706794161194189,
+            "p95": -0.16347492513117212,
+            "p99": -0.1486646429828778,
+            "max": -0.14719733237590055
+          },
+          "threshold_diagnostics": {
+            "1%": {
+              "nominal_training_tail_pct": 1.0,
+              "threshold": -0.1516871116115657,
+              "training_count": 1253,
+              "training_flagged_count": 13,
+              "training_flagged_rate_pct": 1.037509976057462,
+              "training_scores_equal_to_threshold": 0,
+              "evaluation_count": 561,
+              "evaluation_flagged_count": 13,
+              "evaluation_flagged_rate_pct": 2.3172905525846703,
+              "evaluation_scores_equal_to_threshold": 0,
+              "evaluation_threshold_tie_fraction_pct": 0.0,
+              "evaluation_threshold_exceedances_including_ties": 13
+            },
+            "2%": {
+              "nominal_training_tail_pct": 2.0,
+              "threshold": -0.1549116100410986,
+              "training_count": 1253,
+              "training_flagged_count": 27,
+              "training_flagged_rate_pct": 2.154828411811652,
+              "training_scores_equal_to_threshold": 2,
+              "evaluation_count": 561,
+              "evaluation_flagged_count": 13,
+              "evaluation_flagged_rate_pct": 2.3172905525846703,
+              "evaluation_scores_equal_to_threshold": 0,
+              "evaluation_threshold_tie_fraction_pct": 0.0,
+              "evaluation_threshold_exceedances_including_ties": 13
+            },
+            "5%": {
+              "nominal_training_tail_pct": 5.0,
+              "threshold": -0.15632060246213908,
+              "training_count": 1253,
+              "training_flagged_count": 63,
+              "training_flagged_rate_pct": 5.027932960893855,
+              "training_scores_equal_to_threshold": 0,
+              "evaluation_count": 561,
+              "evaluation_flagged_count": 13,
+              "evaluation_flagged_rate_pct": 2.3172905525846703,
+              "evaluation_scores_equal_to_threshold": 0,
+              "evaluation_threshold_tie_fraction_pct": 0.0,
+              "evaluation_threshold_exceedances_including_ties": 13
+            }
+          },
+          "fixed_alert_budgets": {
+            "1%": {
+              "budget_pct": 1.0,
+              "selected_count": 5,
+              "evaluation_count": 561,
+              "selected_rate_pct": 0.8912655971479501,
+              "minimum_selected_score": -0.14863200369976814,
+              "rows_tied_at_selection_boundary": 2,
+              "tied_rows_selected_at_boundary": 1,
+              "tie_break": "Stable evaluation row order",
+              "top_score_mean": -0.14800707941366972,
+              "top_score_min": -0.14863200369976814,
+              "selected_timestamp_start": "2026-09-22T14:22:52.085501+00:00",
+              "selected_timestamp_end": "2026-10-06T12:42:01.362548+00:00",
+              "selected_category_counts_top_10": {
+                "action": {
+                  "LOGIN": 5
+                },
+                "method": {
+                  "POST": 5
+                },
+                "resource_type": {
+                  "authentication": 5
+                }
+              }
+            },
+            "2%": {
+              "budget_pct": 2.0,
+              "selected_count": 11,
+              "evaluation_count": 561,
+              "selected_rate_pct": 1.9607843137254901,
+              "minimum_selected_score": -0.14940133943464096,
+              "rows_tied_at_selection_boundary": 3,
+              "tied_rows_selected_at_boundary": 1,
+              "tie_break": "Stable evaluation row order",
+              "top_score_mean": -0.14854075075818862,
+              "top_score_min": -0.14940133943464096,
+              "selected_timestamp_start": "2026-09-22T13:52:36.196219+00:00",
+              "selected_timestamp_end": "2026-10-06T13:12:21.835678+00:00",
+              "selected_category_counts_top_10": {
+                "action": {
+                  "LOGIN": 11
+                },
+                "method": {
+                  "POST": 11
+                },
+                "resource_type": {
+                  "authentication": 11
+                }
+              }
+            },
+            "5%": {
+              "budget_pct": 5.0,
+              "selected_count": 28,
+              "evaluation_count": 561,
+              "selected_rate_pct": 4.991087344028521,
+              "minimum_selected_score": -0.16332771068345175,
+              "rows_tied_at_selection_boundary": 1,
+              "tied_rows_selected_at_boundary": 1,
+              "tie_break": "Stable evaluation row order",
+              "top_score_mean": -0.15557979141867323,
+              "top_score_min": -0.16332771068345175,
+              "selected_timestamp_start": "2026-09-22T13:52:36.196219+00:00",
+              "selected_timestamp_end": "2026-10-06T13:53:26.907381+00:00",
+              "selected_category_counts_top_10": {
+                "action": {
+                  "LOGIN": 13,
+                  "GET /admin/dashboard": 12,
+                  "GET /events": 2,
+                  "GET /news": 1
+                },
+                "method": {
+                  "GET": 15,
+                  "POST": 13
+                },
+                "resource_type": {
+                  "authentication": 13,
+                  "dashboard": 12,
+                  "events": 2,
+                  "news": 1
+                }
+              }
+            }
+          }
+        },
+        "robust_statistical_baseline_v4": {
+          "training_score_distribution": {
+            "count": 1253,
+            "unique_exact_scores": 996,
+            "unique_scores_rounded_8dp": 996,
+            "mean": 108.30533769995147,
+            "std": 242.4944163835811,
+            "min": 0.13054659860837325,
+            "p01": 0.21390992657686306,
+            "p05": 0.4094345405163802,
+            "p10": 0.5289053649079406,
+            "p25": 0.8130022547262531,
+            "median": 2.5775182594284174,
+            "p75": 7.854553682937125,
+            "p90": 709.7094281366989,
+            "p95": 716.7762286865741,
+            "p99": 769.8217505418821,
+            "max": 801.0776977611523
+          },
+          "evaluation_score_distribution": {
+            "count": 561,
+            "unique_exact_scores": 453,
+            "unique_scores_rounded_8dp": 453,
+            "mean": 49.086764291544895,
+            "std": 108.67543787129686,
+            "min": 0.04351553286945775,
+            "p01": 0.152252386557184,
+            "p05": 0.32893706842857484,
+            "p10": 0.43301344429092764,
+            "p25": 0.5874596937376797,
+            "median": 0.7768688211828642,
+            "p75": 2.2306183143768488,
+            "p90": 212.78634102855742,
+            "p95": 303.24074820501414,
+            "p99": 408.3474942819383,
+            "max": 795.7421550167453
+          },
+          "threshold_diagnostics": {
+            "1%": {
+              "nominal_training_tail_pct": 1.0,
+              "threshold": 769.8217505418821,
+              "training_count": 1253,
+              "training_flagged_count": 13,
+              "training_flagged_rate_pct": 1.037509976057462,
+              "training_scores_equal_to_threshold": 0,
+              "evaluation_count": 561,
+              "evaluation_flagged_count": 1,
+              "evaluation_flagged_rate_pct": 0.17825311942959002,
+              "evaluation_scores_equal_to_threshold": 0,
+              "evaluation_threshold_tie_fraction_pct": 0.0,
+              "evaluation_threshold_exceedances_including_ties": 1
+            },
+            "2%": {
+              "nominal_training_tail_pct": 2.0,
+              "threshold": 736.2138603478119,
+              "training_count": 1253,
+              "training_flagged_count": 26,
+              "training_flagged_rate_pct": 2.075019952114924,
+              "training_scores_equal_to_threshold": 0,
+              "evaluation_count": 561,
+              "evaluation_flagged_count": 1,
+              "evaluation_flagged_rate_pct": 0.17825311942959002,
+              "evaluation_scores_equal_to_threshold": 0,
+              "evaluation_threshold_tie_fraction_pct": 0.0,
+              "evaluation_threshold_exceedances_including_ties": 1
+            },
+            "5%": {
+              "nominal_training_tail_pct": 5.0,
+              "threshold": 716.7762286865741,
+              "training_count": 1253,
+              "training_flagged_count": 65,
+              "training_flagged_rate_pct": 5.18754988028731,
+              "training_scores_equal_to_threshold": 27,
+              "evaluation_count": 561,
+              "evaluation_flagged_count": 1,
+              "evaluation_flagged_rate_pct": 0.17825311942959002,
+              "evaluation_scores_equal_to_threshold": 0,
+              "evaluation_threshold_tie_fraction_pct": 0.0,
+              "evaluation_threshold_exceedances_including_ties": 1
+            }
+          },
+          "fixed_alert_budgets": {
+            "1%": {
+              "budget_pct": 1.0,
+              "selected_count": 5,
+              "evaluation_count": 561,
+              "selected_rate_pct": 0.8912655971479501,
+              "minimum_selected_score": 429.7170740956616,
+              "rows_tied_at_selection_boundary": 1,
+              "tied_rows_selected_at_boundary": 1,
+              "tie_break": "Stable evaluation row order",
+              "top_score_mean": 601.3097671217881,
+              "top_score_min": 429.7170740956616,
+              "selected_timestamp_start": "2026-09-23T09:28:43.745638+00:00",
+              "selected_timestamp_end": "2026-10-06T21:34:22.869785+00:00",
+              "selected_category_counts_top_10": {
+                "action": {
+                  "GET /admin/statistics/overview": 3,
+                  "GET /news": 1,
+                  "POST /contact": 1
+                },
+                "method": {
+                  "GET": 4,
+                  "POST": 1
+                },
+                "resource_type": {
+                  "statistics": 3,
+                  "news": 1,
+                  "contact": 1
+                }
+              }
+            },
+            "2%": {
+              "budget_pct": 2.0,
+              "selected_count": 11,
+              "evaluation_count": 561,
+              "selected_rate_pct": 1.9607843137254901,
+              "minimum_selected_score": 382.90636719471934,
+              "rows_tied_at_selection_boundary": 1,
+              "tied_rows_selected_at_boundary": 1,
+              "tie_break": "Stable evaluation row order",
+              "top_score_mean": 490.58484857968415,
+              "top_score_min": 382.90636719471934,
+              "selected_timestamp_start": "2026-09-22T13:37:42.378909+00:00",
+              "selected_timestamp_end": "2026-10-06T21:34:22.869785+00:00",
+              "selected_category_counts_top_10": {
+                "action": {
+                  "GET /admin/statistics/overview": 4,
+                  "POST /contact": 4,
+                  "GET /news": 1,
+                  "GET /admin/dashboard": 1,
+                  "GET /admin/statistics/trends": 1
+                },
+                "method": {
+                  "GET": 7,
+                  "POST": 4
+                },
+                "resource_type": {
+                  "statistics": 5,
+                  "contact": 4,
+                  "news": 1,
+                  "dashboard": 1
+                }
+              }
+            },
+            "5%": {
+              "budget_pct": 5.0,
+              "selected_count": 28,
+              "evaluation_count": 561,
+              "selected_rate_pct": 4.991087344028521,
+              "minimum_selected_score": 306.2329419996494,
+              "rows_tied_at_selection_boundary": 1,
+              "tied_rows_selected_at_boundary": 1,
+              "tie_break": "Stable evaluation row order",
+              "top_score_mean": 398.3067341510473,
+              "top_score_min": 306.2329419996494,
+              "selected_timestamp_start": "2026-09-22T13:07:10.665831+00:00",
+              "selected_timestamp_end": "2026-10-06T21:34:22.869785+00:00",
+              "selected_category_counts_top_10": {
+                "action": {
+                  "POST /contact": 12,
+                  "GET /admin/statistics/overview": 5,
+                  "GET /admin/dashboard": 4,
+                  "GET /admin/statistics/recent-activity": 3,
+                  "GET /news": 1,
+                  "GET /admin/statistics/trends": 1,
+                  "LOGIN": 1,
+                  "POST /admin/analytics/query": 1
+                },
+                "method": {
+                  "GET": 14,
+                  "POST": 14
+                },
+                "resource_type": {
+                  "contact": 12,
+                  "statistics": 9,
+                  "dashboard": 4,
+                  "news": 1,
+                  "authentication": 1,
+                  "analytics": 1
+                }
+              }
+            }
+          }
+        }
+      },
+      "ranking_agreement": {
+        "1%": {
+          "forest_selected": 5,
+          "baseline_selected": 5,
+          "overlap_count": 0,
+          "union_count": 10,
+          "jaccard_pct": 0.0,
+          "forest_only_count": 5,
+          "baseline_only_count": 5,
+          "interpretation": "Ranking agreement only; no labels are available."
+        },
+        "2%": {
+          "forest_selected": 11,
+          "baseline_selected": 11,
+          "overlap_count": 0,
+          "union_count": 22,
+          "jaccard_pct": 0.0,
+          "forest_only_count": 11,
+          "baseline_only_count": 11,
+          "interpretation": "Ranking agreement only; no labels are available."
+        },
+        "5%": {
+          "forest_selected": 28,
+          "baseline_selected": 28,
+          "overlap_count": 6,
+          "union_count": 50,
+          "jaccard_pct": 12.0,
+          "forest_only_count": 22,
+          "baseline_only_count": 22,
+          "interpretation": "Ranking agreement only; no labels are available."
+        }
+      },
+      "baseline_scaling": {
+        "features": [
+          "gap_log_seconds",
+          "events_previous_5m",
+          "events_previous_1h"
+        ],
+        "medians": {
+          "gap_log_seconds": 0.027474106500746692,
+          "events_previous_5m": 34.0,
+          "events_previous_1h": 142.0
+        },
+        "scales": {
+          "gap_log_seconds": 0.01745613343289216,
+          "events_previous_5m": 45.9606,
+          "events_previous_1h": 166.0512
+        },
+        "method": "MAD, then IQR, then standard deviation, then 1.0",
+        "minimum_scale": 0.01745613343289216,
+        "near_zero_scale_count": 0
+      },
+      "isolation_forest_training_runtime_seconds": 0.35678699996788055,
+      "features": {
+        "numeric": [
+          "gap_log_seconds",
+          "events_previous_5m",
+          "events_previous_1h"
+        ],
+        "categorical": [
+          "action",
+          "method",
+          "resource_type"
+        ],
+        "rolling_counts_exclude_current_event": true
+      },
+      "labels_available": false,
+      "accuracy_metrics_available": false,
+      "production_models_modified": false,
+      "existing_risk_report_modified": false
+    },
+    "5": {
+      "session_gap_minutes": 5,
+      "split": {
+        "session_gap_minutes": 5,
+        "training_sessions": 176,
+        "evaluation_sessions": 22,
+        "crossing_sessions_excluded": 1,
+        "training_rows": 1232,
+        "evaluation_rows": 519,
+        "training_active_days": 161,
+        "evaluation_active_days": 3,
+        "training_start": "2025-01-02T09:00:00+00:00",
+        "training_end": "2026-09-20T13:35:32.974234+00:00",
+        "evaluation_start": "2026-09-22T13:17:17.962137+00:00",
+        "evaluation_end": "2026-10-06T21:34:22.909890+00:00",
+        "common_cutoff": "2026-09-22T13:07:10.665831+00:00",
+        "sessions_crossing_split": 0
+      },
+      "detectors": {
+        "isolation_forest": {
+          "training_score_distribution": {
+            "count": 1232,
+            "unique_exact_scores": 1021,
+            "unique_scores_rounded_8dp": 1021,
+            "mean": -0.18062453300723075,
+            "std": 0.012503726766885092,
+            "min": -0.19830374338754653,
+            "p01": -0.19572725310415287,
+            "p05": -0.1933740567905005,
+            "p10": -0.19204669695468407,
+            "p25": -0.19030512847084494,
+            "median": -0.18415090436680978,
+            "p75": -0.1759296643868622,
+            "p90": -0.157819254049573,
+            "p95": -0.15217061166088575,
+            "p99": -0.14635723821488938,
+            "max": -0.14252013157454035
+          },
+          "evaluation_score_distribution": {
+            "count": 519,
+            "unique_exact_scores": 368,
+            "unique_scores_rounded_8dp": 368,
+            "mean": -0.1892703483736996,
+            "std": 0.00850544911482454,
+            "min": -0.1984189323948869,
+            "p01": -0.19834063890220638,
+            "p05": -0.1980685245463784,
+            "p10": -0.19691510167562482,
+            "p25": -0.1949857404098024,
+            "median": -0.19145303903727634,
+            "p75": -0.18850728818442147,
+            "p90": -0.17440163357937405,
+            "p95": -0.1699031799085211,
+            "p99": -0.16653759939895169,
+            "max": -0.1513781497320466
+          },
+          "threshold_diagnostics": {
+            "1%": {
+              "nominal_training_tail_pct": 1.0,
+              "threshold": -0.14635723821488938,
+              "training_count": 1232,
+              "training_flagged_count": 14,
+              "training_flagged_rate_pct": 1.1363636363636365,
+              "training_scores_equal_to_threshold": 5,
+              "evaluation_count": 519,
+              "evaluation_flagged_count": 0,
+              "evaluation_flagged_rate_pct": 0.0,
+              "evaluation_scores_equal_to_threshold": 0,
+              "evaluation_threshold_tie_fraction_pct": 0.0,
+              "evaluation_threshold_exceedances_including_ties": 0
+            },
+            "2%": {
+              "nominal_training_tail_pct": 2.0,
+              "threshold": -0.14803495142169384,
+              "training_count": 1232,
+              "training_flagged_count": 25,
+              "training_flagged_rate_pct": 2.029220779220779,
+              "training_scores_equal_to_threshold": 0,
+              "evaluation_count": 519,
+              "evaluation_flagged_count": 0,
+              "evaluation_flagged_rate_pct": 0.0,
+              "evaluation_scores_equal_to_threshold": 0,
+              "evaluation_threshold_tie_fraction_pct": 0.0,
+              "evaluation_threshold_exceedances_including_ties": 0
+            },
+            "5%": {
+              "nominal_training_tail_pct": 5.0,
+              "threshold": -0.15217061166088575,
+              "training_count": 1232,
+              "training_flagged_count": 62,
+              "training_flagged_rate_pct": 5.032467532467533,
+              "training_scores_equal_to_threshold": 0,
+              "evaluation_count": 519,
+              "evaluation_flagged_count": 1,
+              "evaluation_flagged_rate_pct": 0.1926782273603083,
+              "evaluation_scores_equal_to_threshold": 0,
+              "evaluation_threshold_tie_fraction_pct": 0.0,
+              "evaluation_threshold_exceedances_including_ties": 1
+            }
+          },
+          "fixed_alert_budgets": {
+            "1%": {
+              "budget_pct": 1.0,
+              "selected_count": 5,
+              "evaluation_count": 519,
+              "selected_rate_pct": 0.9633911368015414,
+              "minimum_selected_score": -0.16547385232605794,
+              "rows_tied_at_selection_boundary": 1,
+              "tied_rows_selected_at_boundary": 1,
+              "tie_break": "Stable evaluation row order",
+              "top_score_mean": -0.16127889342572796,
+              "top_score_min": -0.16547385232605794,
+              "selected_timestamp_start": "2026-10-06T11:20:27.266049+00:00",
+              "selected_timestamp_end": "2026-10-06T12:42:01.362548+00:00",
+              "selected_category_counts_top_10": {
+                "action": {
+                  "GET /news": 2,
+                  "GET /events": 2,
+                  "LOGIN": 1
+                },
+                "method": {
+                  "GET": 4,
+                  "POST": 1
+                },
+                "resource_type": {
+                  "news": 2,
+                  "events": 2,
+                  "authentication": 1
+                }
+              }
+            },
+            "2%": {
+              "budget_pct": 2.0,
+              "selected_count": 10,
+              "evaluation_count": 519,
+              "selected_rate_pct": 1.9267822736030829,
+              "minimum_selected_score": -0.16684298680592136,
+              "rows_tied_at_selection_boundary": 1,
+              "tied_rows_selected_at_boundary": 1,
+              "tie_break": "Stable evaluation row order",
+              "top_score_mean": -0.16398439428282185,
+              "top_score_min": -0.16684298680592136,
+              "selected_timestamp_start": "2026-09-22T14:02:52.844864+00:00",
+              "selected_timestamp_end": "2026-10-06T12:42:01.362548+00:00",
+              "selected_category_counts_top_10": {
+                "action": {
+                  "GET /admin/dashboard": 3,
+                  "LOGIN": 3,
+                  "GET /events": 2,
+                  "GET /news": 2
+                },
+                "method": {
+                  "GET": 7,
+                  "POST": 3
+                },
+                "resource_type": {
+                  "dashboard": 3,
+                  "authentication": 3,
+                  "events": 2,
+                  "news": 2
+                }
+              }
+            },
+            "5%": {
+              "budget_pct": 5.0,
+              "selected_count": 25,
+              "evaluation_count": 519,
+              "selected_rate_pct": 4.8169556840077075,
+              "minimum_selected_score": -0.16968867632663515,
+              "rows_tied_at_selection_boundary": 1,
+              "tied_rows_selected_at_boundary": 1,
+              "tie_break": "Stable evaluation row order",
+              "top_score_mean": -0.16677237342104959,
+              "top_score_min": -0.16968867632663515,
+              "selected_timestamp_start": "2026-09-22T13:52:36.196219+00:00",
+              "selected_timestamp_end": "2026-10-06T12:43:06.572332+00:00",
+              "selected_category_counts_top_10": {
+                "action": {
+                  "GET /admin/dashboard": 13,
+                  "LOGIN": 6,
+                  "GET /news": 2,
+                  "GET /events": 2,
+                  "POST /contact": 2
+                },
+                "method": {
+                  "GET": 17,
+                  "POST": 8
+                },
+                "resource_type": {
+                  "dashboard": 13,
+                  "authentication": 6,
+                  "news": 2,
+                  "events": 2,
+                  "contact": 2
+                }
+              }
+            }
+          }
+        },
+        "robust_statistical_baseline_v4": {
+          "training_score_distribution": {
+            "count": 1232,
+            "unique_exact_scores": 984,
+            "unique_scores_rounded_8dp": 983,
+            "mean": 107.68547747150475,
+            "std": 239.43856531094505,
+            "min": 0.12071774735654349,
+            "p01": 0.21681333241783143,
+            "p05": 0.4153284516915915,
+            "p10": 0.5297104039047488,
+            "p25": 0.8240868735858775,
+            "median": 2.6159510932882037,
+            "p75": 7.677601848104682,
+            "p90": 697.5513745820257,
+            "p95": 704.497091740654,
+            "p99": 756.9687455644032,
+            "max": 787.35412953539
+          },
+          "evaluation_score_distribution": {
+            "count": 519,
+            "unique_exact_scores": 422,
+            "unique_scores_rounded_8dp": 422,
+            "mean": 50.90815429622914,
+            "std": 109.01383998159226,
+            "min": 0.06323350870093081,
+            "p01": 0.12838356630611458,
+            "p05": 0.3372187679426914,
+            "p10": 0.42186331138172506,
+            "p25": 0.5901794145420208,
+            "median": 0.8155206455489742,
+            "p75": 5.12222763457194,
+            "p90": 214.21237372702518,
+            "p95": 298.34126930769713,
+            "p99": 407.8479019922936,
+            "max": 782.1100066075005
+          },
+          "threshold_diagnostics": {
+            "1%": {
+              "nominal_training_tail_pct": 1.0,
+              "threshold": 756.9687455644032,
+              "training_count": 1232,
+              "training_flagged_count": 13,
+              "training_flagged_rate_pct": 1.0551948051948052,
+              "training_scores_equal_to_threshold": 0,
+              "evaluation_count": 519,
+              "evaluation_flagged_count": 1,
+              "evaluation_flagged_rate_pct": 0.1926782273603083,
+              "evaluation_scores_equal_to_threshold": 0,
+              "evaluation_threshold_tie_fraction_pct": 0.0,
+              "evaluation_threshold_exceedances_including_ties": 1
+            },
+            "2%": {
+              "nominal_training_tail_pct": 2.0,
+              "threshold": 730.0138711049569,
+              "training_count": 1232,
+              "training_flagged_count": 25,
+              "training_flagged_rate_pct": 2.029220779220779,
+              "training_scores_equal_to_threshold": 0,
+              "evaluation_count": 519,
+              "evaluation_flagged_count": 1,
+              "evaluation_flagged_rate_pct": 0.1926782273603083,
+              "evaluation_scores_equal_to_threshold": 0,
+              "evaluation_threshold_tie_fraction_pct": 0.0,
+              "evaluation_threshold_exceedances_including_ties": 1
+            },
+            "5%": {
+              "nominal_training_tail_pct": 5.0,
+              "threshold": 704.497091740654,
+              "training_count": 1232,
+              "training_flagged_count": 65,
+              "training_flagged_rate_pct": 5.275974025974026,
+              "training_scores_equal_to_threshold": 27,
+              "evaluation_count": 519,
+              "evaluation_flagged_count": 1,
+              "evaluation_flagged_rate_pct": 0.1926782273603083,
+              "evaluation_scores_equal_to_threshold": 0,
+              "evaluation_threshold_tie_fraction_pct": 0.0,
+              "evaluation_threshold_exceedances_including_ties": 1
+            }
+          },
+          "fixed_alert_budgets": {
+            "1%": {
+              "budget_pct": 1.0,
+              "selected_count": 5,
+              "evaluation_count": 519,
+              "selected_rate_pct": 0.9633911368015414,
+              "minimum_selected_score": 422.35644244517556,
+              "rows_tied_at_selection_boundary": 1,
+              "tied_rows_selected_at_boundary": 1,
+              "tie_break": "Stable evaluation row order",
+              "top_score_mean": 591.0090461001425,
+              "top_score_min": 422.35644244517556,
+              "selected_timestamp_start": "2026-09-23T09:28:43.745638+00:00",
+              "selected_timestamp_end": "2026-10-06T21:34:22.869785+00:00",
+              "selected_category_counts_top_10": {
+                "action": {
+                  "GET /admin/statistics/overview": 3,
+                  "GET /news": 1,
+                  "POST /contact": 1
+                },
+                "method": {
+                  "GET": 4,
+                  "POST": 1
+                },
+                "resource_type": {
+                  "statistics": 3,
+                  "news": 1,
+                  "contact": 1
+                }
+              }
+            },
+            "2%": {
+              "budget_pct": 2.0,
+              "selected_count": 10,
+              "evaluation_count": 519,
+              "selected_rate_pct": 1.9267822736030829,
+              "minimum_selected_score": 386.337420720814,
+              "rows_tied_at_selection_boundary": 1,
+              "tied_rows_selected_at_boundary": 1,
+              "tie_break": "Stable evaluation row order",
+              "top_score_mean": 492.76465188969405,
+              "top_score_min": 386.337420720814,
+              "selected_timestamp_start": "2026-09-22T13:37:42.378909+00:00",
+              "selected_timestamp_end": "2026-10-06T21:34:22.869785+00:00",
+              "selected_category_counts_top_10": {
+                "action": {
+                  "POST /contact": 4,
+                  "GET /admin/statistics/overview": 3,
+                  "GET /news": 1,
+                  "GET /admin/dashboard": 1,
+                  "GET /admin/statistics/trends": 1
+                },
+                "method": {
+                  "GET": 6,
+                  "POST": 4
+                },
+                "resource_type": {
+                  "statistics": 4,
+                  "contact": 4,
+                  "news": 1,
+                  "dashboard": 1
+                }
+              }
+            },
+            "5%": {
+              "budget_pct": 5.0,
+              "selected_count": 25,
+              "evaluation_count": 519,
+              "selected_rate_pct": 4.8169556840077075,
+              "minimum_selected_score": 304.11623678491554,
+              "rows_tied_at_selection_boundary": 1,
+              "tied_rows_selected_at_boundary": 1,
+              "tie_break": "Stable evaluation row order",
+              "top_score_mean": 401.54080728987157,
+              "top_score_min": 304.11623678491554,
+              "selected_timestamp_start": "2026-09-22T13:17:17.962137+00:00",
+              "selected_timestamp_end": "2026-10-06T21:34:22.869785+00:00",
+              "selected_category_counts_top_10": {
+                "action": {
+                  "POST /contact": 10,
+                  "GET /admin/statistics/overview": 5,
+                  "GET /admin/dashboard": 4,
+                  "GET /admin/statistics/recent-activity": 3,
+                  "GET /news": 1,
+                  "GET /admin/statistics/trends": 1,
+                  "LOGIN": 1
+                },
+                "method": {
+                  "GET": 14,
+                  "POST": 11
+                },
+                "resource_type": {
+                  "contact": 10,
+                  "statistics": 9,
+                  "dashboard": 4,
+                  "news": 1,
+                  "authentication": 1
+                }
+              }
+            }
+          }
+        }
+      },
+      "ranking_agreement": {
+        "1%": {
+          "forest_selected": 5,
+          "baseline_selected": 5,
+          "overlap_count": 1,
+          "union_count": 9,
+          "jaccard_pct": 11.11111111111111,
+          "forest_only_count": 4,
+          "baseline_only_count": 4,
+          "interpretation": "Ranking agreement only; no labels are available."
+        },
+        "2%": {
+          "forest_selected": 10,
+          "baseline_selected": 10,
+          "overlap_count": 2,
+          "union_count": 18,
+          "jaccard_pct": 11.11111111111111,
+          "forest_only_count": 8,
+          "baseline_only_count": 8,
+          "interpretation": "Ranking agreement only; no labels are available."
+        },
+        "5%": {
+          "forest_selected": 25,
+          "baseline_selected": 25,
+          "overlap_count": 8,
+          "union_count": 42,
+          "jaccard_pct": 19.047619047619047,
+          "forest_only_count": 17,
+          "baseline_only_count": 17,
+          "interpretation": "Ranking agreement only; no labels are available."
+        }
+      },
+      "baseline_scaling": {
+        "features": [
+          "gap_log_seconds",
+          "events_previous_5m",
+          "events_previous_1h"
+        ],
+        "medians": {
+          "gap_log_seconds": 0.027435189718247883,
+          "events_previous_5m": 35.0,
+          "events_previous_1h": 145.0
+        },
+        "scales": {
+          "gap_log_seconds": 0.01776044294994288,
+          "events_previous_5m": 47.4432,
+          "events_previous_1h": 163.08599999999998
+        },
+        "method": "MAD, then IQR, then standard deviation, then 1.0",
+        "minimum_scale": 0.01776044294994288,
+        "near_zero_scale_count": 0
+      },
+      "isolation_forest_training_runtime_seconds": 0.3484319999697618,
+      "features": {
+        "numeric": [
+          "gap_log_seconds",
+          "events_previous_5m",
+          "events_previous_1h"
+        ],
+        "categorical": [
+          "action",
+          "method",
+          "resource_type"
+        ],
+        "rolling_counts_exclude_current_event": true
+      },
+      "labels_available": false,
+      "accuracy_metrics_available": false,
+      "production_models_modified": false,
+      "existing_risk_report_modified": false
+    }
+  },
+  "production_models_modified": false,
+  "existing_risk_report_modified": false,
+  "total_runtime_seconds": 0.934821099974215,
+  "mlflow_run_id": "48037353be8745039e71f591af8c948e"
+}

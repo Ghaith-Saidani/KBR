@@ -201,7 +201,7 @@ class Settings(BaseSettings):
         return (
             f"postgresql+psycopg://"
             f"{self.postgres_user}:{self.postgres_password}"
-            f"@{self.postgres_host}:{self.postgres_port}"
+            f"@127.0.0.1:{self.postgres_port}"
             f"/{self.postgres_test_db}"
         )
 

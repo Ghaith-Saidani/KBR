@@ -1,4 +1,5 @@
 ﻿from __future__ import annotations
+import os
 
 import hashlib
 import json
@@ -570,7 +571,8 @@ def main() -> None:
 
     # Log to the existing SQLite-backed MLflow experiment.
     mlflow.set_tracking_uri(
-        f"sqlite:///{TRACKING_DB.resolve().as_posix()}"
+        os.getenv("MLFLOW_TRACKING_URI")
+        or f"sqlite:///{TRACKING_DB.resolve().as_posix()}"
     )
     mlflow.set_experiment(EXPERIMENT_NAME)
 

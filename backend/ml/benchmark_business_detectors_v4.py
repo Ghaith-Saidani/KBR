@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 
 import hashlib
 import json
@@ -28,7 +29,10 @@ REPORT_DIR = ROOT / "data" / "reports"
 REPORT_PATH = REPORT_DIR / "business_detector_benchmark_v4.json"
 
 MLFLOW_DB_PATH = (ROOT / "mlflow.db").resolve()
-MLFLOW_TRACKING_URI = f"sqlite:///{MLFLOW_DB_PATH.as_posix()}"
+MLFLOW_TRACKING_URI = (
+    os.getenv("MLFLOW_TRACKING_URI")
+    or f"sqlite:///{MLFLOW_DB_PATH.as_posix()}"
+)
 
 EXPERIMENT_NAME = "KBR-Anomaly-Detection"
 
@@ -286,8 +290,8 @@ def build_causal_features(frame: pd.DataFrame) -> pd.DataFrame:
     count_1h: list[int] = []
 
     for timestamp in timestamps:
-        cutoff_5m = timestamp - pd.Timedelta(minutes=5)
-        cutoff_1h = timestamp - pd.Timedelta(hours=1)
+        cutoff_5m = timestamp - pd.Timedelta(5, unit="min")
+        cutoff_1h = timestamp - pd.Timedelta(1, unit="h")
 
         while previous_5m and previous_5m[0] <= cutoff_5m:
             previous_5m.popleft()

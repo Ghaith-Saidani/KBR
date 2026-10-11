@@ -3,27 +3,88 @@ services:
     image: postgres:17
     container_name: kbr-postgres
     restart: unless-stopped
-
+    env_file:
+      - .env
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-
+      POSTGRES_DB: ${POSTGRES_DB:-kbr}
+      POSTGRES_USER: ${POSTGRES_USER:-kbr_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     ports:
-      - "${POSTGRES_PORT}:5432"
-
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - kbr_postgres_data:/var/lib/postgresql/data
-
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
-        ]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
+      start_period: 10s
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      CORS_ORIGINS: '["http://localhost:8080","http://127.0.0.1:8080","http://localhost:5173","http://127.0.0.1:5173"]'
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./data/reports:/app/data/reports:ro
+      - ./data/models:/app/data/models:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v3.17.0
+    restart: unless-stopped
+    command:
+      - mlflow
+      - server
+      - --backend-store-uri
+      - sqlite:////mlflow-data/mlflow.db
+      - --artifacts-destination
+      - /mlflow-data/artifacts
+      - --serve-artifacts
+      - --host
+      - 0.0.0.0
+      - --port
+      - "5000"
+    volumes:
+      - ./data/mlflow:/mlflow-data
+    ports:
+      - "127.0.0.1:5000:5000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
 volumes:
   kbr_postgres_data:

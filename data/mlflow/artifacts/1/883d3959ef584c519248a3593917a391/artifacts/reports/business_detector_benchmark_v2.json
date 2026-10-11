@@ -1,0 +1,119 @@
+{
+  "report_version": 2,
+  "experiment": "KBR-Anomaly-Detection",
+  "dataset": "data\\processed\\user_activities.csv",
+  "dataset_sha256": "261dee3a3eccb94f50042ad5d1015ff5beabdfb49147bf0832238f025f43915f",
+  "original_dataset_rows": 1814,
+  "business_rows": 1814,
+  "schema": {
+    "timestamp_column": "created_at",
+    "invalid_timestamp_rows": 0,
+    "population_column": null,
+    "action_column": "action",
+    "method_column": "method",
+    "resource_type_column": "resource_type"
+  },
+  "evaluation_method": "Chronological session holdout; one-minute inactivity gap.",
+  "session_gap_minutes": 1,
+  "training_session_fraction": 0.8,
+  "anomaly_threshold_quantile": 0.95,
+  "labels_available": false,
+  "accuracy_metrics_available": false,
+  "interpretation": "Exploratory detector comparison only. No labels are available, so anomaly rates are not precision, recall, F1, or evidence of true incidents. Evaluation coverage and distribution shift must be considered before choosing a detector.",
+  "split": {
+    "total_sessions": 253,
+    "training_sessions": 202,
+    "evaluation_sessions": 51,
+    "training_rows": 1253,
+    "evaluation_rows": 561,
+    "training_active_days": 162,
+    "evaluation_active_days": 3,
+    "training_start": "2025-01-02T09:00:00+00:00",
+    "training_end": "2026-09-22T13:02:24.149717+00:00",
+    "evaluation_start": "2026-09-22T13:07:10.665831+00:00",
+    "evaluation_end": "2026-10-06T21:34:22.909890+00:00",
+    "sessions_crossing_split": 0
+  },
+  "detectors": {
+    "isolation_forest": {
+      "threshold": 0.1548481502777903,
+      "training_score_quantiles": {
+        "median": 0.1791005875632094,
+        "p90": 0.18864457612125626,
+        "p95": 0.19011451912148383,
+        "p99": 0.19202949367552818
+      },
+      "evaluation_score_quantiles": {
+        "median": 0.18840869161715285,
+        "p90": 0.19451246645933168,
+        "p95": 0.1955994257224647,
+        "p99": 0.19560492265554705
+      },
+      "evaluation_anomaly_count": 13,
+      "evaluation_rows": 561,
+      "evaluation_anomaly_rate_pct": 2.3172905525846703,
+      "detector": "IsolationForest",
+      "training_runtime_seconds": 0.37514329998521134
+    },
+    "robust_statistical_baseline_v2": {
+      "threshold": 2.985626915882202,
+      "training_score_quantiles": {
+        "median": 1.212863259134569,
+        "p90": 2.9187334119665325,
+        "p95": 2.985626915882202,
+        "p99": 3.228528039960335
+      },
+      "evaluation_score_quantiles": {
+        "median": 0.40772014925373135,
+        "p90": 0.8740831719149859,
+        "p95": 1.2456484334068259,
+        "p99": 1.677402029607428
+      },
+      "evaluation_anomaly_count": 1,
+      "evaluation_rows": 561,
+      "evaluation_anomaly_rate_pct": 0.17825311942959002,
+      "detector": "RobustStatisticalBaselineV2"
+    }
+  },
+  "baseline_v2_scaling": {
+    "features": [
+      "gap_log_seconds",
+      "events_previous_5m",
+      "events_previous_1h"
+    ],
+    "feature_medians": {
+      "gap_log_seconds": 0.027442973220142837,
+      "events_previous_5m": 34.0,
+      "events_previous_1h": 142.0
+    },
+    "feature_scales": {
+      "gap_log_seconds": 4.2495474278885546,
+      "events_previous_5m": 131.09474526704145,
+      "events_previous_1h": 198.66567828020757
+    },
+    "scaling": "max absolute robust z-score; MAD/IQR/std fallback"
+  },
+  "categorical_unseen_values": {
+    "action": {
+      "training_unique_values": 413,
+      "evaluation_unique_values": 191,
+      "evaluation_unseen_rows": 318,
+      "evaluation_unseen_rate_pct": 56.68449197860963
+    },
+    "method": {
+      "training_unique_values": 6,
+      "evaluation_unique_values": 4,
+      "evaluation_unseen_rows": 0,
+      "evaluation_unseen_rate_pct": 0.0
+    },
+    "resource_type": {
+      "training_unique_values": 13,
+      "evaluation_unique_values": 8,
+      "evaluation_unseen_rows": 138,
+      "evaluation_unseen_rate_pct": 24.598930481283425
+    }
+  },
+  "saved_models_modified": false,
+  "existing_risk_report_modified": false,
+  "total_runtime_seconds": 0.4824841999798082
+}

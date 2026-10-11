@@ -1,0 +1,392 @@
+{
+  "report_version": 1,
+  "experiment": "KBR-Anomaly-Detection",
+  "dataset": "data\\processed\\user_activities.csv",
+  "dataset_sha256": "261dee3a3eccb94f50042ad5d1015ff5beabdfb49147bf0832238f025f43915f",
+  "original_dataset_rows": 1814,
+  "invalid_timestamp_rows": 0,
+  "business_rows": 1167,
+  "http_rows_excluded": 647,
+  "evaluation_method": "Chronological session holdout; session boundaries are defined by a one-minute inactivity gap.",
+  "session_gap_minutes": 1,
+  "training_session_fraction": 0.8,
+  "anomaly_threshold_quantile": 0.95,
+  "labels_available": false,
+  "accuracy_metrics_available": false,
+  "interpretation": "Exploratory detector-behavior comparison only. No labels are available, so anomaly rates are not precision, recall, F1, or evidence that flagged events are true incidents. The evaluation is concentrated in a small number of active days and may not represent future traffic.",
+  "split": {
+    "total_sessions": 236,
+    "training_sessions": 188,
+    "evaluation_sessions": 48,
+    "training_rows": 669,
+    "evaluation_rows": 498,
+    "training_active_days": 161,
+    "evaluation_active_days": 3,
+    "training_start": "2025-01-02 09:00:00+00:00",
+    "training_end": "2026-09-22 13:17:18.532143+00:00",
+    "evaluation_start": "2026-09-22 13:20:21.271642+00:00",
+    "evaluation_end": "2026-10-06 21:34:22.909890+00:00",
+    "sessions_crossing_split": 0
+  },
+  "detectors": {
+    "isolation_forest": {
+      "detector": "IsolationForest",
+      "threshold": -0.02230444794194389,
+      "training_score_quantiles": {
+        "median": -0.1067494824439435,
+        "p90": -0.033311578633186734,
+        "p95": -0.02230444794194389,
+        "p99": -0.00032952085177897366
+      },
+      "evaluation_score_quantiles": {
+        "median": -0.0935780038929161,
+        "p90": -0.055841128224980406,
+        "p95": -0.023789481549000093,
+        "p99": 0.00861495456802226
+      },
+      "evaluation_anomaly_count": 23,
+      "evaluation_rows": 498,
+      "evaluation_anomaly_rate_pct": 4.618473895582329
+    },
+    "robust_statistical_baseline": {
+      "detector": "RobustStatisticalBaseline",
+      "threshold": 474.5784810765361,
+      "training_score_quantiles": {
+        "median": 1.7580988648652236,
+        "p90": 472.9005129228073,
+        "p95": 474.5784810765361,
+        "p99": 520.2100524775765
+      },
+      "evaluation_score_quantiles": {
+        "median": 2.913066828250538,
+        "p90": 145.82134516820466,
+        "p95": 200.64849490150297,
+        "p99": 276.41301259578916
+      },
+      "evaluation_anomaly_count": 1,
+      "evaluation_rows": 498,
+      "evaluation_anomaly_rate_pct": 0.2008032128514056
+    }
+  },
+  "numeric_feature_psi": {
+    "gap_log_seconds": 2.0287048635104292,
+    "events_previous_5m": 0.36781290815185974,
+    "events_previous_1h": 0.40206487450335154,
+    "hour_sin": 3.4613247895961594,
+    "hour_cos": 2.5946174023847983,
+    "weekday_sin": 11.990410033005578,
+    "weekday_cos": 11.29345609410573
+  },
+  "mean_numeric_psi": 4.5911987093225575,
+  "categorical_unseen_values": {
+    "action": {
+      "training_unique_values": 227,
+      "evaluation_unique_values": 161,
+      "evaluation_unseen_rows": 292,
+      "evaluation_unseen_rate_pct": 58.63453815261044
+    },
+    "method": {
+      "training_unique_values": 5,
+      "evaluation_unique_values": 4,
+      "evaluation_unseen_rows": 0,
+      "evaluation_unseen_rate_pct": 0.0
+    },
+    "resource_type": {
+      "training_unique_values": 12,
+      "evaluation_unique_values": 8,
+      "evaluation_unseen_rows": 138,
+      "evaluation_unseen_rate_pct": 27.710843373493976
+    }
+  },
+  "training_runtime_seconds": 0.33388340001692995,
+  "total_runtime_seconds": 0.4423495000228286,
+  "baseline_robust_scaling": {
+    "feature_medians": {
+      "gap_log_seconds": 0.03749133402346085,
+      "events_previous_5m": 12.0,
+      "events_previous_1h": 71.0,
+      "hour_sin": -0.16311072169985347,
+      "hour_cos": -0.9622377917632536,
+      "weekday_sin": -0.7818314824680299,
+      "weekday_cos": 0.6234898018587334
+    },
+    "feature_scales": {
+      "gap_log_seconds": 0.02637063666065339,
+      "events_previous_5m": 17.7912,
+      "events_previous_1h": 90.4386,
+      "hour_sin": 0.3809235785584345,
+      "hour_cos": 0.02622261700264211,
+      "weekday_sin": 0.6548835940866952,
+      "weekday_cos": 0.43975507245334494
+    }
+  },
+  "evaluation_session_summary": {
+    "evaluation_sessions": 48,
+    "sessions_with_forest_flags": 16,
+    "sessions_with_baseline_flags": 1,
+    "largest_evaluation_sessions": [
+      {
+        "session_id": 199,
+        "rows": 28,
+        "start": "2026-09-22 14:22:25.174173+00:00",
+        "end": "2026-09-22 14:22:59.202756+00:00",
+        "forest_anomalies": 2,
+        "baseline_anomalies": 0,
+        "forest_max_score": 0.008592094396536853,
+        "baseline_max_score": 182.21701802161607,
+        "duration_seconds": 34.028583,
+        "forest_anomaly_rate_pct": 7.142857142857142,
+        "baseline_anomaly_rate_pct": 0.0
+      },
+      {
+        "session_id": 208,
+        "rows": 27,
+        "start": "2026-09-23 10:08:44.469608+00:00",
+        "end": "2026-09-23 10:10:14.677692+00:00",
+        "forest_anomalies": 2,
+        "baseline_anomalies": 0,
+        "forest_max_score": 0.018144862782420446,
+        "baseline_max_score": 196.70701464663273,
+        "duration_seconds": 90.208084,
+        "forest_anomaly_rate_pct": 7.4074074074074066,
+        "baseline_anomaly_rate_pct": 0.0
+      },
+      {
+        "session_id": 209,
+        "rows": 25,
+        "start": "2026-09-23 10:14:01.524672+00:00",
+        "end": "2026-09-23 10:15:37.443293+00:00",
+        "forest_anomalies": 2,
+        "baseline_anomalies": 0,
+        "forest_max_score": 0.009618785016499376,
+        "baseline_max_score": 204.4388612470846,
+        "duration_seconds": 95.918621,
+        "forest_anomaly_rate_pct": 8.0,
+        "baseline_anomaly_rate_pct": 0.0
+      },
+      {
+        "session_id": 194,
+        "rows": 22,
+        "start": "2026-09-22 14:02:52.844864+00:00",
+        "end": "2026-09-22 14:03:24.272885+00:00",
+        "forest_anomalies": 1,
+        "baseline_anomalies": 0,
+        "forest_max_score": -0.01949011070654949,
+        "baseline_max_score": 236.52611745247992,
+        "duration_seconds": 31.428021,
+        "forest_anomaly_rate_pct": 4.545454545454546,
+        "baseline_anomaly_rate_pct": 0.0
+      },
+      {
+        "session_id": 207,
+        "rows": 22,
+        "start": "2026-09-23 10:05:23.017008+00:00",
+        "end": "2026-09-23 10:05:39.649221+00:00",
+        "forest_anomalies": 0,
+        "baseline_anomalies": 0,
+        "forest_max_score": -0.045453610467331484,
+        "baseline_max_score": 284.07282890748195,
+        "duration_seconds": 16.632213,
+        "forest_anomaly_rate_pct": 0.0,
+        "baseline_anomaly_rate_pct": 0.0
+      },
+      {
+        "session_id": 192,
+        "rows": 21,
+        "start": "2026-09-22 13:48:46.617220+00:00",
+        "end": "2026-09-22 13:48:47.299762+00:00",
+        "forest_anomalies": 0,
+        "baseline_anomalies": 0,
+        "forest_max_score": -0.0567658384360229,
+        "baseline_max_score": 231.19417073148506,
+        "duration_seconds": 0.682542,
+        "forest_anomaly_rate_pct": 0.0,
+        "baseline_anomaly_rate_pct": 0.0
+      },
+      {
+        "session_id": 191,
+        "rows": 21,
+        "start": "2026-09-22 13:41:05.557377+00:00",
+        "end": "2026-09-22 13:41:06.234078+00:00",
+        "forest_anomalies": 0,
+        "baseline_anomalies": 0,
+        "forest_max_score": -0.06455555478243746,
+        "baseline_max_score": 200.1697213389258,
+        "duration_seconds": 0.676701,
+        "forest_anomaly_rate_pct": 0.0,
+        "baseline_anomaly_rate_pct": 0.0
+      },
+      {
+        "session_id": 189,
+        "rows": 21,
+        "start": "2026-09-22 13:20:21.271642+00:00",
+        "end": "2026-09-22 13:20:21.833292+00:00",
+        "forest_anomalies": 0,
+        "baseline_anomalies": 0,
+        "forest_max_score": -0.0730853768948086,
+        "baseline_max_score": 196.27996550648666,
+        "duration_seconds": 0.56165,
+        "forest_anomaly_rate_pct": 0.0,
+        "baseline_anomaly_rate_pct": 0.0
+      },
+      {
+        "session_id": 233,
+        "rows": 21,
+        "start": "2026-10-06 13:35:16.442778+00:00",
+        "end": "2026-10-06 13:35:17.027373+00:00",
+        "forest_anomalies": 0,
+        "baseline_anomalies": 0,
+        "forest_max_score": -0.06858196409435313,
+        "baseline_max_score": 262.80453090791207,
+        "duration_seconds": 0.584595,
+        "forest_anomaly_rate_pct": 0.0,
+        "baseline_anomaly_rate_pct": 0.0
+      },
+      {
+        "session_id": 234,
+        "rows": 21,
+        "start": "2026-10-06 13:37:03.051160+00:00",
+        "end": "2026-10-06 13:37:03.633246+00:00",
+        "forest_anomalies": 0,
+        "baseline_anomalies": 0,
+        "forest_max_score": -0.06827297461218551,
+        "baseline_max_score": 175.78490211650245,
+        "duration_seconds": 0.582086,
+        "forest_anomaly_rate_pct": 0.0,
+        "baseline_anomaly_rate_pct": 0.0
+      },
+      {
+        "session_id": 217,
+        "rows": 21,
+        "start": "2026-10-06 11:59:33.093123+00:00",
+        "end": "2026-10-06 11:59:33.666962+00:00",
+        "forest_anomalies": 0,
+        "baseline_anomalies": 0,
+        "forest_max_score": -0.07793442961333169,
+        "baseline_max_score": 232.83879257779247,
+        "duration_seconds": 0.573839,
+        "forest_anomaly_rate_pct": 0.0,
+        "baseline_anomaly_rate_pct": 0.0
+      },
+      {
+        "session_id": 215,
+        "rows": 21,
+        "start": "2026-10-06 11:46:35.256510+00:00",
+        "end": "2026-10-06 11:46:35.843831+00:00",
+        "forest_anomalies": 0,
+        "baseline_anomalies": 0,
+        "forest_max_score": -0.07894996343700439,
+        "baseline_max_score": 276.1761110603762,
+        "duration_seconds": 0.587321,
+        "forest_anomaly_rate_pct": 0.0,
+        "baseline_anomaly_rate_pct": 0.0
+      },
+      {
+        "session_id": 216,
+        "rows": 21,
+        "start": "2026-10-06 11:51:31.638612+00:00",
+        "end": "2026-10-06 11:51:32.259664+00:00",
+        "forest_anomalies": 0,
+        "baseline_anomalies": 0,
+        "forest_max_score": -0.0751390139973479,
+        "baseline_max_score": 214.4639003472291,
+        "duration_seconds": 0.621052,
+        "forest_anomaly_rate_pct": 0.0,
+        "baseline_anomaly_rate_pct": 0.0
+      },
+      {
+        "session_id": 190,
+        "rows": 21,
+        "start": "2026-09-22 13:37:42.378909+00:00",
+        "end": "2026-09-22 13:37:42.970195+00:00",
+        "forest_anomalies": 0,
+        "baseline_anomalies": 0,
+        "forest_max_score": -0.06442531497361642,
+        "baseline_max_score": 262.07064372313346,
+        "duration_seconds": 0.591286,
+        "forest_anomaly_rate_pct": 0.0,
+        "baseline_anomaly_rate_pct": 0.0
+      },
+      {
+        "session_id": 198,
+        "rows": 21,
+        "start": "2026-09-22 14:20:18.742753+00:00",
+        "end": "2026-09-22 14:20:19.366683+00:00",
+        "forest_anomalies": 0,
+        "baseline_anomalies": 0,
+        "forest_max_score": -0.05411765585414724,
+        "baseline_max_score": 227.3671787256721,
+        "duration_seconds": 0.62393,
+        "forest_anomaly_rate_pct": 0.0,
+        "baseline_anomaly_rate_pct": 0.0
+      },
+      {
+        "session_id": 231,
+        "rows": 15,
+        "start": "2026-10-06 13:11:43.459051+00:00",
+        "end": "2026-10-06 13:12:50.113455+00:00",
+        "forest_anomalies": 1,
+        "baseline_anomalies": 0,
+        "forest_max_score": -0.020811027915352387,
+        "baseline_max_score": 185.95405174996154,
+        "duration_seconds": 66.654404,
+        "forest_anomaly_rate_pct": 6.666666666666667,
+        "baseline_anomaly_rate_pct": 0.0
+      },
+      {
+        "session_id": 195,
+        "rows": 11,
+        "start": "2026-09-22 14:05:36.405257+00:00",
+        "end": "2026-09-22 14:07:44.290522+00:00",
+        "forest_anomalies": 1,
+        "baseline_anomalies": 0,
+        "forest_max_score": -0.013783177183694428,
+        "baseline_max_score": 184.06277557473894,
+        "duration_seconds": 127.885265,
+        "forest_anomaly_rate_pct": 9.090909090909092,
+        "baseline_anomaly_rate_pct": 0.0
+      },
+      {
+        "session_id": 230,
+        "rows": 10,
+        "start": "2026-10-06 13:07:39.568026+00:00",
+        "end": "2026-10-06 13:09:24.518448+00:00",
+        "forest_anomalies": 0,
+        "baseline_anomalies": 0,
+        "forest_max_score": -0.11396582693951912,
+        "baseline_max_score": 168.18634537046466,
+        "duration_seconds": 104.950422,
+        "forest_anomaly_rate_pct": 0.0,
+        "baseline_anomaly_rate_pct": 0.0
+      },
+      {
+        "session_id": 214,
+        "rows": 9,
+        "start": "2026-10-06 11:20:27.266049+00:00",
+        "end": "2026-10-06 11:21:25.401180+00:00",
+        "forest_anomalies": 0,
+        "baseline_anomalies": 1,
+        "forest_max_score": -0.02345966372114011,
+        "baseline_max_score": 526.364387301176,
+        "duration_seconds": 58.135131,
+        "forest_anomaly_rate_pct": 0.0,
+        "baseline_anomaly_rate_pct": 11.11111111111111
+      },
+      {
+        "session_id": 235,
+        "rows": 9,
+        "start": "2026-10-06 13:53:24.012427+00:00",
+        "end": "2026-10-06 13:53:39.419497+00:00",
+        "forest_anomalies": 1,
+        "baseline_anomalies": 0,
+        "forest_max_score": -0.017072615119017087,
+        "baseline_max_score": 259.8142647825297,
+        "duration_seconds": 15.40707,
+        "forest_anomaly_rate_pct": 11.11111111111111,
+        "baseline_anomaly_rate_pct": 0.0
+      }
+    ]
+  },
+  "saved_models_modified": false,
+  "existing_risk_report_modified": false
+}

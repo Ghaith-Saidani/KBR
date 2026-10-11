@@ -1,0 +1,2631 @@
+{
+  "report_version": 5,
+  "final_benchmark": true,
+  "experiment": "KBR-Anomaly-Detection",
+  "dataset": {
+    "dataset": "data\\processed\\user_activities.csv",
+    "dataset_sha256": "261dee3a3eccb94f50042ad5d1015ff5beabdfb49147bf0832238f025f43915f",
+    "original_rows": 1814,
+    "invalid_timestamp_rows": 0,
+    "timestamp_column": "occurred_at",
+    "rows_with_valid_timestamps": 1814,
+    "http_rows_excluded": 647,
+    "business_rows_used": 1167,
+    "business_resource_types": {
+      "contact": 778,
+      "statistics": 104,
+      "event": 49,
+      "dashboard": 35,
+      "news": 34,
+      "analytics": 34,
+      "member": 33,
+      "__MISSING__": 32,
+      "authentication": 18,
+      "members": 17,
+      "activity": 16,
+      "ai": 8,
+      "events": 7,
+      "activity_logs": 2
+    },
+    "business_start": "2025-01-02T09:00:00+00:00",
+    "business_end": "2026-10-06T21:34:22.909890+00:00",
+    "population_policy": "Exclude rows where resource_type == 'http_request'; benchmark remaining business events only."
+  },
+  "feature_validation": {
+    "row_count": 1167,
+    "required_columns_present": true,
+    "numeric_features": {
+      "gap_log_seconds": {
+        "missing_count": 0,
+        "infinite_count": 0,
+        "minimum": 0.0043355877418254215,
+        "maximum": 14.011193288733478,
+        "unique_values": 1021
+      },
+      "events_previous_5m": {
+        "missing_count": 0,
+        "infinite_count": 0,
+        "minimum": 0.0,
+        "maximum": 65.0,
+        "unique_values": 66
+      },
+      "events_previous_1h": {
+        "missing_count": 0,
+        "infinite_count": 0,
+        "minimum": 0.0,
+        "maximum": 235.0,
+        "unique_values": 236
+      }
+    },
+    "categorical_features": {
+      "action": {
+        "missing_count": 0,
+        "unique_values": 383
+      },
+      "method": {
+        "missing_count": 0,
+        "unique_values": 5
+      },
+      "resource_type": {
+        "missing_count": 0,
+        "unique_values": 14
+      }
+    },
+    "causal_rolling_counts_exclude_current_event": true
+  },
+  "evaluation_method": {
+    "session_gaps_minutes": [
+      1,
+      5
+    ],
+    "training_session_fraction": 0.8,
+    "common_chronological_cutoff": {
+      "method": "Use the latest provisional chronological 80/20 session cutoff so both session definitions share an evaluation start.",
+      "common_cutoff": "2026-09-22T13:20:21.271642+00:00",
+      "provisional_splits": [
+        {
+          "gap_minutes": 1,
+          "session_count": 236,
+          "split_index": 188,
+          "cutoff": "2026-09-22T13:20:21.271642+00:00"
+        },
+        {
+          "gap_minutes": 5,
+          "session_count": 197,
+          "split_index": 157,
+          "cutoff": "2026-09-16T17:14:00+00:00"
+        }
+      ]
+    },
+    "session_leakage_check": "Sessions crossing the cutoff are excluded; each retained session belongs to either training or evaluation.",
+    "isolation_forest": "Isolation Forest fitted on training rows only; higher negated decision_function scores mean more anomalous.",
+    "directional_baseline": "One-sided robust scores: shorter-than-usual gaps and higher rolling counts increase the score. Long gaps and low activity counts do not increase the score.",
+    "thresholds": "Training score quantiles at nominal 1%, 2%, and 5% tails. Held-out alert rates are measured, not forced to match.",
+    "fixed_alert_budgets": "Top-ranked 1%, 2%, and 5% of held-out rows, with stable row-order tie-breaking and explicit boundary tie counts."
+  },
+  "alert_budgets": [
+    0.01,
+    0.02,
+    0.05
+  ],
+  "results_by_session_gap_minutes": {
+    "1": {
+      "session_gap_minutes": 1,
+      "split": {
+        "session_gap_minutes": 1,
+        "training_sessions": 188,
+        "evaluation_sessions": 48,
+        "crossing_sessions_excluded": 0,
+        "training_rows": 669,
+        "evaluation_rows": 498,
+        "training_active_days": 161,
+        "evaluation_active_days": 3,
+        "training_start": "2025-01-02T09:00:00+00:00",
+        "training_end": "2026-09-22T13:17:18.532143+00:00",
+        "evaluation_start": "2026-09-22T13:20:21.271642+00:00",
+        "evaluation_end": "2026-10-06T21:34:22.909890+00:00",
+        "common_cutoff": "2026-09-22T13:20:21.271642+00:00",
+        "sessions_crossing_split": 0,
+        "chronological_order_valid": true,
+        "session_leakage_detected": false
+      },
+      "detectors": {
+        "isolation_forest": {
+          "training_score_distribution": {
+            "count": 669,
+            "unique_exact_scores": 564,
+            "unique_scores_rounded_8dp": 564,
+            "zero_score_count": 0,
+            "zero_score_pct": 0.0,
+            "mean": -0.17391942373093205,
+            "std": 0.014284254796125516,
+            "min": -0.1921135437135289,
+            "p01": -0.18915502535952136,
+            "p05": -0.18811913918875475,
+            "p10": -0.18740377676327238,
+            "p25": -0.18522693977388438,
+            "median": -0.18043128768292455,
+            "p75": -0.16077367510479867,
+            "p90": -0.1501779217971515,
+            "p95": -0.14702836581275258,
+            "p99": -0.14282224575642882,
+            "max": -0.13758254905169826
+          },
+          "evaluation_score_distribution": {
+            "count": 498,
+            "unique_exact_scores": 409,
+            "unique_scores_rounded_8dp": 409,
+            "zero_score_count": 0,
+            "zero_score_pct": 0.0,
+            "mean": -0.18430382349780652,
+            "std": 0.011512633254614529,
+            "min": -0.1953148801679474,
+            "p01": -0.19518143958151637,
+            "p05": -0.19436406291214164,
+            "p10": -0.19333227604658332,
+            "p25": -0.19008532661355332,
+            "median": -0.18725791918491902,
+            "p75": -0.18380095291658977,
+            "p90": -0.17569291568021564,
+            "p95": -0.14978582407351537,
+            "p99": -0.14453448603340965,
+            "max": -0.14061638156402173
+          },
+          "threshold_diagnostics": {
+            "1%": {
+              "nominal_training_tail_pct": 1.0,
+              "threshold": -0.14282224575642882,
+              "training_count": 669,
+              "training_flagged_count": 7,
+              "training_flagged_rate_pct": 1.046337817638266,
+              "training_scores_equal_to_threshold": 0,
+              "evaluation_count": 498,
+              "evaluation_flagged_count": 1,
+              "evaluation_flagged_rate_pct": 0.2008032128514056,
+              "evaluation_scores_equal_to_threshold": 0,
+              "evaluation_scores_below_threshold": 497,
+              "interpretation": "The nominal tail is calibrated on training scores. The held-out flag rate may differ due to distribution shift."
+            },
+            "2%": {
+              "nominal_training_tail_pct": 2.0,
+              "threshold": -0.14458218099858564,
+              "training_count": 669,
+              "training_flagged_count": 14,
+              "training_flagged_rate_pct": 2.092675635276532,
+              "training_scores_equal_to_threshold": 0,
+              "evaluation_count": 498,
+              "evaluation_flagged_count": 6,
+              "evaluation_flagged_rate_pct": 1.2048192771084338,
+              "evaluation_scores_equal_to_threshold": 0,
+              "evaluation_scores_below_threshold": 492,
+              "interpretation": "The nominal tail is calibrated on training scores. The held-out flag rate may differ due to distribution shift."
+            },
+            "5%": {
+              "nominal_training_tail_pct": 5.0,
+              "threshold": -0.14702836581275258,
+              "training_count": 669,
+              "training_flagged_count": 35,
+              "training_flagged_rate_pct": 5.23168908819133,
+              "training_scores_equal_to_threshold": 2,
+              "evaluation_count": 498,
+              "evaluation_flagged_count": 15,
+              "evaluation_flagged_rate_pct": 3.0120481927710845,
+              "evaluation_scores_equal_to_threshold": 0,
+              "evaluation_scores_below_threshold": 483,
+              "interpretation": "The nominal tail is calibrated on training scores. The held-out flag rate may differ due to distribution shift."
+            }
+          },
+          "fixed_alert_budgets": {
+            "1%": {
+              "budget_pct": 1.0,
+              "selected_count": 4,
+              "evaluation_count": 498,
+              "selected_rate_pct": 0.8032128514056225,
+              "minimum_selected_score": -0.1433132214471613,
+              "rows_tied_at_selection_boundary": 1,
+              "tied_rows_selected_at_boundary": 1,
+              "tie_break": "Stable evaluation row order",
+              "top_score_mean": -0.1425805136724673,
+              "top_score_min": -0.1433132214471613,
+              "selected_timestamp_start": "2026-09-22T14:02:52.844864+00:00",
+              "selected_timestamp_end": "2026-10-06T12:25:17.225245+00:00",
+              "selected_category_counts_top_10": {
+                "action": {
+                  "GET /admin/dashboard": 4
+                },
+                "method": {
+                  "GET": 4
+                },
+                "resource_type": {
+                  "dashboard": 4
+                }
+              },
+              "selected_alerts": [
+                {
+                  "timestamp": "2026-09-22T14:05:36.405257+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.14061638156402173
+                },
+                {
+                  "timestamp": "2026-09-22T14:02:52.844864+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.1431753547997539
+                },
+                {
+                  "timestamp": "2026-10-06T12:25:17.225245+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.14321709687893225
+                },
+                {
+                  "timestamp": "2026-10-06T12:05:53.997133+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.1433132214471613
+                }
+              ]
+            },
+            "2%": {
+              "budget_pct": 2.0,
+              "selected_count": 9,
+              "evaluation_count": 498,
+              "selected_rate_pct": 1.8072289156626506,
+              "minimum_selected_score": -0.14478816394077798,
+              "rows_tied_at_selection_boundary": 1,
+              "tied_rows_selected_at_boundary": 1,
+              "tie_break": "Stable evaluation row order",
+              "top_score_mean": -0.14373571683028782,
+              "top_score_min": -0.14478816394077798,
+              "selected_timestamp_start": "2026-09-22T13:53:08.787646+00:00",
+              "selected_timestamp_end": "2026-10-06T12:25:17.225245+00:00",
+              "selected_category_counts_top_10": {
+                "action": {
+                  "GET /admin/dashboard": 5,
+                  "POST /ai/chat": 4
+                },
+                "method": {
+                  "GET": 5,
+                  "POST": 4
+                },
+                "resource_type": {
+                  "dashboard": 5,
+                  "ai": 4
+                }
+              },
+              "selected_alerts": [
+                {
+                  "timestamp": "2026-09-22T14:05:36.405257+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.14061638156402173
+                },
+                {
+                  "timestamp": "2026-09-22T14:02:52.844864+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.1431753547997539
+                },
+                {
+                  "timestamp": "2026-10-06T12:25:17.225245+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.14321709687893225
+                },
+                {
+                  "timestamp": "2026-10-06T12:05:53.997133+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.1433132214471613
+                },
+                {
+                  "timestamp": "2026-09-22T14:49:46.871936+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.1445108175237656
+                },
+                {
+                  "timestamp": "2026-09-22T13:53:43.507557+00:00",
+                  "action": "POST /ai/chat",
+                  "method": "POST",
+                  "resource_type": "ai",
+                  "score": -0.14453521804917185
+                },
+                {
+                  "timestamp": "2026-09-22T13:53:08.787646+00:00",
+                  "action": "POST /ai/chat",
+                  "method": "POST",
+                  "resource_type": "ai",
+                  "score": -0.14473259863450288
+                },
+                {
+                  "timestamp": "2026-09-22T13:53:23.746507+00:00",
+                  "action": "POST /ai/chat",
+                  "method": "POST",
+                  "resource_type": "ai",
+                  "score": -0.14473259863450288
+                },
+                {
+                  "timestamp": "2026-09-22T13:54:02.805772+00:00",
+                  "action": "POST /ai/chat",
+                  "method": "POST",
+                  "resource_type": "ai",
+                  "score": -0.14478816394077798
+                }
+              ]
+            },
+            "5%": {
+              "budget_pct": 5.0,
+              "selected_count": 24,
+              "evaluation_count": 498,
+              "selected_rate_pct": 4.819277108433735,
+              "minimum_selected_score": -0.14966308073135365,
+              "rows_tied_at_selection_boundary": 1,
+              "tied_rows_selected_at_boundary": 1,
+              "tie_break": "Stable evaluation row order",
+              "top_score_mean": -0.14630251143659348,
+              "top_score_min": -0.14966308073135365,
+              "selected_timestamp_start": "2026-09-22T13:52:36.358279+00:00",
+              "selected_timestamp_end": "2026-10-06T13:12:21.962842+00:00",
+              "selected_category_counts_top_10": {
+                "action": {
+                  "GET /admin/dashboard": 18,
+                  "POST /ai/chat": 5,
+                  "LOGIN": 1
+                },
+                "method": {
+                  "GET": 18,
+                  "POST": 6
+                },
+                "resource_type": {
+                  "dashboard": 18,
+                  "ai": 5,
+                  "authentication": 1
+                }
+              },
+              "selected_alerts": [
+                {
+                  "timestamp": "2026-09-22T14:05:36.405257+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.14061638156402173
+                },
+                {
+                  "timestamp": "2026-09-22T14:02:52.844864+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.1431753547997539
+                },
+                {
+                  "timestamp": "2026-10-06T12:25:17.225245+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.14321709687893225
+                },
+                {
+                  "timestamp": "2026-10-06T12:05:53.997133+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.1433132214471613
+                },
+                {
+                  "timestamp": "2026-09-22T14:49:46.871936+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.1445108175237656
+                },
+                {
+                  "timestamp": "2026-09-22T13:53:43.507557+00:00",
+                  "action": "POST /ai/chat",
+                  "method": "POST",
+                  "resource_type": "ai",
+                  "score": -0.14453521804917185
+                },
+                {
+                  "timestamp": "2026-09-22T13:53:08.787646+00:00",
+                  "action": "POST /ai/chat",
+                  "method": "POST",
+                  "resource_type": "ai",
+                  "score": -0.14473259863450288
+                },
+                {
+                  "timestamp": "2026-09-22T13:53:23.746507+00:00",
+                  "action": "POST /ai/chat",
+                  "method": "POST",
+                  "resource_type": "ai",
+                  "score": -0.14473259863450288
+                },
+                {
+                  "timestamp": "2026-09-22T13:54:02.805772+00:00",
+                  "action": "POST /ai/chat",
+                  "method": "POST",
+                  "resource_type": "ai",
+                  "score": -0.14478816394077798
+                },
+                {
+                  "timestamp": "2026-09-22T14:56:23.117369+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.14480887964644595
+                },
+                {
+                  "timestamp": "2026-10-06T12:43:06.572332+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.14568481081016393
+                },
+                {
+                  "timestamp": "2026-09-22T13:52:42.799747+00:00",
+                  "action": "POST /ai/chat",
+                  "method": "POST",
+                  "resource_type": "ai",
+                  "score": -0.14588994767033192
+                },
+                {
+                  "timestamp": "2026-09-23T10:10:11.399617+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.14615638864123798
+                },
+                {
+                  "timestamp": "2026-09-22T14:22:52.184238+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.14620901934183472
+                },
+                {
+                  "timestamp": "2026-09-22T14:56:53.899079+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.14695416585586157
+                },
+                {
+                  "timestamp": "2026-10-06T12:06:07.459412+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.14814530386538488
+                },
+                {
+                  "timestamp": "2026-09-22T13:52:36.358279+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.14837659634570305
+                },
+                {
+                  "timestamp": "2026-09-23T10:10:11.235165+00:00",
+                  "action": "LOGIN",
+                  "method": "POST",
+                  "resource_type": "authentication",
+                  "score": -0.14893621634475457
+                },
+                {
+                  "timestamp": "2026-10-06T11:21:21.423620+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.1491064532662107
+                },
+                {
+                  "timestamp": "2026-10-06T13:12:21.962842+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.14912852307362656
+                },
+                {
+                  "timestamp": "2026-09-23T10:21:42.130296+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.1492768309128646
+                },
+                {
+                  "timestamp": "2026-09-23T15:33:58.437638+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.14964669405914133
+                },
+                {
+                  "timestamp": "2026-10-06T12:05:55.928733+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.14965591244073728
+                },
+                {
+                  "timestamp": "2026-09-23T09:28:46.557308+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.14966308073135365
+                }
+              ]
+            }
+          }
+        },
+        "directional_robust_baseline": {
+          "training_score_distribution": {
+            "count": 669,
+            "unique_exact_scores": 298,
+            "unique_scores_rounded_8dp": 298,
+            "zero_score_count": 172,
+            "zero_score_pct": 25.71001494768311,
+            "mean": 0.7163019205445138,
+            "std": 0.6247523863631005,
+            "min": 0.0,
+            "p01": 0.0,
+            "p05": 0.0,
+            "p10": 0.0,
+            "p25": 0.0,
+            "median": 0.6855479850417853,
+            "p75": 1.1241512657943253,
+            "p90": 1.5391657986744605,
+            "p95": 1.7094470723783874,
+            "p99": 2.6035343315796604,
+            "max": 2.979000854354962
+          },
+          "evaluation_score_distribution": {
+            "count": 498,
+            "unique_exact_scores": 253,
+            "unique_scores_rounded_8dp": 253,
+            "zero_score_count": 51,
+            "zero_score_pct": 10.240963855421686,
+            "mean": 0.7578342911696678,
+            "std": 0.49948728741721826,
+            "min": 0.0,
+            "p01": 0.0,
+            "p05": 0.0,
+            "p10": 0.0,
+            "p25": 0.33171676695570257,
+            "median": 0.8005777116749244,
+            "p75": 1.1049926168276185,
+            "p90": 1.4051890822429065,
+            "p95": 1.5822429066055117,
+            "p99": 1.911057151850353,
+            "max": 2.0234722784297854
+          },
+          "threshold_diagnostics": {
+            "1%": {
+              "nominal_training_tail_pct": 1.0,
+              "threshold": 2.6035343315796604,
+              "training_count": 669,
+              "training_flagged_count": 7,
+              "training_flagged_rate_pct": 1.046337817638266,
+              "training_scores_equal_to_threshold": 0,
+              "evaluation_count": 498,
+              "evaluation_flagged_count": 0,
+              "evaluation_flagged_rate_pct": 0.0,
+              "evaluation_scores_equal_to_threshold": 0,
+              "evaluation_scores_below_threshold": 498,
+              "interpretation": "The nominal tail is calibrated on training scores. The held-out flag rate may differ due to distribution shift."
+            },
+            "2%": {
+              "nominal_training_tail_pct": 2.0,
+              "threshold": 2.228067808804352,
+              "training_count": 669,
+              "training_flagged_count": 14,
+              "training_flagged_rate_pct": 2.092675635276532,
+              "training_scores_equal_to_threshold": 0,
+              "evaluation_count": 498,
+              "evaluation_flagged_count": 0,
+              "evaluation_flagged_rate_pct": 0.0,
+              "evaluation_scores_equal_to_threshold": 0,
+              "evaluation_scores_below_threshold": 498,
+              "interpretation": "The nominal tail is calibrated on training scores. The held-out flag rate may differ due to distribution shift."
+            },
+            "5%": {
+              "nominal_training_tail_pct": 5.0,
+              "threshold": 1.7094470723783874,
+              "training_count": 669,
+              "training_flagged_count": 34,
+              "training_flagged_rate_pct": 5.082212257100149,
+              "training_scores_equal_to_threshold": 0,
+              "evaluation_count": 498,
+              "evaluation_flagged_count": 15,
+              "evaluation_flagged_rate_pct": 3.0120481927710845,
+              "evaluation_scores_equal_to_threshold": 0,
+              "evaluation_scores_below_threshold": 483,
+              "interpretation": "The nominal tail is calibrated on training scores. The held-out flag rate may differ due to distribution shift."
+            }
+          },
+          "fixed_alert_budgets": {
+            "1%": {
+              "budget_pct": 1.0,
+              "selected_count": 4,
+              "evaluation_count": 498,
+              "selected_rate_pct": 0.8032128514056225,
+              "minimum_selected_score": 1.9672647151400693,
+              "rows_tied_at_selection_boundary": 2,
+              "tied_rows_selected_at_boundary": 2,
+              "tie_break": "Stable evaluation row order",
+              "top_score_mean": 1.9953684967849272,
+              "top_score_min": 1.9672647151400693,
+              "selected_timestamp_start": "2026-09-22T14:22:55.926522+00:00",
+              "selected_timestamp_end": "2026-09-23T10:10:14.677692+00:00",
+              "selected_category_counts_top_10": {
+                "action": {
+                  "GET /admin/statistics/trends": 2,
+                  "POST /admin/analytics/query": 1,
+                  "GET /admin/statistics/overview": 1
+                },
+                "method": {
+                  "GET": 3,
+                  "POST": 1
+                },
+                "resource_type": {
+                  "statistics": 3,
+                  "analytics": 1
+                }
+              },
+              "selected_alerts": [
+                {
+                  "timestamp": "2026-09-22T14:22:59.202756+00:00",
+                  "action": "POST /admin/analytics/query",
+                  "method": "POST",
+                  "resource_type": "analytics",
+                  "score": 2.0234722784297854
+                },
+                {
+                  "timestamp": "2026-09-23T10:10:14.677692+00:00",
+                  "action": "GET /admin/statistics/overview",
+                  "method": "GET",
+                  "resource_type": "statistics",
+                  "score": 2.0234722784297854
+                },
+                {
+                  "timestamp": "2026-09-22T14:22:55.926522+00:00",
+                  "action": "GET /admin/statistics/trends",
+                  "method": "GET",
+                  "resource_type": "statistics",
+                  "score": 1.9672647151400693
+                },
+                {
+                  "timestamp": "2026-09-23T10:10:14.671913+00:00",
+                  "action": "GET /admin/statistics/trends",
+                  "method": "GET",
+                  "resource_type": "statistics",
+                  "score": 1.9672647151400693
+                }
+              ]
+            },
+            "2%": {
+              "budget_pct": 2.0,
+              "selected_count": 9,
+              "evaluation_count": 498,
+              "selected_rate_pct": 1.8072289156626506,
+              "minimum_selected_score": 1.8548495885606366,
+              "rows_tied_at_selection_boundary": 3,
+              "tied_rows_selected_at_boundary": 3,
+              "tie_break": "Stable evaluation row order",
+              "top_score_mean": 1.9297930062802584,
+              "top_score_min": 1.8548495885606366,
+              "selected_timestamp_start": "2026-09-22T14:22:52.184238+00:00",
+              "selected_timestamp_end": "2026-09-23T10:14:02.092251+00:00",
+              "selected_category_counts_top_10": {
+                "action": {
+                  "GET /admin/statistics/overview": 2,
+                  "GET /admin/statistics/trends": 2,
+                  "GET /admin/dashboard": 2,
+                  "POST /admin/analytics/query": 1,
+                  "LOGIN": 1,
+                  "GET /contact/efaf6741-c1c3-498e-8a28-25d6769cf8a6": 1
+                },
+                "method": {
+                  "GET": 7,
+                  "POST": 2
+                },
+                "resource_type": {
+                  "statistics": 4,
+                  "dashboard": 2,
+                  "analytics": 1,
+                  "authentication": 1,
+                  "contact": 1
+                }
+              },
+              "selected_alerts": [
+                {
+                  "timestamp": "2026-09-22T14:22:59.202756+00:00",
+                  "action": "POST /admin/analytics/query",
+                  "method": "POST",
+                  "resource_type": "analytics",
+                  "score": 2.0234722784297854
+                },
+                {
+                  "timestamp": "2026-09-23T10:10:14.677692+00:00",
+                  "action": "GET /admin/statistics/overview",
+                  "method": "GET",
+                  "resource_type": "statistics",
+                  "score": 2.0234722784297854
+                },
+                {
+                  "timestamp": "2026-09-22T14:22:55.926522+00:00",
+                  "action": "GET /admin/statistics/trends",
+                  "method": "GET",
+                  "resource_type": "statistics",
+                  "score": 1.9672647151400693
+                },
+                {
+                  "timestamp": "2026-09-23T10:10:14.671913+00:00",
+                  "action": "GET /admin/statistics/trends",
+                  "method": "GET",
+                  "resource_type": "statistics",
+                  "score": 1.9672647151400693
+                },
+                {
+                  "timestamp": "2026-09-22T14:22:55.920111+00:00",
+                  "action": "GET /admin/statistics/overview",
+                  "method": "GET",
+                  "resource_type": "statistics",
+                  "score": 1.911057151850353
+                },
+                {
+                  "timestamp": "2026-09-23T10:10:11.399617+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": 1.911057151850353
+                },
+                {
+                  "timestamp": "2026-09-22T14:22:52.184238+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": 1.8548495885606366
+                },
+                {
+                  "timestamp": "2026-09-23T10:10:11.235165+00:00",
+                  "action": "LOGIN",
+                  "method": "POST",
+                  "resource_type": "authentication",
+                  "score": 1.8548495885606366
+                },
+                {
+                  "timestamp": "2026-09-23T10:14:02.092251+00:00",
+                  "action": "GET /contact/efaf6741-c1c3-498e-8a28-25d6769cf8a6",
+                  "method": "GET",
+                  "resource_type": "contact",
+                  "score": 1.8548495885606366
+                }
+              ]
+            },
+            "5%": {
+              "budget_pct": 5.0,
+              "selected_count": 24,
+              "evaluation_count": 498,
+              "selected_rate_pct": 4.819277108433735,
+              "minimum_selected_score": 1.6300193354017716,
+              "rows_tied_at_selection_boundary": 7,
+              "tied_rows_selected_at_boundary": 6,
+              "tie_break": "Stable evaluation row order",
+              "top_score_mean": 1.7845901344484913,
+              "top_score_min": 1.6300193354017716,
+              "selected_timestamp_start": "2026-09-22T13:20:21.833292+00:00",
+              "selected_timestamp_end": "2026-10-06T11:51:32.259664+00:00",
+              "selected_category_counts_top_10": {
+                "action": {
+                  "POST /contact": 4,
+                  "GET /admin/statistics/trends": 3,
+                  "GET /admin/statistics/overview": 3,
+                  "LOGIN": 2,
+                  "GET /admin/dashboard": 2,
+                  "GET /contact/efaf6741-c1c3-498e-8a28-25d6769cf8a6": 1,
+                  "POST /admin/analytics/query": 1,
+                  "GET /contact/694c845a-2312-44f2-8da2-c818013a7cb7": 1,
+                  "PATCH /contact/5d7c5bf9-72e9-4052-bfb3-3fc9661e9a44": 1,
+                  "PATCH /contact/e17cdc43-1f41-4914-bdf7-96fc07aa9ef1": 1
+                },
+                "method": {
+                  "GET": 15,
+                  "POST": 7,
+                  "PATCH": 2
+                },
+                "resource_type": {
+                  "contact": 13,
+                  "statistics": 6,
+                  "dashboard": 2,
+                  "authentication": 2,
+                  "analytics": 1
+                }
+              },
+              "selected_alerts": [
+                {
+                  "timestamp": "2026-09-22T14:22:59.202756+00:00",
+                  "action": "POST /admin/analytics/query",
+                  "method": "POST",
+                  "resource_type": "analytics",
+                  "score": 2.0234722784297854
+                },
+                {
+                  "timestamp": "2026-09-23T10:10:14.677692+00:00",
+                  "action": "GET /admin/statistics/overview",
+                  "method": "GET",
+                  "resource_type": "statistics",
+                  "score": 2.0234722784297854
+                },
+                {
+                  "timestamp": "2026-09-22T14:22:55.926522+00:00",
+                  "action": "GET /admin/statistics/trends",
+                  "method": "GET",
+                  "resource_type": "statistics",
+                  "score": 1.9672647151400693
+                },
+                {
+                  "timestamp": "2026-09-23T10:10:14.671913+00:00",
+                  "action": "GET /admin/statistics/trends",
+                  "method": "GET",
+                  "resource_type": "statistics",
+                  "score": 1.9672647151400693
+                },
+                {
+                  "timestamp": "2026-09-22T14:22:55.920111+00:00",
+                  "action": "GET /admin/statistics/overview",
+                  "method": "GET",
+                  "resource_type": "statistics",
+                  "score": 1.911057151850353
+                },
+                {
+                  "timestamp": "2026-09-23T10:10:11.399617+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": 1.911057151850353
+                },
+                {
+                  "timestamp": "2026-09-22T14:22:52.184238+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": 1.8548495885606366
+                },
+                {
+                  "timestamp": "2026-09-23T10:10:11.235165+00:00",
+                  "action": "LOGIN",
+                  "method": "POST",
+                  "resource_type": "authentication",
+                  "score": 1.8548495885606366
+                },
+                {
+                  "timestamp": "2026-09-23T10:14:02.092251+00:00",
+                  "action": "GET /contact/efaf6741-c1c3-498e-8a28-25d6769cf8a6",
+                  "method": "GET",
+                  "resource_type": "contact",
+                  "score": 1.8548495885606366
+                },
+                {
+                  "timestamp": "2026-09-22T14:22:52.085501+00:00",
+                  "action": "LOGIN",
+                  "method": "POST",
+                  "resource_type": "authentication",
+                  "score": 1.7986420252709205
+                },
+                {
+                  "timestamp": "2026-09-23T10:09:26.245644+00:00",
+                  "action": "GET /contact/694c845a-2312-44f2-8da2-c818013a7cb7",
+                  "method": "GET",
+                  "resource_type": "contact",
+                  "score": 1.7986420252709205
+                },
+                {
+                  "timestamp": "2026-09-23T10:14:02.063390+00:00",
+                  "action": "PATCH /contact/5d7c5bf9-72e9-4052-bfb3-3fc9661e9a44",
+                  "method": "PATCH",
+                  "resource_type": "contact",
+                  "score": 1.7986420252709205
+                },
+                {
+                  "timestamp": "2026-09-22T14:22:48.990878+00:00",
+                  "action": "GET /admin/statistics/overview",
+                  "method": "GET",
+                  "resource_type": "statistics",
+                  "score": 1.7424344619812042
+                },
+                {
+                  "timestamp": "2026-09-23T10:09:26.218115+00:00",
+                  "action": "PATCH /contact/e17cdc43-1f41-4914-bdf7-96fc07aa9ef1",
+                  "method": "PATCH",
+                  "resource_type": "contact",
+                  "score": 1.7424344619812042
+                },
+                {
+                  "timestamp": "2026-09-23T10:14:02.029585+00:00",
+                  "action": "POST /contact",
+                  "method": "POST",
+                  "resource_type": "contact",
+                  "score": 1.7424344619812042
+                },
+                {
+                  "timestamp": "2026-09-22T14:22:48.979500+00:00",
+                  "action": "GET /admin/statistics/trends",
+                  "method": "GET",
+                  "resource_type": "statistics",
+                  "score": 1.686226898691488
+                },
+                {
+                  "timestamp": "2026-09-23T10:09:26.182057+00:00",
+                  "action": "POST /contact",
+                  "method": "POST",
+                  "resource_type": "contact",
+                  "score": 1.686226898691488
+                },
+                {
+                  "timestamp": "2026-09-23T10:14:02.012985+00:00",
+                  "action": "POST /contact",
+                  "method": "POST",
+                  "resource_type": "contact",
+                  "score": 1.686226898691488
+                },
+                {
+                  "timestamp": "2026-09-22T13:20:21.833292+00:00",
+                  "action": "GET /contact/f3f864ef-7b0d-4717-a597-09e4adde5930",
+                  "method": "GET",
+                  "resource_type": "contact",
+                  "score": 1.6300193354017716
+                },
+                {
+                  "timestamp": "2026-09-22T13:41:06.234078+00:00",
+                  "action": "GET /contact/c7c2e68d-b286-4a36-b84c-42e0a1560aec",
+                  "method": "GET",
+                  "resource_type": "contact",
+                  "score": 1.6300193354017716
+                },
+                {
+                  "timestamp": "2026-09-22T14:22:25.758987+00:00",
+                  "action": "GET /contact/f802c01d-3d40-4993-9b5f-ae6fa79e674e",
+                  "method": "GET",
+                  "resource_type": "contact",
+                  "score": 1.6300193354017716
+                },
+                {
+                  "timestamp": "2026-09-23T10:09:26.165202+00:00",
+                  "action": "POST /contact",
+                  "method": "POST",
+                  "resource_type": "contact",
+                  "score": 1.6300193354017716
+                },
+                {
+                  "timestamp": "2026-09-23T10:14:02.003420+00:00",
+                  "action": "GET /contact",
+                  "method": "GET",
+                  "resource_type": "contact",
+                  "score": 1.6300193354017716
+                },
+                {
+                  "timestamp": "2026-10-06T11:51:32.259664+00:00",
+                  "action": "GET /contact/74cebfe4-93e2-49d7-923c-3a3a51059ac1",
+                  "method": "GET",
+                  "resource_type": "contact",
+                  "score": 1.6300193354017716
+                }
+              ]
+            }
+          }
+        }
+      },
+      "ranking_agreement": {
+        "1%": {
+          "forest_selected": 4,
+          "baseline_selected": 4,
+          "overlap_count": 0,
+          "union_count": 8,
+          "jaccard_pct": 0.0,
+          "forest_only_count": 4,
+          "baseline_only_count": 4,
+          "interpretation": "Ranking agreement only; this is not an accuracy metric."
+        },
+        "2%": {
+          "forest_selected": 9,
+          "baseline_selected": 9,
+          "overlap_count": 0,
+          "union_count": 18,
+          "jaccard_pct": 0.0,
+          "forest_only_count": 9,
+          "baseline_only_count": 9,
+          "interpretation": "Ranking agreement only; this is not an accuracy metric."
+        },
+        "5%": {
+          "forest_selected": 24,
+          "baseline_selected": 24,
+          "overlap_count": 3,
+          "union_count": 45,
+          "jaccard_pct": 6.666666666666667,
+          "forest_only_count": 21,
+          "baseline_only_count": 21,
+          "interpretation": "Ranking agreement only; this is not an accuracy metric."
+        }
+      },
+      "directional_baseline_fit": {
+        "method": "One-sided robust z-scores: short gaps and high rolling counts increase risk; long gaps and low counts do not.",
+        "medians": {
+          "gap_log_seconds": 0.03749133402346085,
+          "events_previous_5m": 12.0,
+          "events_previous_1h": 71.0
+        },
+        "scales": {
+          "gap_log_seconds": 0.026316851774894363,
+          "events_previous_5m": 17.7912,
+          "events_previous_1h": 90.4386
+        },
+        "features": {
+          "gap_log_seconds": {
+            "median": 0.03749133402346085,
+            "scale": 0.026316851774894363,
+            "mad": 0.017750473340681482,
+            "training_min": 0.009328355288244595,
+            "training_max": 14.011193288733478,
+            "scale_fallback_used": false
+          },
+          "events_previous_5m": {
+            "median": 12.0,
+            "scale": 17.7912,
+            "mad": 12.0,
+            "training_min": 0.0,
+            "training_max": 65.0,
+            "scale_fallback_used": false
+          },
+          "events_previous_1h": {
+            "median": 71.0,
+            "scale": 90.4386,
+            "mad": 61.0,
+            "training_min": 0.0,
+            "training_max": 235.0,
+            "scale_fallback_used": false
+          }
+        },
+        "near_zero_scale_count": 0
+      },
+      "directional_baseline_evaluation_components": {
+        "short_gap_score": {
+          "count": 498,
+          "unique_exact_scores": 268,
+          "unique_scores_rounded_8dp": 268,
+          "zero_score_count": 230,
+          "zero_score_pct": 46.18473895582329,
+          "mean": 0.2974257211692525,
+          "std": 0.3716328322102286,
+          "min": 0.0,
+          "p01": 0.0,
+          "p05": 0.0,
+          "p10": 0.0,
+          "p25": 0.0,
+          "median": 0.11656750391582124,
+          "p75": 0.523783368407402,
+          "p90": 0.9835622393626702,
+          "p95": 1.0635851583318432,
+          "p99": 1.2004282601203466,
+          "max": 1.2598675010688476
+        },
+        "high_5m_activity_score": {
+          "count": 498,
+          "unique_exact_scores": 37,
+          "unique_scores_rounded_8dp": 37,
+          "zero_score_count": 236,
+          "zero_score_pct": 47.389558232931726,
+          "mean": 0.4541751700357797,
+          "std": 0.5712489920637219,
+          "min": 0.0,
+          "p01": 0.0,
+          "p05": 0.0,
+          "p10": 0.0,
+          "p25": 0.0,
+          "median": 0.11241512657943253,
+          "p75": 0.843113449345744,
+          "p90": 1.4051890822429065,
+          "p95": 1.5822429066055117,
+          "p99": 1.911057151850353,
+          "max": 2.0234722784297854
+        },
+        "high_1h_activity_score": {
+          "count": 498,
+          "unique_exact_scores": 116,
+          "unique_scores_rounded_8dp": 116,
+          "zero_score_count": 217,
+          "zero_score_pct": 43.57429718875502,
+          "mean": 0.3173068484982561,
+          "std": 0.39822451848755536,
+          "min": 0.0,
+          "p01": 0.0,
+          "p05": 0.0,
+          "p10": 0.0,
+          "p25": 0.0,
+          "median": 0.08845780452152069,
+          "p75": 0.7076624361721655,
+          "p90": 0.9619786241715375,
+          "p95": 1.0742094636582165,
+          "p99": 1.2166265289378648,
+          "max": 1.2715809399968598
+        }
+      },
+      "feature_drift": {
+        "numeric_psi": {
+          "gap_log_seconds": {
+            "psi": 2.025235476286249,
+            "bins": 10,
+            "training_count": 669,
+            "evaluation_count": 498,
+            "interpretation": "Descriptive drift indicator only; it does not measure detector accuracy."
+          },
+          "events_previous_5m": {
+            "psi": 0.35686427320045155,
+            "bins": 8,
+            "training_count": 669,
+            "evaluation_count": 498,
+            "interpretation": "Descriptive drift indicator only; it does not measure detector accuracy."
+          },
+          "events_previous_1h": {
+            "psi": 0.3932882207078565,
+            "bins": 8,
+            "training_count": 669,
+            "evaluation_count": 498,
+            "interpretation": "Descriptive drift indicator only; it does not measure detector accuracy."
+          }
+        },
+        "categorical_unseen_values": {
+          "action": {
+            "training_unique_values": 227,
+            "evaluation_unique_values": 161,
+            "unseen_evaluation_values": [
+              "DELETE /contact/037219ba-b672-4096-86ee-2d1eb03bd08c",
+              "DELETE /contact/05793e6a-3af1-42b9-9be1-9d6f44cf6da3",
+              "DELETE /contact/0b78aaf6-fb3f-41bf-a4b8-49dfe95a890d",
+              "DELETE /contact/0ed565eb-699e-42b0-9fc4-0a444caa0c02",
+              "DELETE /contact/0fc81095-6a50-48cd-a325-f8aea3553b1c",
+              "DELETE /contact/122e8458-4d9c-46b8-98d8-e4bd63055d42",
+              "DELETE /contact/13fbae0b-5818-47fe-8043-c5d160c4e594",
+              "DELETE /contact/19d99dd6-49cd-4710-b6ce-56395688e679",
+              "DELETE /contact/1d9c7c6d-d279-4515-b966-2acb7b8807b0",
+              "DELETE /contact/20d5a4d4-3d49-48f6-8a28-48add26e631b",
+              "DELETE /contact/21d466d3-bdb2-4160-93cc-523b80588303",
+              "DELETE /contact/23e8d977-844c-4c18-a9ec-eaae3f157da9",
+              "DELETE /contact/244b9def-9811-4d78-ab45-a4429c71445a",
+              "DELETE /contact/26ba0914-6109-43bf-9f68-7cf48263f8dc",
+              "DELETE /contact/29836163-798f-4738-9b90-1b41e83bf13c",
+              "DELETE /contact/2d36a140-6e4f-4123-adc9-4fc47463e70e",
+              "DELETE /contact/3237e1f3-7d07-447e-8944-0e7ee1aafae1",
+              "DELETE /contact/3a686243-e0f6-4da5-8015-250df9b63d56",
+              "DELETE /contact/53b4530c-e42b-4a3d-a45e-926edfa7ba89",
+              "DELETE /contact/54f71c57-8a3d-4e75-babd-939f8f8ba5cf",
+              "DELETE /contact/634c04fa-f7ef-48c2-a5ff-f99c59879afd",
+              "DELETE /contact/770a8084-ce0d-4f81-b06e-7d96ffb9096b",
+              "DELETE /contact/78154808-7d47-4700-a694-c1d2f99515a1",
+              "DELETE /contact/7e6ea592-252c-474e-bb2a-d5f4e0beff9b",
+              "DELETE /contact/8068148d-f411-464d-a525-c80f441c32d1",
+              "DELETE /contact/8595c7c9-6a78-4e6e-937f-e87debd57779",
+              "DELETE /contact/8a14c5f2-705f-400f-8e1d-8cc9d72ca47a",
+              "DELETE /contact/8c2b807a-7c42-408b-8f9e-c8aeaaa36afe",
+              "DELETE /contact/8ff72e9a-e668-46e5-a9b9-cdd59c232c4e",
+              "DELETE /contact/93ba0e3a-5d8d-4787-9544-94f78db18ca3",
+              "DELETE /contact/9a673aa2-153e-48db-a8db-86dae05e77b9",
+              "DELETE /contact/9d9e59d2-8cd4-4dac-b9ad-c41ac0cad3a7",
+              "DELETE /contact/a2039d6b-e184-4778-8254-8a16264b121f",
+              "DELETE /contact/aad809ab-25c5-46a4-9beb-fe37fa41d8b9",
+              "DELETE /contact/b4da414a-b0aa-420c-96da-0a7249c36b1f",
+              "DELETE /contact/be0d2d39-7a0c-4902-825d-74b6b46d59b6",
+              "DELETE /contact/c233aa5d-b0c1-49e5-b8bf-25bd6fbeb7d3",
+              "DELETE /contact/c3d31ec9-9ea4-4125-a878-76187cfca38b",
+              "DELETE /contact/ceb0a635-b0e2-421f-82a0-7e276b39fb94",
+              "DELETE /contact/dd4ce1ac-20c3-4b24-91e6-1341769b5287",
+              "DELETE /contact/ea9f6220-da15-44ed-8460-6d79b4e21c13",
+              "DELETE /contact/ee6ce9a7-bf3e-461f-b9cf-3a04dbd3e687",
+              "DELETE /contact/f643f026-d546-49ae-9a17-95c11f11ad17",
+              "DELETE /contact/fdbe8115-e7bf-430b-989a-2c64292c7e39",
+              "DELETE /contact/fde14e18-2c2d-4516-a6ff-e6b068a822c9",
+              "GET /admin/statistics/overview",
+              "GET /admin/statistics/recent-activity",
+              "GET /admin/statistics/trends",
+              "GET /contact/0423e98c-a3c4-41b2-979c-d18cd2c46b93",
+              "GET /contact/0a84b1de-84c8-4f45-92e3-81b37509dd8c",
+              "GET /contact/1c7b5ec1-f663-49fa-ad53-ea97b1131d20",
+              "GET /contact/2d60aa8d-97fe-4270-baa6-473d01e2d5c8",
+              "GET /contact/31300a24-1911-4131-a965-8d82227a4976",
+              "GET /contact/3eb426c0-ada9-4665-acc7-6930c89efe15",
+              "GET /contact/422b42dd-6cdc-4ac3-8f8e-c0f3a1144844",
+              "GET /contact/461d394e-2c2e-43e9-914f-a21b9440196d",
+              "GET /contact/4951d0dd-8dfd-4f06-ac64-ca4715fc514d",
+              "GET /contact/4c3637d1-ae3b-4a84-9af3-511075b290f3",
+              "GET /contact/4c7c95e2-6545-45c4-91a0-76cf9e8a2faf",
+              "GET /contact/4cb35fa8-b9ee-4e6d-92b8-01a91b78bbb1",
+              "GET /contact/50f90a9b-c952-4974-91a0-2e39c1848029",
+              "GET /contact/595fc93f-745d-4cf9-9b87-8f6d0c4cb82e",
+              "GET /contact/628d1198-0c0a-465a-a887-b0c33879ef8c",
+              "GET /contact/657228dc-2b5a-4f8f-b9d4-01efe8b9d9b9",
+              "GET /contact/68d4992f-d698-4edb-b612-f1ed6bd1a977",
+              "GET /contact/68faebd7-7ed3-4ec6-8505-532c2a292588",
+              "GET /contact/694c845a-2312-44f2-8da2-c818013a7cb7",
+              "GET /contact/708c272f-e68d-49ef-aa32-40f279ac3af9",
+              "GET /contact/727bfc02-64d8-4b75-ae74-6c3bffdbaae9",
+              "GET /contact/72817c57-e157-4a2a-9f40-5388817fd269",
+              "GET /contact/74cebfe4-93e2-49d7-923c-3a3a51059ac1",
+              "GET /contact/7a83a734-67b1-4361-b689-34d551cac367",
+              "GET /contact/7c0a8764-d9dd-4f92-a75d-c926f17288ae",
+              "GET /contact/90bd9674-0a76-4516-bf1b-a233ef348f95",
+              "GET /contact/97ae7dac-9881-4650-ae41-653f34b890a2",
+              "GET /contact/98f37ab1-2a24-4f58-8c36-7790cdb44123",
+              "GET /contact/a49df458-7d7c-4e85-a7f4-a3fd31d1839f",
+              "GET /contact/b18cf36c-d299-401b-9957-2d515e457936",
+              "GET /contact/b5e42bb9-8614-4e49-bcfb-f0b6bb4b6237",
+              "GET /contact/bded4df0-09ee-42f1-b442-0659f16b3f38",
+              "GET /contact/bed4f309-4192-4355-aae9-8be3e4c3017f",
+              "GET /contact/bee4cdd8-c049-46e8-a61c-7161cf79696c",
+              "GET /contact/c6d328c6-88e5-43dc-a21f-c8633fe45d7f",
+              "GET /contact/c7c2e68d-b286-4a36-b84c-42e0a1560aec",
+              "GET /contact/ca837d43-5fd9-47a8-a1c5-c254869c8198",
+              "GET /contact/cce6661a-3404-4ea2-b7f5-262e777840b4",
+              "GET /contact/d3b64712-362e-4f5b-b5ef-11fa9bdef465",
+              "GET /contact/d704435d-0b14-4c25-825f-ea2c7ed7f11a",
+              "GET /contact/efaf6741-c1c3-498e-8a28-25d6769cf8a6",
+              "GET /contact/f3f864ef-7b0d-4717-a597-09e4adde5930",
+              "GET /contact/f802c01d-3d40-4993-9b5f-ae6fa79e674e",
+              "GET /contact/f8ddcea8-e153-4970-9655-f43582a2a65e",
+              "GET /contact/fbca8c29-5353-4eb6-905e-d5673d5a8ff2",
+              "GET /events",
+              "GET /news",
+              "PATCH /contact/05e31fc7-4e72-4205-ae5b-a6e9862fe85e",
+              "PATCH /contact/0d224a69-a54d-4f39-825f-a9bf2ba6b41a",
+              "PATCH /contact/1131772d-9c2b-4987-8725-80a5a8d7de67",
+              "PATCH /contact/13c2bc7a-aacb-49d6-9dfe-ca1aaefb0c3e",
+              "PATCH /contact/1713e023-d895-46a8-91ea-ae2ce89c7f39",
+              "PATCH /contact/17df705c-5b18-4cfe-a60b-8221fe139277",
+              "PATCH /contact/1a6c969b-f458-4863-b579-7ecdf449a0f6",
+              "PATCH /contact/1ab4a0f0-4a39-4df7-b439-4262f05dbeb7",
+              "PATCH /contact/276839bd-3906-4b60-9d7e-283b763f6ea3",
+              "PATCH /contact/278f976e-853a-45cf-b3d3-42e98a1a02b1",
+              "PATCH /contact/2fe52be5-7175-428b-a705-cb0a17296c1b",
+              "PATCH /contact/38711f1b-e674-4752-8e41-74246691cfff",
+              "PATCH /contact/40986d6d-fcc5-492d-bf84-b3521f3607e7",
+              "PATCH /contact/47f52da8-b964-4658-a1db-1dfda1380548",
+              "PATCH /contact/4c642192-5afe-438d-9429-c99b647d2f5a",
+              "PATCH /contact/52df9c93-e491-4f0c-b1dd-1c939dcaf3d4",
+              "PATCH /contact/57bbd11c-6d82-486b-81c1-0eba2f4092c9",
+              "PATCH /contact/57bfadde-213f-4e34-b8a2-8e07d35382e3",
+              "PATCH /contact/587e9243-7bb1-47af-be8d-d4e762ab1ebd",
+              "PATCH /contact/5d2db233-6fd2-4f3a-80fa-acd48559ef6f",
+              "PATCH /contact/5d7c5bf9-72e9-4052-bfb3-3fc9661e9a44",
+              "PATCH /contact/5d7ea5af-7ad8-4cae-8637-73743da0f22d",
+              "PATCH /contact/64f69d67-a379-40fa-9d9c-df6d98ae04ba",
+              "PATCH /contact/66139971-7cbb-471f-af4c-e0d0877c396b",
+              "PATCH /contact/68902e46-ce2e-4b30-9428-1245ad215cb7",
+              "PATCH /contact/74480454-eecf-4e2b-ba20-f11d47941060",
+              "PATCH /contact/787b26be-482b-4234-b218-18dcf56c0ab3",
+              "PATCH /contact/826b4be8-ad90-4d50-8e51-8be710166e5d",
+              "PATCH /contact/8562dff8-ca38-4205-bc52-a8613549dab7",
+              "PATCH /contact/85cdc0e3-6877-4f11-886d-4a19e64b3999",
+              "PATCH /contact/8744d832-903f-4d3d-851f-cb4cfef2c0cb",
+              "PATCH /contact/88e60436-2514-4a89-a1d6-12826cfee67d",
+              "PATCH /contact/92f3ac07-2223-4e6f-8a57-988895cad19e",
+              "PATCH /contact/947478af-e865-4bc7-ae72-c892ee962dd2",
+              "PATCH /contact/97fd4c9a-f9ea-49f6-8c0a-1c0691a1d13c",
+              "PATCH /contact/98b6b657-6c51-45b6-af5b-ba188c71b34d",
+              "PATCH /contact/af6f9147-02c0-455e-8ab6-2fb31d8ced53",
+              "PATCH /contact/af6fbb2b-5bb9-4545-9431-17bb8f533437",
+              "PATCH /contact/b2b5e9d0-688a-41f2-bf35-c00b3708f302",
+              "PATCH /contact/bda3910f-c104-49c6-acda-0376aac0e444",
+              "PATCH /contact/bfb192e2-c50f-4727-90ff-82e14f45f432",
+              "PATCH /contact/c340a469-a7db-4f41-9747-d12bcc2b5630",
+              "PATCH /contact/c4248629-06b6-4440-9420-ccbb9217116a",
+              "PATCH /contact/c5d130b3-2dc6-442b-88c4-13973698ff20",
+              "PATCH /contact/c6f23900-af75-418c-a623-9239406b19b4",
+              "PATCH /contact/ccfe1b30-1d91-43fc-b0cb-7e5804b637e0",
+              "PATCH /contact/d0a6780d-0c48-4a83-9cf3-cf7a820f0cef",
+              "PATCH /contact/d8adb473-180f-452a-87e1-1e536d623697",
+              "PATCH /contact/d918b5c3-e4fb-45ed-a347-f615d3a36db4",
+              "PATCH /contact/e17cdc43-1f41-4914-bdf7-96fc07aa9ef1",
+              "PATCH /contact/e684a619-e6d8-4a3e-b6e1-d64de8c1195b",
+              "PATCH /contact/ee2537a2-5047-4a28-86ee-2fbb94c1d5ec",
+              "PATCH /contact/f0e1634e-97c8-4e4b-aa11-b35e8a88e852",
+              "PATCH /contact/f2767203-5481-4ffa-9569-76c1280a1af8",
+              "PATCH /contact/f2954a39-2897-4cda-b4e9-a22c7f805b84",
+              "PATCH /contact/f2e98fe0-7805-43a0-8ab4-77ab3b94ce93",
+              "PATCH /contact/f779da08-4a70-4ddf-ade2-7f773fa28883",
+              "PATCH /contact/fa3b380b-f03b-470d-81b2-461588d1d535",
+              "PATCH /contact/fc541c29-611f-4c67-92ee-7e581c7b3e53",
+              "PATCH /contact/fe37e2a7-daa9-4512-bb8d-d4f9e1c9036a",
+              "POST /admin/analytics/query"
+            ],
+            "unseen_evaluation_rows": 292,
+            "unseen_evaluation_row_pct": 58.63453815261044
+          },
+          "method": {
+            "training_unique_values": 5,
+            "evaluation_unique_values": 4,
+            "unseen_evaluation_values": [],
+            "unseen_evaluation_rows": 0,
+            "unseen_evaluation_row_pct": 0.0
+          },
+          "resource_type": {
+            "training_unique_values": 12,
+            "evaluation_unique_values": 8,
+            "unseen_evaluation_values": [
+              "analytics",
+              "statistics"
+            ],
+            "unseen_evaluation_rows": 138,
+            "unseen_evaluation_row_pct": 27.710843373493976
+          }
+        }
+      },
+      "runtime_seconds": {
+        "isolation_forest_fit_and_score": 0.32189179997658357,
+        "directional_baseline_fit_and_score": 0.0008747999672777951
+      },
+      "labels_available": false,
+      "accuracy_metrics_available": false,
+      "production_models_modified": false,
+      "existing_risk_report_modified": false
+    },
+    "5": {
+      "session_gap_minutes": 5,
+      "split": {
+        "session_gap_minutes": 5,
+        "training_sessions": 175,
+        "evaluation_sessions": 21,
+        "crossing_sessions_excluded": 1,
+        "training_rows": 648,
+        "evaluation_rows": 477,
+        "training_active_days": 161,
+        "evaluation_active_days": 3,
+        "training_start": "2025-01-02T09:00:00+00:00",
+        "training_end": "2026-09-22T13:11:01.618011+00:00",
+        "evaluation_start": "2026-09-22T13:37:42.378909+00:00",
+        "evaluation_end": "2026-10-06T21:34:22.909890+00:00",
+        "common_cutoff": "2026-09-22T13:20:21.271642+00:00",
+        "sessions_crossing_split": 0,
+        "chronological_order_valid": true,
+        "session_leakage_detected": false
+      },
+      "detectors": {
+        "isolation_forest": {
+          "training_score_distribution": {
+            "count": 648,
+            "unique_exact_scores": 545,
+            "unique_scores_rounded_8dp": 545,
+            "zero_score_count": 0,
+            "zero_score_pct": 0.0,
+            "mean": -0.17558424694552072,
+            "std": 0.014717117937653082,
+            "min": -0.1937331084325813,
+            "p01": -0.19186127151047982,
+            "p05": -0.19036546896869977,
+            "p10": -0.18932006509121277,
+            "p25": -0.18728850046126394,
+            "median": -0.18264458230265995,
+            "p75": -0.16264888654752735,
+            "p90": -0.15120901324680724,
+            "p95": -0.14806275535594637,
+            "p99": -0.14295249818795763,
+            "max": -0.13610591702998026
+          },
+          "evaluation_score_distribution": {
+            "count": 477,
+            "unique_exact_scores": 378,
+            "unique_scores_rounded_8dp": 378,
+            "zero_score_count": 0,
+            "zero_score_pct": 0.0,
+            "mean": -0.18598394533189722,
+            "std": 0.01148453563688221,
+            "min": -0.19730749127796765,
+            "p01": -0.1968805604537623,
+            "p05": -0.19650967554322685,
+            "p10": -0.19597344423460422,
+            "p25": -0.1923552454045842,
+            "median": -0.1885366164731433,
+            "p75": -0.18470794517124495,
+            "p90": -0.17493559056150426,
+            "p95": -0.15420837167914633,
+            "p99": -0.14659983380004707,
+            "max": -0.1446763990126851
+          },
+          "threshold_diagnostics": {
+            "1%": {
+              "nominal_training_tail_pct": 1.0,
+              "threshold": -0.14295249818795763,
+              "training_count": 648,
+              "training_flagged_count": 8,
+              "training_flagged_rate_pct": 1.2345679012345678,
+              "training_scores_equal_to_threshold": 2,
+              "evaluation_count": 477,
+              "evaluation_flagged_count": 0,
+              "evaluation_flagged_rate_pct": 0.0,
+              "evaluation_scores_equal_to_threshold": 0,
+              "evaluation_scores_below_threshold": 477,
+              "interpretation": "The nominal tail is calibrated on training scores. The held-out flag rate may differ due to distribution shift."
+            },
+            "2%": {
+              "nominal_training_tail_pct": 2.0,
+              "threshold": -0.14429603989428166,
+              "training_count": 648,
+              "training_flagged_count": 13,
+              "training_flagged_rate_pct": 2.006172839506173,
+              "training_scores_equal_to_threshold": 0,
+              "evaluation_count": 477,
+              "evaluation_flagged_count": 0,
+              "evaluation_flagged_rate_pct": 0.0,
+              "evaluation_scores_equal_to_threshold": 0,
+              "evaluation_scores_below_threshold": 477,
+              "interpretation": "The nominal tail is calibrated on training scores. The held-out flag rate may differ due to distribution shift."
+            },
+            "5%": {
+              "nominal_training_tail_pct": 5.0,
+              "threshold": -0.14806275535594637,
+              "training_count": 648,
+              "training_flagged_count": 34,
+              "training_flagged_rate_pct": 5.246913580246913,
+              "training_scores_equal_to_threshold": 3,
+              "evaluation_count": 477,
+              "evaluation_flagged_count": 9,
+              "evaluation_flagged_rate_pct": 1.8867924528301887,
+              "evaluation_scores_equal_to_threshold": 0,
+              "evaluation_scores_below_threshold": 468,
+              "interpretation": "The nominal tail is calibrated on training scores. The held-out flag rate may differ due to distribution shift."
+            }
+          },
+          "fixed_alert_budgets": {
+            "1%": {
+              "budget_pct": 1.0,
+              "selected_count": 4,
+              "evaluation_count": 477,
+              "selected_rate_pct": 0.8385744234800838,
+              "minimum_selected_score": -0.14633202463738015,
+              "rows_tied_at_selection_boundary": 1,
+              "tied_rows_selected_at_boundary": 1,
+              "tie_break": "Stable evaluation row order",
+              "top_score_mean": -0.1457816896584544,
+              "top_score_min": -0.14633202463738015,
+              "selected_timestamp_start": "2026-09-22T13:53:08.787646+00:00",
+              "selected_timestamp_end": "2026-10-06T12:25:17.225245+00:00",
+              "selected_category_counts_top_10": {
+                "action": {
+                  "GET /admin/dashboard": 2,
+                  "POST /ai/chat": 2
+                },
+                "method": {
+                  "GET": 2,
+                  "POST": 2
+                },
+                "resource_type": {
+                  "dashboard": 2,
+                  "ai": 2
+                }
+              },
+              "selected_alerts": [
+                {
+                  "timestamp": "2026-09-22T14:02:52.844864+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.1446763990126851
+                },
+                {
+                  "timestamp": "2026-10-06T12:25:17.225245+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.14581022447612252
+                },
+                {
+                  "timestamp": "2026-09-22T13:53:43.507557+00:00",
+                  "action": "POST /ai/chat",
+                  "method": "POST",
+                  "resource_type": "ai",
+                  "score": -0.14630811050762982
+                },
+                {
+                  "timestamp": "2026-09-22T13:53:08.787646+00:00",
+                  "action": "POST /ai/chat",
+                  "method": "POST",
+                  "resource_type": "ai",
+                  "score": -0.14633202463738015
+                }
+              ]
+            },
+            "2%": {
+              "budget_pct": 2.0,
+              "selected_count": 9,
+              "evaluation_count": 477,
+              "selected_rate_pct": 1.8867924528301887,
+              "minimum_selected_score": -0.1467630649449969,
+              "rows_tied_at_selection_boundary": 1,
+              "tied_rows_selected_at_boundary": 1,
+              "tie_break": "Stable evaluation row order",
+              "top_score_mean": -0.14627245893349544,
+              "top_score_min": -0.1467630649449969,
+              "selected_timestamp_start": "2026-09-22T13:52:42.799747+00:00",
+              "selected_timestamp_end": "2026-10-06T12:25:17.225245+00:00",
+              "selected_category_counts_top_10": {
+                "action": {
+                  "POST /ai/chat": 5,
+                  "GET /admin/dashboard": 4
+                },
+                "method": {
+                  "POST": 5,
+                  "GET": 4
+                },
+                "resource_type": {
+                  "ai": 5,
+                  "dashboard": 4
+                }
+              },
+              "selected_alerts": [
+                {
+                  "timestamp": "2026-09-22T14:02:52.844864+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.1446763990126851
+                },
+                {
+                  "timestamp": "2026-10-06T12:25:17.225245+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.14581022447612252
+                },
+                {
+                  "timestamp": "2026-09-22T13:53:43.507557+00:00",
+                  "action": "POST /ai/chat",
+                  "method": "POST",
+                  "resource_type": "ai",
+                  "score": -0.14630811050762982
+                },
+                {
+                  "timestamp": "2026-09-22T13:53:08.787646+00:00",
+                  "action": "POST /ai/chat",
+                  "method": "POST",
+                  "resource_type": "ai",
+                  "score": -0.14633202463738015
+                },
+                {
+                  "timestamp": "2026-09-22T14:49:46.871936+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.14655383268496008
+                },
+                {
+                  "timestamp": "2026-09-22T13:54:02.805772+00:00",
+                  "action": "POST /ai/chat",
+                  "method": "POST",
+                  "resource_type": "ai",
+                  "score": -0.14661436046796927
+                },
+                {
+                  "timestamp": "2026-09-22T13:52:42.799747+00:00",
+                  "action": "POST /ai/chat",
+                  "method": "POST",
+                  "resource_type": "ai",
+                  "score": -0.14666148688143088
+                },
+                {
+                  "timestamp": "2026-10-06T12:05:53.997133+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.1467326267882842
+                },
+                {
+                  "timestamp": "2026-09-22T13:53:23.746507+00:00",
+                  "action": "POST /ai/chat",
+                  "method": "POST",
+                  "resource_type": "ai",
+                  "score": -0.1467630649449969
+                }
+              ]
+            },
+            "5%": {
+              "budget_pct": 5.0,
+              "selected_count": 23,
+              "evaluation_count": 477,
+              "selected_rate_pct": 4.821802935010482,
+              "minimum_selected_score": -0.15374014935770158,
+              "rows_tied_at_selection_boundary": 1,
+              "tied_rows_selected_at_boundary": 1,
+              "tie_break": "Stable evaluation row order",
+              "top_score_mean": -0.14971972746480774,
+              "top_score_min": -0.15374014935770158,
+              "selected_timestamp_start": "2026-09-22T13:52:36.196219+00:00",
+              "selected_timestamp_end": "2026-10-06T12:43:06.572332+00:00",
+              "selected_category_counts_top_10": {
+                "action": {
+                  "GET /admin/dashboard": 14,
+                  "POST /ai/chat": 5,
+                  "LOGIN": 4
+                },
+                "method": {
+                  "GET": 14,
+                  "POST": 9
+                },
+                "resource_type": {
+                  "dashboard": 14,
+                  "ai": 5,
+                  "authentication": 4
+                }
+              },
+              "selected_alerts": [
+                {
+                  "timestamp": "2026-09-22T14:02:52.844864+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.1446763990126851
+                },
+                {
+                  "timestamp": "2026-10-06T12:25:17.225245+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.14581022447612252
+                },
+                {
+                  "timestamp": "2026-09-22T13:53:43.507557+00:00",
+                  "action": "POST /ai/chat",
+                  "method": "POST",
+                  "resource_type": "ai",
+                  "score": -0.14630811050762982
+                },
+                {
+                  "timestamp": "2026-09-22T13:53:08.787646+00:00",
+                  "action": "POST /ai/chat",
+                  "method": "POST",
+                  "resource_type": "ai",
+                  "score": -0.14633202463738015
+                },
+                {
+                  "timestamp": "2026-09-22T14:49:46.871936+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.14655383268496008
+                },
+                {
+                  "timestamp": "2026-09-22T13:54:02.805772+00:00",
+                  "action": "POST /ai/chat",
+                  "method": "POST",
+                  "resource_type": "ai",
+                  "score": -0.14661436046796927
+                },
+                {
+                  "timestamp": "2026-09-22T13:52:42.799747+00:00",
+                  "action": "POST /ai/chat",
+                  "method": "POST",
+                  "resource_type": "ai",
+                  "score": -0.14666148688143088
+                },
+                {
+                  "timestamp": "2026-10-06T12:05:53.997133+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.1467326267882842
+                },
+                {
+                  "timestamp": "2026-09-22T13:53:23.746507+00:00",
+                  "action": "POST /ai/chat",
+                  "method": "POST",
+                  "resource_type": "ai",
+                  "score": -0.1467630649449969
+                },
+                {
+                  "timestamp": "2026-09-22T14:05:36.405257+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.14869460668954732
+                },
+                {
+                  "timestamp": "2026-10-06T12:43:06.572332+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.1496611760058596
+                },
+                {
+                  "timestamp": "2026-09-23T09:28:46.557308+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.15124220119438558
+                },
+                {
+                  "timestamp": "2026-10-06T12:42:01.362548+00:00",
+                  "action": "LOGIN",
+                  "method": "POST",
+                  "resource_type": "authentication",
+                  "score": -0.15138298662914124
+                },
+                {
+                  "timestamp": "2026-09-22T14:56:23.117369+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.15151715293122708
+                },
+                {
+                  "timestamp": "2026-09-22T14:22:52.085501+00:00",
+                  "action": "LOGIN",
+                  "method": "POST",
+                  "resource_type": "authentication",
+                  "score": -0.15187408713920003
+                },
+                {
+                  "timestamp": "2026-09-23T15:33:58.437638+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.1519079694012443
+                },
+                {
+                  "timestamp": "2026-10-06T11:21:21.423620+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.15198646531746407
+                },
+                {
+                  "timestamp": "2026-09-23T10:10:11.399617+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.15204627225594847
+                },
+                {
+                  "timestamp": "2026-10-06T12:06:07.459412+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.15279271345318196
+                },
+                {
+                  "timestamp": "2026-09-23T10:10:11.235165+00:00",
+                  "action": "LOGIN",
+                  "method": "POST",
+                  "resource_type": "authentication",
+                  "score": -0.15320428388582402
+                },
+                {
+                  "timestamp": "2026-10-06T12:05:55.928733+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.15339890355430724
+                },
+                {
+                  "timestamp": "2026-09-22T13:52:36.196219+00:00",
+                  "action": "LOGIN",
+                  "method": "POST",
+                  "resource_type": "authentication",
+                  "score": -0.1536526334740872
+                },
+                {
+                  "timestamp": "2026-09-22T14:22:52.184238+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": -0.15374014935770158
+                }
+              ]
+            }
+          }
+        },
+        "directional_robust_baseline": {
+          "training_score_distribution": {
+            "count": 648,
+            "unique_exact_scores": 287,
+            "unique_scores_rounded_8dp": 287,
+            "zero_score_count": 169,
+            "zero_score_pct": 26.080246913580247,
+            "mean": 0.7203641350574199,
+            "std": 0.6252635492179228,
+            "min": 0.0,
+            "p01": 0.0,
+            "p05": 0.0,
+            "p10": 0.0,
+            "p25": 0.0,
+            "median": 0.6831399248727695,
+            "p75": 1.1241512657943253,
+            "p90": 1.5302846351005,
+            "p95": 1.687980574666127,
+            "p99": 2.6153379198704965,
+            "max": 2.979000854354962
+          },
+          "evaluation_score_distribution": {
+            "count": 477,
+            "unique_exact_scores": 252,
+            "unique_scores_rounded_8dp": 252,
+            "zero_score_count": 50,
+            "zero_score_pct": 10.482180293501049,
+            "mean": 0.7376861732759715,
+            "std": 0.4972055077660036,
+            "min": 0.0,
+            "p01": 0.0,
+            "p05": 0.0,
+            "p10": 0.0,
+            "p25": 0.3075677863213274,
+            "median": 0.7664524076491136,
+            "p75": 1.0717448758423238,
+            "p90": 1.3714645442690787,
+            "p95": 1.585053284769998,
+            "p99": 1.911057151850353,
+            "max": 2.0234722784297854
+          },
+          "threshold_diagnostics": {
+            "1%": {
+              "nominal_training_tail_pct": 1.0,
+              "threshold": 2.6153379198704965,
+              "training_count": 648,
+              "training_flagged_count": 7,
+              "training_flagged_rate_pct": 1.0802469135802468,
+              "training_scores_equal_to_threshold": 0,
+              "evaluation_count": 477,
+              "evaluation_flagged_count": 0,
+              "evaluation_flagged_rate_pct": 0.0,
+              "evaluation_scores_equal_to_threshold": 0,
+              "evaluation_scores_below_threshold": 477,
+              "interpretation": "The nominal tail is calibrated on training scores. The held-out flag rate may differ due to distribution shift."
+            },
+            "2%": {
+              "nominal_training_tail_pct": 2.0,
+              "threshold": 2.2516749853860305,
+              "training_count": 648,
+              "training_flagged_count": 13,
+              "training_flagged_rate_pct": 2.006172839506173,
+              "training_scores_equal_to_threshold": 0,
+              "evaluation_count": 477,
+              "evaluation_flagged_count": 0,
+              "evaluation_flagged_rate_pct": 0.0,
+              "evaluation_scores_equal_to_threshold": 0,
+              "evaluation_scores_below_threshold": 477,
+              "interpretation": "The nominal tail is calibrated on training scores. The held-out flag rate may differ due to distribution shift."
+            },
+            "5%": {
+              "nominal_training_tail_pct": 5.0,
+              "threshold": 1.687980574666127,
+              "training_count": 648,
+              "training_flagged_count": 33,
+              "training_flagged_rate_pct": 5.092592592592593,
+              "training_scores_equal_to_threshold": 0,
+              "evaluation_count": 477,
+              "evaluation_flagged_count": 15,
+              "evaluation_flagged_rate_pct": 3.1446540880503147,
+              "evaluation_scores_equal_to_threshold": 0,
+              "evaluation_scores_below_threshold": 462,
+              "interpretation": "The nominal tail is calibrated on training scores. The held-out flag rate may differ due to distribution shift."
+            }
+          },
+          "fixed_alert_budgets": {
+            "1%": {
+              "budget_pct": 1.0,
+              "selected_count": 4,
+              "evaluation_count": 477,
+              "selected_rate_pct": 0.8385744234800838,
+              "minimum_selected_score": 1.9672647151400693,
+              "rows_tied_at_selection_boundary": 2,
+              "tied_rows_selected_at_boundary": 2,
+              "tie_break": "Stable evaluation row order",
+              "top_score_mean": 1.9953684967849272,
+              "top_score_min": 1.9672647151400693,
+              "selected_timestamp_start": "2026-09-22T14:22:55.926522+00:00",
+              "selected_timestamp_end": "2026-09-23T10:10:14.677692+00:00",
+              "selected_category_counts_top_10": {
+                "action": {
+                  "GET /admin/statistics/trends": 2,
+                  "POST /admin/analytics/query": 1,
+                  "GET /admin/statistics/overview": 1
+                },
+                "method": {
+                  "GET": 3,
+                  "POST": 1
+                },
+                "resource_type": {
+                  "statistics": 3,
+                  "analytics": 1
+                }
+              },
+              "selected_alerts": [
+                {
+                  "timestamp": "2026-09-22T14:22:59.202756+00:00",
+                  "action": "POST /admin/analytics/query",
+                  "method": "POST",
+                  "resource_type": "analytics",
+                  "score": 2.0234722784297854
+                },
+                {
+                  "timestamp": "2026-09-23T10:10:14.677692+00:00",
+                  "action": "GET /admin/statistics/overview",
+                  "method": "GET",
+                  "resource_type": "statistics",
+                  "score": 2.0234722784297854
+                },
+                {
+                  "timestamp": "2026-09-22T14:22:55.926522+00:00",
+                  "action": "GET /admin/statistics/trends",
+                  "method": "GET",
+                  "resource_type": "statistics",
+                  "score": 1.9672647151400693
+                },
+                {
+                  "timestamp": "2026-09-23T10:10:14.671913+00:00",
+                  "action": "GET /admin/statistics/trends",
+                  "method": "GET",
+                  "resource_type": "statistics",
+                  "score": 1.9672647151400693
+                }
+              ]
+            },
+            "2%": {
+              "budget_pct": 2.0,
+              "selected_count": 9,
+              "evaluation_count": 477,
+              "selected_rate_pct": 1.8867924528301887,
+              "minimum_selected_score": 1.8548495885606366,
+              "rows_tied_at_selection_boundary": 3,
+              "tied_rows_selected_at_boundary": 3,
+              "tie_break": "Stable evaluation row order",
+              "top_score_mean": 1.9297930062802584,
+              "top_score_min": 1.8548495885606366,
+              "selected_timestamp_start": "2026-09-22T14:22:52.184238+00:00",
+              "selected_timestamp_end": "2026-09-23T10:14:02.092251+00:00",
+              "selected_category_counts_top_10": {
+                "action": {
+                  "GET /admin/statistics/overview": 2,
+                  "GET /admin/statistics/trends": 2,
+                  "GET /admin/dashboard": 2,
+                  "POST /admin/analytics/query": 1,
+                  "LOGIN": 1,
+                  "GET /contact/efaf6741-c1c3-498e-8a28-25d6769cf8a6": 1
+                },
+                "method": {
+                  "GET": 7,
+                  "POST": 2
+                },
+                "resource_type": {
+                  "statistics": 4,
+                  "dashboard": 2,
+                  "analytics": 1,
+                  "authentication": 1,
+                  "contact": 1
+                }
+              },
+              "selected_alerts": [
+                {
+                  "timestamp": "2026-09-22T14:22:59.202756+00:00",
+                  "action": "POST /admin/analytics/query",
+                  "method": "POST",
+                  "resource_type": "analytics",
+                  "score": 2.0234722784297854
+                },
+                {
+                  "timestamp": "2026-09-23T10:10:14.677692+00:00",
+                  "action": "GET /admin/statistics/overview",
+                  "method": "GET",
+                  "resource_type": "statistics",
+                  "score": 2.0234722784297854
+                },
+                {
+                  "timestamp": "2026-09-22T14:22:55.926522+00:00",
+                  "action": "GET /admin/statistics/trends",
+                  "method": "GET",
+                  "resource_type": "statistics",
+                  "score": 1.9672647151400693
+                },
+                {
+                  "timestamp": "2026-09-23T10:10:14.671913+00:00",
+                  "action": "GET /admin/statistics/trends",
+                  "method": "GET",
+                  "resource_type": "statistics",
+                  "score": 1.9672647151400693
+                },
+                {
+                  "timestamp": "2026-09-22T14:22:55.920111+00:00",
+                  "action": "GET /admin/statistics/overview",
+                  "method": "GET",
+                  "resource_type": "statistics",
+                  "score": 1.911057151850353
+                },
+                {
+                  "timestamp": "2026-09-23T10:10:11.399617+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": 1.911057151850353
+                },
+                {
+                  "timestamp": "2026-09-22T14:22:52.184238+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": 1.8548495885606366
+                },
+                {
+                  "timestamp": "2026-09-23T10:10:11.235165+00:00",
+                  "action": "LOGIN",
+                  "method": "POST",
+                  "resource_type": "authentication",
+                  "score": 1.8548495885606366
+                },
+                {
+                  "timestamp": "2026-09-23T10:14:02.092251+00:00",
+                  "action": "GET /contact/efaf6741-c1c3-498e-8a28-25d6769cf8a6",
+                  "method": "GET",
+                  "resource_type": "contact",
+                  "score": 1.8548495885606366
+                }
+              ]
+            },
+            "5%": {
+              "budget_pct": 5.0,
+              "selected_count": 23,
+              "evaluation_count": 477,
+              "selected_rate_pct": 4.821802935010482,
+              "minimum_selected_score": 1.6300193354017716,
+              "rows_tied_at_selection_boundary": 6,
+              "tied_rows_selected_at_boundary": 5,
+              "tie_break": "Stable evaluation row order",
+              "top_score_mean": 1.7913106039722613,
+              "top_score_min": 1.6300193354017716,
+              "selected_timestamp_start": "2026-09-22T13:41:06.234078+00:00",
+              "selected_timestamp_end": "2026-10-06T11:51:32.259664+00:00",
+              "selected_category_counts_top_10": {
+                "action": {
+                  "POST /contact": 4,
+                  "GET /admin/statistics/overview": 3,
+                  "GET /admin/statistics/trends": 3,
+                  "LOGIN": 2,
+                  "GET /admin/dashboard": 2,
+                  "POST /admin/analytics/query": 1,
+                  "GET /contact/efaf6741-c1c3-498e-8a28-25d6769cf8a6": 1,
+                  "GET /contact/694c845a-2312-44f2-8da2-c818013a7cb7": 1,
+                  "PATCH /contact/5d7c5bf9-72e9-4052-bfb3-3fc9661e9a44": 1,
+                  "PATCH /contact/e17cdc43-1f41-4914-bdf7-96fc07aa9ef1": 1
+                },
+                "method": {
+                  "GET": 14,
+                  "POST": 7,
+                  "PATCH": 2
+                },
+                "resource_type": {
+                  "contact": 12,
+                  "statistics": 6,
+                  "dashboard": 2,
+                  "authentication": 2,
+                  "analytics": 1
+                }
+              },
+              "selected_alerts": [
+                {
+                  "timestamp": "2026-09-22T14:22:59.202756+00:00",
+                  "action": "POST /admin/analytics/query",
+                  "method": "POST",
+                  "resource_type": "analytics",
+                  "score": 2.0234722784297854
+                },
+                {
+                  "timestamp": "2026-09-23T10:10:14.677692+00:00",
+                  "action": "GET /admin/statistics/overview",
+                  "method": "GET",
+                  "resource_type": "statistics",
+                  "score": 2.0234722784297854
+                },
+                {
+                  "timestamp": "2026-09-22T14:22:55.926522+00:00",
+                  "action": "GET /admin/statistics/trends",
+                  "method": "GET",
+                  "resource_type": "statistics",
+                  "score": 1.9672647151400693
+                },
+                {
+                  "timestamp": "2026-09-23T10:10:14.671913+00:00",
+                  "action": "GET /admin/statistics/trends",
+                  "method": "GET",
+                  "resource_type": "statistics",
+                  "score": 1.9672647151400693
+                },
+                {
+                  "timestamp": "2026-09-22T14:22:55.920111+00:00",
+                  "action": "GET /admin/statistics/overview",
+                  "method": "GET",
+                  "resource_type": "statistics",
+                  "score": 1.911057151850353
+                },
+                {
+                  "timestamp": "2026-09-23T10:10:11.399617+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": 1.911057151850353
+                },
+                {
+                  "timestamp": "2026-09-22T14:22:52.184238+00:00",
+                  "action": "GET /admin/dashboard",
+                  "method": "GET",
+                  "resource_type": "dashboard",
+                  "score": 1.8548495885606366
+                },
+                {
+                  "timestamp": "2026-09-23T10:10:11.235165+00:00",
+                  "action": "LOGIN",
+                  "method": "POST",
+                  "resource_type": "authentication",
+                  "score": 1.8548495885606366
+                },
+                {
+                  "timestamp": "2026-09-23T10:14:02.092251+00:00",
+                  "action": "GET /contact/efaf6741-c1c3-498e-8a28-25d6769cf8a6",
+                  "method": "GET",
+                  "resource_type": "contact",
+                  "score": 1.8548495885606366
+                },
+                {
+                  "timestamp": "2026-09-22T14:22:52.085501+00:00",
+                  "action": "LOGIN",
+                  "method": "POST",
+                  "resource_type": "authentication",
+                  "score": 1.7986420252709205
+                },
+                {
+                  "timestamp": "2026-09-23T10:09:26.245644+00:00",
+                  "action": "GET /contact/694c845a-2312-44f2-8da2-c818013a7cb7",
+                  "method": "GET",
+                  "resource_type": "contact",
+                  "score": 1.7986420252709205
+                },
+                {
+                  "timestamp": "2026-09-23T10:14:02.063390+00:00",
+                  "action": "PATCH /contact/5d7c5bf9-72e9-4052-bfb3-3fc9661e9a44",
+                  "method": "PATCH",
+                  "resource_type": "contact",
+                  "score": 1.7986420252709205
+                },
+                {
+                  "timestamp": "2026-09-22T14:22:48.990878+00:00",
+                  "action": "GET /admin/statistics/overview",
+                  "method": "GET",
+                  "resource_type": "statistics",
+                  "score": 1.7424344619812042
+                },
+                {
+                  "timestamp": "2026-09-23T10:09:26.218115+00:00",
+                  "action": "PATCH /contact/e17cdc43-1f41-4914-bdf7-96fc07aa9ef1",
+                  "method": "PATCH",
+                  "resource_type": "contact",
+                  "score": 1.7424344619812042
+                },
+                {
+                  "timestamp": "2026-09-23T10:14:02.029585+00:00",
+                  "action": "POST /contact",
+                  "method": "POST",
+                  "resource_type": "contact",
+                  "score": 1.7424344619812042
+                },
+                {
+                  "timestamp": "2026-09-22T14:22:48.979500+00:00",
+                  "action": "GET /admin/statistics/trends",
+                  "method": "GET",
+                  "resource_type": "statistics",
+                  "score": 1.686226898691488
+                },
+                {
+                  "timestamp": "2026-09-23T10:09:26.182057+00:00",
+                  "action": "POST /contact",
+                  "method": "POST",
+                  "resource_type": "contact",
+                  "score": 1.686226898691488
+                },
+                {
+                  "timestamp": "2026-09-23T10:14:02.012985+00:00",
+                  "action": "POST /contact",
+                  "method": "POST",
+                  "resource_type": "contact",
+                  "score": 1.686226898691488
+                },
+                {
+                  "timestamp": "2026-09-22T13:41:06.234078+00:00",
+                  "action": "GET /contact/c7c2e68d-b286-4a36-b84c-42e0a1560aec",
+                  "method": "GET",
+                  "resource_type": "contact",
+                  "score": 1.6300193354017716
+                },
+                {
+                  "timestamp": "2026-09-22T14:22:25.758987+00:00",
+                  "action": "GET /contact/f802c01d-3d40-4993-9b5f-ae6fa79e674e",
+                  "method": "GET",
+                  "resource_type": "contact",
+                  "score": 1.6300193354017716
+                },
+                {
+                  "timestamp": "2026-09-23T10:09:26.165202+00:00",
+                  "action": "POST /contact",
+                  "method": "POST",
+                  "resource_type": "contact",
+                  "score": 1.6300193354017716
+                },
+                {
+                  "timestamp": "2026-09-23T10:14:02.003420+00:00",
+                  "action": "GET /contact",
+                  "method": "GET",
+                  "resource_type": "contact",
+                  "score": 1.6300193354017716
+                },
+                {
+                  "timestamp": "2026-10-06T11:51:32.259664+00:00",
+                  "action": "GET /contact/74cebfe4-93e2-49d7-923c-3a3a51059ac1",
+                  "method": "GET",
+                  "resource_type": "contact",
+                  "score": 1.6300193354017716
+                }
+              ]
+            }
+          }
+        }
+      },
+      "ranking_agreement": {
+        "1%": {
+          "forest_selected": 4,
+          "baseline_selected": 4,
+          "overlap_count": 0,
+          "union_count": 8,
+          "jaccard_pct": 0.0,
+          "forest_only_count": 4,
+          "baseline_only_count": 4,
+          "interpretation": "Ranking agreement only; this is not an accuracy metric."
+        },
+        "2%": {
+          "forest_selected": 9,
+          "baseline_selected": 9,
+          "overlap_count": 0,
+          "union_count": 18,
+          "jaccard_pct": 0.0,
+          "forest_only_count": 9,
+          "baseline_only_count": 9,
+          "interpretation": "Ranking agreement only; this is not an accuracy metric."
+        },
+        "5%": {
+          "forest_selected": 23,
+          "baseline_selected": 23,
+          "overlap_count": 4,
+          "union_count": 42,
+          "jaccard_pct": 9.523809523809524,
+          "forest_only_count": 19,
+          "baseline_only_count": 19,
+          "interpretation": "Ranking agreement only; this is not an accuracy metric."
+        }
+      },
+      "directional_baseline_fit": {
+        "method": "One-sided robust z-scores: short gaps and high rolling counts increase risk; long gaps and low counts do not.",
+        "medians": {
+          "gap_log_seconds": 0.03794201133550713,
+          "events_previous_5m": 12.0,
+          "events_previous_1h": 70.5
+        },
+        "scales": {
+          "gap_log_seconds": 0.027328847299921116,
+          "events_previous_5m": 17.7912,
+          "events_previous_1h": 92.6625
+        },
+        "features": {
+          "gap_log_seconds": {
+            "median": 0.03794201133550713,
+            "scale": 0.027328847299921116,
+            "mad": 0.01843305497094369,
+            "training_min": 0.009328355288244595,
+            "training_max": 14.011193288733478,
+            "scale_fallback_used": false
+          },
+          "events_previous_5m": {
+            "median": 12.0,
+            "scale": 17.7912,
+            "mad": 12.0,
+            "training_min": 0.0,
+            "training_max": 65.0,
+            "scale_fallback_used": false
+          },
+          "events_previous_1h": {
+            "median": 70.5,
+            "scale": 92.6625,
+            "mad": 62.5,
+            "training_min": 0.0,
+            "training_max": 235.0,
+            "scale_fallback_used": false
+          }
+        },
+        "near_zero_scale_count": 0
+      },
+      "directional_baseline_evaluation_components": {
+        "short_gap_score": {
+          "count": 477,
+          "unique_exact_scores": 256,
+          "unique_scores_rounded_8dp": 256,
+          "zero_score_count": 222,
+          "zero_score_pct": 46.540880503144656,
+          "mean": 0.29168021652983245,
+          "std": 0.36557023790854193,
+          "min": 0.0,
+          "p01": 0.0,
+          "p05": 0.0,
+          "p10": 0.0,
+          "p25": 0.0,
+          "median": 0.10456811443144831,
+          "p75": 0.5192436011085809,
+          "p90": 0.9691258831429339,
+          "p95": 1.0410971320120213,
+          "p99": 1.1734142266763044,
+          "max": 1.229705125315648
+        },
+        "high_5m_activity_score": {
+          "count": 477,
+          "unique_exact_scores": 37,
+          "unique_scores_rounded_8dp": 37,
+          "zero_score_count": 236,
+          "zero_score_pct": 49.475890985324945,
+          "mean": 0.4271539138893532,
+          "std": 0.5641605188885499,
+          "min": 0.0,
+          "p01": 0.0,
+          "p05": 0.0,
+          "p10": 0.0,
+          "p25": 0.0,
+          "median": 0.05620756328971627,
+          "p75": 0.7869058860560277,
+          "p90": 1.3714645442690787,
+          "p95": 1.585053284769998,
+          "p99": 1.911057151850353,
+          "max": 2.0234722784297854
+        },
+        "high_1h_activity_score": {
+          "count": 477,
+          "unique_exact_scores": 117,
+          "unique_scores_rounded_8dp": 117,
+          "zero_score_count": 213,
+          "zero_score_pct": 44.65408805031446,
+          "mean": 0.31538452619215884,
+          "std": 0.398576952643598,
+          "min": 0.0,
+          "p01": 0.0,
+          "p05": 0.0,
+          "p10": 0.0,
+          "p25": 0.0,
+          "median": 0.05935518683394038,
+          "p75": 0.7176581680830973,
+          "p90": 0.9550789154188588,
+          "p95": 1.062997436935114,
+          "p99": 1.1950897072710105,
+          "max": 1.246458923512748
+        }
+      },
+      "feature_drift": {
+        "numeric_psi": {
+          "gap_log_seconds": {
+            "psi": 2.0928930896868403,
+            "bins": 10,
+            "training_count": 648,
+            "evaluation_count": 477,
+            "interpretation": "Descriptive drift indicator only; it does not measure detector accuracy."
+          },
+          "events_previous_5m": {
+            "psi": 0.3834123766851077,
+            "bins": 8,
+            "training_count": 648,
+            "evaluation_count": 477,
+            "interpretation": "Descriptive drift indicator only; it does not measure detector accuracy."
+          },
+          "events_previous_1h": {
+            "psi": 0.4912841854078491,
+            "bins": 8,
+            "training_count": 648,
+            "evaluation_count": 477,
+            "interpretation": "Descriptive drift indicator only; it does not measure detector accuracy."
+          }
+        },
+        "categorical_unseen_values": {
+          "action": {
+            "training_unique_values": 217,
+            "evaluation_unique_values": 151,
+            "unseen_evaluation_values": [
+              "DELETE /contact/037219ba-b672-4096-86ee-2d1eb03bd08c",
+              "DELETE /contact/05793e6a-3af1-42b9-9be1-9d6f44cf6da3",
+              "DELETE /contact/0ed565eb-699e-42b0-9fc4-0a444caa0c02",
+              "DELETE /contact/0fc81095-6a50-48cd-a325-f8aea3553b1c",
+              "DELETE /contact/122e8458-4d9c-46b8-98d8-e4bd63055d42",
+              "DELETE /contact/13fbae0b-5818-47fe-8043-c5d160c4e594",
+              "DELETE /contact/19d99dd6-49cd-4710-b6ce-56395688e679",
+              "DELETE /contact/1d9c7c6d-d279-4515-b966-2acb7b8807b0",
+              "DELETE /contact/20d5a4d4-3d49-48f6-8a28-48add26e631b",
+              "DELETE /contact/21d466d3-bdb2-4160-93cc-523b80588303",
+              "DELETE /contact/23e8d977-844c-4c18-a9ec-eaae3f157da9",
+              "DELETE /contact/244b9def-9811-4d78-ab45-a4429c71445a",
+              "DELETE /contact/26ba0914-6109-43bf-9f68-7cf48263f8dc",
+              "DELETE /contact/29836163-798f-4738-9b90-1b41e83bf13c",
+              "DELETE /contact/2d36a140-6e4f-4123-adc9-4fc47463e70e",
+              "DELETE /contact/3237e1f3-7d07-447e-8944-0e7ee1aafae1",
+              "DELETE /contact/3a686243-e0f6-4da5-8015-250df9b63d56",
+              "DELETE /contact/53b4530c-e42b-4a3d-a45e-926edfa7ba89",
+              "DELETE /contact/54f71c57-8a3d-4e75-babd-939f8f8ba5cf",
+              "DELETE /contact/634c04fa-f7ef-48c2-a5ff-f99c59879afd",
+              "DELETE /contact/770a8084-ce0d-4f81-b06e-7d96ffb9096b",
+              "DELETE /contact/78154808-7d47-4700-a694-c1d2f99515a1",
+              "DELETE /contact/7e6ea592-252c-474e-bb2a-d5f4e0beff9b",
+              "DELETE /contact/8068148d-f411-464d-a525-c80f441c32d1",
+              "DELETE /contact/8595c7c9-6a78-4e6e-937f-e87debd57779",
+              "DELETE /contact/8a14c5f2-705f-400f-8e1d-8cc9d72ca47a",
+              "DELETE /contact/8ff72e9a-e668-46e5-a9b9-cdd59c232c4e",
+              "DELETE /contact/93ba0e3a-5d8d-4787-9544-94f78db18ca3",
+              "DELETE /contact/9a673aa2-153e-48db-a8db-86dae05e77b9",
+              "DELETE /contact/9d9e59d2-8cd4-4dac-b9ad-c41ac0cad3a7",
+              "DELETE /contact/a2039d6b-e184-4778-8254-8a16264b121f",
+              "DELETE /contact/aad809ab-25c5-46a4-9beb-fe37fa41d8b9",
+              "DELETE /contact/b4da414a-b0aa-420c-96da-0a7249c36b1f",
+              "DELETE /contact/be0d2d39-7a0c-4902-825d-74b6b46d59b6",
+              "DELETE /contact/c233aa5d-b0c1-49e5-b8bf-25bd6fbeb7d3",
+              "DELETE /contact/c3d31ec9-9ea4-4125-a878-76187cfca38b",
+              "DELETE /contact/ceb0a635-b0e2-421f-82a0-7e276b39fb94",
+              "DELETE /contact/dd4ce1ac-20c3-4b24-91e6-1341769b5287",
+              "DELETE /contact/ea9f6220-da15-44ed-8460-6d79b4e21c13",
+              "DELETE /contact/f643f026-d546-49ae-9a17-95c11f11ad17",
+              "DELETE /contact/fdbe8115-e7bf-430b-989a-2c64292c7e39",
+              "DELETE /contact/fde14e18-2c2d-4516-a6ff-e6b068a822c9",
+              "GET /admin/statistics/overview",
+              "GET /admin/statistics/recent-activity",
+              "GET /admin/statistics/trends",
+              "GET /contact/0423e98c-a3c4-41b2-979c-d18cd2c46b93",
+              "GET /contact/0a84b1de-84c8-4f45-92e3-81b37509dd8c",
+              "GET /contact/2d60aa8d-97fe-4270-baa6-473d01e2d5c8",
+              "GET /contact/31300a24-1911-4131-a965-8d82227a4976",
+              "GET /contact/3eb426c0-ada9-4665-acc7-6930c89efe15",
+              "GET /contact/422b42dd-6cdc-4ac3-8f8e-c0f3a1144844",
+              "GET /contact/461d394e-2c2e-43e9-914f-a21b9440196d",
+              "GET /contact/4951d0dd-8dfd-4f06-ac64-ca4715fc514d",
+              "GET /contact/4c3637d1-ae3b-4a84-9af3-511075b290f3",
+              "GET /contact/4c7c95e2-6545-45c4-91a0-76cf9e8a2faf",
+              "GET /contact/4cb35fa8-b9ee-4e6d-92b8-01a91b78bbb1",
+              "GET /contact/50f90a9b-c952-4974-91a0-2e39c1848029",
+              "GET /contact/595fc93f-745d-4cf9-9b87-8f6d0c4cb82e",
+              "GET /contact/628d1198-0c0a-465a-a887-b0c33879ef8c",
+              "GET /contact/657228dc-2b5a-4f8f-b9d4-01efe8b9d9b9",
+              "GET /contact/68d4992f-d698-4edb-b612-f1ed6bd1a977",
+              "GET /contact/68faebd7-7ed3-4ec6-8505-532c2a292588",
+              "GET /contact/694c845a-2312-44f2-8da2-c818013a7cb7",
+              "GET /contact/708c272f-e68d-49ef-aa32-40f279ac3af9",
+              "GET /contact/727bfc02-64d8-4b75-ae74-6c3bffdbaae9",
+              "GET /contact/72817c57-e157-4a2a-9f40-5388817fd269",
+              "GET /contact/74cebfe4-93e2-49d7-923c-3a3a51059ac1",
+              "GET /contact/7a83a734-67b1-4361-b689-34d551cac367",
+              "GET /contact/7c0a8764-d9dd-4f92-a75d-c926f17288ae",
+              "GET /contact/90bd9674-0a76-4516-bf1b-a233ef348f95",
+              "GET /contact/97ae7dac-9881-4650-ae41-653f34b890a2",
+              "GET /contact/98f37ab1-2a24-4f58-8c36-7790cdb44123",
+              "GET /contact/a49df458-7d7c-4e85-a7f4-a3fd31d1839f",
+              "GET /contact/b18cf36c-d299-401b-9957-2d515e457936",
+              "GET /contact/b5e42bb9-8614-4e49-bcfb-f0b6bb4b6237",
+              "GET /contact/bded4df0-09ee-42f1-b442-0659f16b3f38",
+              "GET /contact/bed4f309-4192-4355-aae9-8be3e4c3017f",
+              "GET /contact/bee4cdd8-c049-46e8-a61c-7161cf79696c",
+              "GET /contact/c6d328c6-88e5-43dc-a21f-c8633fe45d7f",
+              "GET /contact/c7c2e68d-b286-4a36-b84c-42e0a1560aec",
+              "GET /contact/ca837d43-5fd9-47a8-a1c5-c254869c8198",
+              "GET /contact/cce6661a-3404-4ea2-b7f5-262e777840b4",
+              "GET /contact/d704435d-0b14-4c25-825f-ea2c7ed7f11a",
+              "GET /contact/efaf6741-c1c3-498e-8a28-25d6769cf8a6",
+              "GET /contact/f802c01d-3d40-4993-9b5f-ae6fa79e674e",
+              "GET /contact/f8ddcea8-e153-4970-9655-f43582a2a65e",
+              "GET /contact/fbca8c29-5353-4eb6-905e-d5673d5a8ff2",
+              "GET /events",
+              "GET /news",
+              "PATCH /contact/05e31fc7-4e72-4205-ae5b-a6e9862fe85e",
+              "PATCH /contact/0d224a69-a54d-4f39-825f-a9bf2ba6b41a",
+              "PATCH /contact/1131772d-9c2b-4987-8725-80a5a8d7de67",
+              "PATCH /contact/13c2bc7a-aacb-49d6-9dfe-ca1aaefb0c3e",
+              "PATCH /contact/1713e023-d895-46a8-91ea-ae2ce89c7f39",
+              "PATCH /contact/17df705c-5b18-4cfe-a60b-8221fe139277",
+              "PATCH /contact/1ab4a0f0-4a39-4df7-b439-4262f05dbeb7",
+              "PATCH /contact/276839bd-3906-4b60-9d7e-283b763f6ea3",
+              "PATCH /contact/278f976e-853a-45cf-b3d3-42e98a1a02b1",
+              "PATCH /contact/2fe52be5-7175-428b-a705-cb0a17296c1b",
+              "PATCH /contact/38711f1b-e674-4752-8e41-74246691cfff",
+              "PATCH /contact/4c642192-5afe-438d-9429-c99b647d2f5a",
+              "PATCH /contact/52df9c93-e491-4f0c-b1dd-1c939dcaf3d4",
+              "PATCH /contact/57bbd11c-6d82-486b-81c1-0eba2f4092c9",
+              "PATCH /contact/57bfadde-213f-4e34-b8a2-8e07d35382e3",
+              "PATCH /contact/587e9243-7bb1-47af-be8d-d4e762ab1ebd",
+              "PATCH /contact/5d2db233-6fd2-4f3a-80fa-acd48559ef6f",
+              "PATCH /contact/5d7c5bf9-72e9-4052-bfb3-3fc9661e9a44",
+              "PATCH /contact/5d7ea5af-7ad8-4cae-8637-73743da0f22d",
+              "PATCH /contact/64f69d67-a379-40fa-9d9c-df6d98ae04ba",
+              "PATCH /contact/68902e46-ce2e-4b30-9428-1245ad215cb7",
+              "PATCH /contact/74480454-eecf-4e2b-ba20-f11d47941060",
+              "PATCH /contact/787b26be-482b-4234-b218-18dcf56c0ab3",
+              "PATCH /contact/826b4be8-ad90-4d50-8e51-8be710166e5d",
+              "PATCH /contact/8562dff8-ca38-4205-bc52-a8613549dab7",
+              "PATCH /contact/85cdc0e3-6877-4f11-886d-4a19e64b3999",
+              "PATCH /contact/8744d832-903f-4d3d-851f-cb4cfef2c0cb",
+              "PATCH /contact/88e60436-2514-4a89-a1d6-12826cfee67d",
+              "PATCH /contact/92f3ac07-2223-4e6f-8a57-988895cad19e",
+              "PATCH /contact/947478af-e865-4bc7-ae72-c892ee962dd2",
+              "PATCH /contact/97fd4c9a-f9ea-49f6-8c0a-1c0691a1d13c",
+              "PATCH /contact/98b6b657-6c51-45b6-af5b-ba188c71b34d",
+              "PATCH /contact/af6f9147-02c0-455e-8ab6-2fb31d8ced53",
+              "PATCH /contact/af6fbb2b-5bb9-4545-9431-17bb8f533437",
+              "PATCH /contact/b2b5e9d0-688a-41f2-bf35-c00b3708f302",
+              "PATCH /contact/bda3910f-c104-49c6-acda-0376aac0e444",
+              "PATCH /contact/bfb192e2-c50f-4727-90ff-82e14f45f432",
+              "PATCH /contact/c340a469-a7db-4f41-9747-d12bcc2b5630",
+              "PATCH /contact/c4248629-06b6-4440-9420-ccbb9217116a",
+              "PATCH /contact/c5d130b3-2dc6-442b-88c4-13973698ff20",
+              "PATCH /contact/c6f23900-af75-418c-a623-9239406b19b4",
+              "PATCH /contact/ccfe1b30-1d91-43fc-b0cb-7e5804b637e0",
+              "PATCH /contact/d0a6780d-0c48-4a83-9cf3-cf7a820f0cef",
+              "PATCH /contact/d8adb473-180f-452a-87e1-1e536d623697",
+              "PATCH /contact/d918b5c3-e4fb-45ed-a347-f615d3a36db4",
+              "PATCH /contact/e17cdc43-1f41-4914-bdf7-96fc07aa9ef1",
+              "PATCH /contact/e684a619-e6d8-4a3e-b6e1-d64de8c1195b",
+              "PATCH /contact/ee2537a2-5047-4a28-86ee-2fbb94c1d5ec",
+              "PATCH /contact/f0e1634e-97c8-4e4b-aa11-b35e8a88e852",
+              "PATCH /contact/f2767203-5481-4ffa-9569-76c1280a1af8",
+              "PATCH /contact/f2954a39-2897-4cda-b4e9-a22c7f805b84",
+              "PATCH /contact/f2e98fe0-7805-43a0-8ab4-77ab3b94ce93",
+              "PATCH /contact/f779da08-4a70-4ddf-ade2-7f773fa28883",
+              "PATCH /contact/fa3b380b-f03b-470d-81b2-461588d1d535",
+              "PATCH /contact/fc541c29-611f-4c67-92ee-7e581c7b3e53",
+              "PATCH /contact/fe37e2a7-daa9-4512-bb8d-d4f9e1c9036a",
+              "POST /admin/analytics/query"
+            ],
+            "unseen_evaluation_rows": 282,
+            "unseen_evaluation_row_pct": 59.11949685534591
+          },
+          "method": {
+            "training_unique_values": 5,
+            "evaluation_unique_values": 4,
+            "unseen_evaluation_values": [],
+            "unseen_evaluation_rows": 0,
+            "unseen_evaluation_row_pct": 0.0
+          },
+          "resource_type": {
+            "training_unique_values": 12,
+            "evaluation_unique_values": 8,
+            "unseen_evaluation_values": [
+              "analytics",
+              "statistics"
+            ],
+            "unseen_evaluation_rows": 138,
+            "unseen_evaluation_row_pct": 28.930817610062892
+          }
+        }
+      },
+      "runtime_seconds": {
+        "isolation_forest_fit_and_score": 0.321455099969171,
+        "directional_baseline_fit_and_score": 0.0009410000056959689
+      },
+      "labels_available": false,
+      "accuracy_metrics_available": false,
+      "production_models_modified": false,
+      "existing_risk_report_modified": false
+    }
+  },
+  "labels_available": false,
+  "accuracy_metrics_available": false,
+  "interpretation": "This is an exploratory unsupervised benchmark, not a security validation. There are no verified anomaly labels. Ranking overlap, anomaly scores, PSI, and alert rates do not establish precision, recall, F1, or malicious activity. The evaluation window may contain only a few active days; interpret results accordingly. Production models and the existing risk report are not modified.",
+  "production_models_modified": false,
+  "existing_risk_report_modified": false,
+  "total_runtime_seconds": 0.8817531999666244,
+  "mlflow_run_id": "2ad8601ff4ea42799038fa67b7a9e336"
+}

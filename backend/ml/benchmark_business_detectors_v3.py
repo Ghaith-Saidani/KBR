@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 
 import hashlib
 import json
@@ -477,7 +478,10 @@ def main() -> None:
         encoding="utf-8",
     )
 
-    mlflow.set_tracking_uri(f"sqlite:///{(ROOT / 'mlflow.db').as_posix()}")
+    mlflow.set_tracking_uri(
+        os.getenv("MLFLOW_TRACKING_URI")
+        or f"sqlite:///{(ROOT / 'mlflow.db').as_posix()}"
+    )
     mlflow.set_experiment(EXPERIMENT_NAME)
 
     with mlflow.start_run(run_name="business-detector-benchmark-v3") as run:
