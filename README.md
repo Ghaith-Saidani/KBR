@@ -715,3 +715,74 @@ This project is developed for **Knights of Bizertin Rise (KBR)**.
 
 GitHub:
 https://github.com/Ghaith-Saidani
+
+---
+
+## ML Risk Analysis
+
+KBR includes a machine-learning risk analysis pipeline and an administrative
+page for reviewing the generated risk report.
+
+### Pipeline components
+
+- **Activity feature engineering:** builds HTTP and business activity features,
+  including population-aware rolling activity counts, timestamps, HTTP status
+  signals, and normalized categorical fields.
+- **Behavioral anomaly detection:** uses separate Isolation Forest model
+  bundles for HTTP requests and business activities.
+- **Explainable risk scoring:** combines behavioral anomaly signals with
+  deterministic signals for authentication failures, HTTP errors, activity
+  spikes, unusual HTTP methods, suspicious endpoints, and high user activity.
+- **Temporal incident detection:** independently identifies authentication
+  failure bursts, HTTP error bursts, and short-term HTTP activity bursts.
+- **Reporting:** produces a JSON risk report containing risk distributions,
+  top risk observations, configuration, and detected temporal incidents.
+- **Administration:** the frontend includes the `/admin/ml/risk` page for
+  viewing the ML risk report through the backend API.
+
+### Local data and generated artifacts
+
+The pipeline expects the processed activity dataset at:
+
+```text
+data/processed/user_activities.csv
+```
+
+Model bundles and generated reports are stored locally under:
+
+```text
+data/models/
+data/reports/anomaly_detection_report.json
+data/reports/risk_scoring_report.json
+```
+
+Generated models, reports, MLflow databases, and raw/processed datasets are
+local artifacts and should not be committed unless a specific sanitized
+sample is intentionally required for testing or documentation.
+
+### Dependencies
+
+The backend ML pipeline uses NumPy, pandas, scikit-learn, and joblib in
+addition to the FastAPI application dependencies. Install all backend
+dependencies from the repository root:
+
+```powershell
+python -m pip install -r backend/requirements.txt
+```
+
+### Running and validating the pipeline
+
+Run the existing model-training/detection scripts from the repository root
+in the order required by their inputs, then generate the risk-scoring report.
+The risk-scoring stage requires the corresponding model bundles and anomaly
+detection report to exist.
+
+Run backend tests with:
+
+```powershell
+python -m pytest backend/tests
+```
+
+The risk scores and anomaly rankings are analytical signals, not verified
+attack labels. Their accuracy should not be claimed without independently
+validated ground-truth labels and evaluation.

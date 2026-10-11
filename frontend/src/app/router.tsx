@@ -55,6 +55,8 @@ import { AdminRoute } from "../components/common/AdminRoute";
 
 import AdminAIAnalyticsPage from "../pages/AdminAIAnalyticsPage";
 
+import AdminMLRiskPage from "../pages/AdminMLRiskPage";
+
 export const router = createBrowserRouter([
   {
     path: "/",
@@ -285,6 +287,11 @@ export const router = createBrowserRouter([
           {
             path: "admin/ai-analytics",
             element: <AdminAIAnalyticsPage />,
+          },
+
+          {
+            path: "admin/ml-risk",
+            element: <AdminMLRiskPage />,
           },
           
           {

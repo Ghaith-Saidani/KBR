@@ -1,10 +1,14 @@
 ﻿from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from backend.app.core.config import Settings
 from backend.data.extract.postgres import (
     extract_kbr_data,
+)
+from backend.data.profile.profiler import (
+    profile_datasets,
 )
 from backend.data.quality.checks import (
     quality_results_to_dataframe,
@@ -68,7 +72,7 @@ def run_pipeline() -> None:
     # 1. EXTRACTION
     # --------------------------------------------------------
 
-    print("\n[1/3] Extracting PostgreSQL data...")
+    print("\n[1/4] Extracting PostgreSQL data...")
 
     datasets = extract_kbr_data(
         database_url,
@@ -84,7 +88,7 @@ def run_pipeline() -> None:
     # 2. TRANSFORMATION
     # --------------------------------------------------------
 
-    print("\n[2/3] Transforming datasets...")
+    print("\n[2/4] Transforming datasets...")
 
     processed_datasets = {}
 
@@ -114,7 +118,7 @@ def run_pipeline() -> None:
     # 3. DATA QUALITY
     # --------------------------------------------------------
 
-    print("\n[3/3] Running data-quality checks...")
+    print("\n[3/4] Running data-quality checks...")
 
     quality_results = run_quality_checks(
         processed_datasets
@@ -135,6 +139,43 @@ def run_pipeline() -> None:
         if not result.passed
     ]
 
+    # --------------------------------------------------------
+    # 4. DATASET PROFILING
+    # --------------------------------------------------------
+
+    print("\n[4/4] Profiling datasets...")
+
+    profiles = profile_datasets(
+        processed_datasets
+    )
+
+    profile_path = (
+        REPORTS_DIR / "data_profile.json"
+    )
+
+    with profile_path.open(
+        "w",
+        encoding="utf-8",
+    ) as file:
+        json.dump(
+            profiles,
+            file,
+            indent=2,
+            ensure_ascii=False,
+        )
+
+    for name, profile in profiles.items():
+        print(
+            f"[PROFILE] {name}: "
+            f"{profile['rows']} rows | "
+            f"{profile['columns']} columns | "
+            f"missing={profile['missing_percentage']}%"
+        )
+
+    # --------------------------------------------------------
+    # FINAL STATUS
+    # --------------------------------------------------------
+
     print("\n" + "=" * 60)
 
     if failed:
@@ -148,6 +189,10 @@ def run_pipeline() -> None:
         )
 
     print("=" * 60)
+
+    print(
+        f"\nProfile report: {profile_path}"
+    )
 
 
 if __name__ == "__main__":

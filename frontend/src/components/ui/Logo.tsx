@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import KBRLogo from "../../assets/KBR_Logo.jpg";
 
 interface LogoProps {
   showName?: boolean;
@@ -15,13 +16,12 @@ export default function Logo({
       className="group flex items-center gap-3"
       aria-label="Knights of Bizertin Rise"
     >
-      <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#F5C400]">
-        <span className="text-sm font-black tracking-tighter text-[#0A0A0A]">
-          KBR
-        </span>
-
-        <span className="absolute bottom-0 left-0 h-1 w-full bg-[#0A0A0A]" />
-      </div>
+      <img
+        src={KBRLogo}
+        alt=""
+        aria-hidden="true"
+        className="h-11 w-11 shrink-0 rounded-xl bg-white object-contain p-0.5"
+      />
 
       {showName && (
         <div className="hidden sm:block">

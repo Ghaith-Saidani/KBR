@@ -105,3 +105,21 @@ playwright/.cache/
 data/raw/*.csv
 data/processed/*.csv
 data/reports/*.csv
+data/reports/*.json
+
+# ==============================
+# KBR ML artifacts
+# ==============================
+data/models/*.joblib
+data/reports/anomaly_detection_report.json
+
+# ==============================
+# Local MLflow tracking
+# ==============================
+mlflow.db
+mlflow.db-shm
+mlflow.db-wal
+mlartifacts/
+mlruns/
+
+# Python bytecode and test artifacts
