@@ -316,6 +316,14 @@ export default function AdminDashboardPage() {
             />
 
             <ManagementCard
+              eyebrow="S?curit? / ML"
+              title="ML Risk Analysis"
+              description="Surveillez les scores de risque, les anomalies d?tect?es, les incidents temporels et les activit?s HTTP et m?tier."
+              href="/admin/ml-risk"
+              action="Ouvrir ML Risk Analysis"
+            />
+
+            <ManagementCard
               eyebrow="Analyse"
               title="Statistiques"
               description="Analysez les membres, utilisateurs, événements, activités et actualités de KBR à travers des indicateurs et tendances."
