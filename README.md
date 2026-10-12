@@ -6,7 +6,7 @@ The project provides a modern full-stack platform for managing and presenting KB
 
 ---
 
-## 📌 Project Overview
+## ðŸ“Œ Project Overview
 
 KBR is designed as a modular, scalable web application combining:
 
@@ -29,27 +29,27 @@ The architecture is designed to evolve toward a larger data and AI platform incl
 
 ---
 
-# 🏗️ Architecture
+# ðŸ—ï¸ Architecture
 
 ```text
                          KBR PLATFORM
-                              │
-             ┌────────────────┴────────────────┐
-             │                                 │
+                              â”‚
+             â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+             â”‚                                 â”‚
         React Frontend                    FastAPI Backend
-             │                                 │
-     ┌───────┼────────┐              ┌─────────┼─────────┐
-     │       │        │              │         │         │
+             â”‚                                 â”‚
+     â”Œâ”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”              â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+     â”‚       â”‚        â”‚              â”‚         â”‚         â”‚
    Pages  Features    AI           APIs     Services     AI
-     │       │        │              │         │         │
-     └───────┴────────┘              └─────────┼─────────┘
-                                               │
+     â”‚       â”‚        â”‚              â”‚         â”‚         â”‚
+     â””â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”˜              â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                                               â”‚
                                           SQLAlchemy
-                                               │
+                                               â”‚
                                           PostgreSQL
-                                               │
-                              ┌────────────────┴───────────────┐
-                              │                                │
+                                               â”‚
+                              â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                              â”‚                                â”‚
                          Application                    AI / Retrieval
                             Data                            Layer
 ```
@@ -58,7 +58,7 @@ The project follows a modular architecture separating presentation, API, busines
 
 ---
 
-# 🛠️ Technology Stack
+# ðŸ› ï¸ Technology Stack
 
 ## Frontend
 
@@ -99,26 +99,26 @@ The AI subsystem is implemented as a modular architecture rather than coupling t
 
 ```text
 AI Request
-    │
-    ▼
+    â”‚
+    â–¼
 AI Router
-    │
-    ▼
+    â”‚
+    â–¼
 AI Service
-    │
-    ├── Intent Classification
-    │
-    ├── Context Retrieval
-    │
-    ├── Context Formatting
-    │
-    ▼
+    â”‚
+    â”œâ”€â”€ Intent Classification
+    â”‚
+    â”œâ”€â”€ Context Retrieval
+    â”‚
+    â”œâ”€â”€ Context Formatting
+    â”‚
+    â–¼
 Model Gateway
-    │
-    ├── Gemini
-    └── Groq
-    │
-    ▼
+    â”‚
+    â”œâ”€â”€ Gemini
+    â””â”€â”€ Groq
+    â”‚
+    â–¼
 AI Response
 ```
 
@@ -135,7 +135,7 @@ This architecture provides a foundation for future:
 
 ---
 
-# 🔐 Authentication & Authorization
+# ðŸ” Authentication & Authorization
 
 KBR implements authentication and role-based access control.
 
@@ -158,7 +158,7 @@ Backend authorization protects administrative operations independently of fronte
 
 ---
 
-# 👥 Members
+# ðŸ‘¥ Members
 
 The member management system supports:
 
@@ -180,7 +180,7 @@ ARCHIVED
 
 ---
 
-# 📅 Events
+# ðŸ“… Events
 
 The platform provides both public event presentation and administrative event management.
 
@@ -195,7 +195,7 @@ Public users can access event listings and individual event detail pages.
 
 ---
 
-# 📰 News
+# ðŸ“° News
 
 KBR includes a complete news/content management section.
 
@@ -210,7 +210,7 @@ Features include:
 
 ---
 
-# 🚀 Activities
+# ðŸš€ Activities
 
 Activities and projects are managed through a dedicated module.
 
@@ -224,13 +224,13 @@ Features include:
 
 ---
 
-# 🔔 Notifications
+# ðŸ”” Notifications
 
 Authenticated users have access to a notification system through their personal account area.
 
 ---
 
-# 📩 Contact
+# ðŸ“© Contact
 
 The platform includes:
 
@@ -240,7 +240,7 @@ The platform includes:
 
 ---
 
-# 📊 Statistics
+# ðŸ“Š Statistics
 
 KBR includes a statistics subsystem for monitoring application activity and presenting administrative metrics.
 
@@ -250,26 +250,26 @@ The planned evolution includes:
 
 ```text
 User Activity
-     │
-     ▼
+     â”‚
+     â–¼
 Event / Activity Logging
-     │
-     ▼
+     â”‚
+     â–¼
 Data Processing
-     │
-     ├── PostgreSQL
-     └── Elasticsearch
-             │
-             ▼
+     â”‚
+     â”œâ”€â”€ PostgreSQL
+     â””â”€â”€ Elasticsearch
+             â”‚
+             â–¼
           Analytics
-             │
-             ▼
+             â”‚
+             â–¼
           Power BI
 ```
 
 ---
 
-# 🤖 AI Assistant
+# ðŸ¤– AI Assistant
 
 KBR includes an integrated AI assistant accessible from the frontend.
 
@@ -279,26 +279,26 @@ Current architecture includes:
 
 ```text
 Frontend AI Chat
-       │
-       ▼
+       â”‚
+       â–¼
 POST /ai/chat
-       │
-       ▼
+       â”‚
+       â–¼
 Intent Processing
-       │
-       ▼
+       â”‚
+       â–¼
 KBR Context Retrieval
-       │
-       ▼
+       â”‚
+       â–¼
 Context Formatting
-       │
-       ▼
+       â”‚
+       â–¼
 Model Gateway
-       │
-       ▼
+       â”‚
+       â–¼
 AI Provider
-       │
-       ▼
+       â”‚
+       â–¼
 Response
 ```
 
@@ -306,7 +306,7 @@ The backend controls model/provider configuration, preventing the frontend from 
 
 ---
 
-# 🗄️ Database
+# ðŸ—„ï¸ Database
 
 PostgreSQL is the primary application database.
 
@@ -328,7 +328,7 @@ Database migrations are version-controlled and executed through Alembic.
 
 ---
 
-# 🐳 Docker
+# ðŸ³ Docker
 
 Docker Compose is currently used to provision the PostgreSQL development database.
 
@@ -336,11 +336,11 @@ Current infrastructure includes:
 
 ```text
 Docker Compose
-      │
-      ▼
+      â”‚
+      â–¼
 PostgreSQL 17
-      │
-      ▼
+      â”‚
+      â–¼
 Persistent volume
 ```
 
@@ -348,16 +348,16 @@ The long-term architecture will extend Dockerization to the complete application
 
 ```text
 Docker Compose
-├── Frontend
-├── Backend
-├── PostgreSQL
-├── Elasticsearch
-└── Supporting services
+â”œâ”€â”€ Frontend
+â”œâ”€â”€ Backend
+â”œâ”€â”€ PostgreSQL
+â”œâ”€â”€ Elasticsearch
+â””â”€â”€ Supporting services
 ```
 
 ---
 
-# 🔄 Continuous Integration
+# ðŸ”„ Continuous Integration
 
 The project includes GitHub Actions CI.
 
@@ -365,22 +365,22 @@ The CI pipeline performs automated checks including:
 
 ```text
 Push
- │
- ▼
+ â”‚
+ â–¼
 GitHub Actions
- │
- ├── PostgreSQL service
- ├── Python environment
- ├── Backend compilation
- ├── Alembic migrations
- └── Pytest
+ â”‚
+ â”œâ”€â”€ PostgreSQL service
+ â”œâ”€â”€ Python environment
+ â”œâ”€â”€ Backend compilation
+ â”œâ”€â”€ Alembic migrations
+ â””â”€â”€ Pytest
 ```
 
 The frontend also provides automated linting, testing, and production build checks.
 
 ---
 
-# 🧪 Testing
+# ðŸ§ª Testing
 
 The project contains automated tests covering multiple layers of the application.
 
@@ -416,51 +416,51 @@ The frontend testing stack includes:
 
 ---
 
-# 📁 Project Structure
+# ðŸ“ Project Structure
 
 ```text
 KBR/
-│
-├── backend/
-│   ├── app/
-│   │   ├── ai/
-│   │   ├── api/
-│   │   ├── core/
-│   │   ├── models/
-│   │   ├── schemas/
-│   │   └── services/
-│   │
-│   ├── alembic/
-│   ├── scripts/
-│   ├── tests/
-│   └── requirements.txt
-│
-├── frontend/
-│   ├── src/
-│   │   ├── app/
-│   │   ├── components/
-│   │   ├── features/
-│   │   ├── pages/
-│   │   ├── services/
-│   │   ├── stores/
-│   │   └── test/
-│   │
-│   ├── public/
-│   ├── package.json
-│   └── vite.config.ts
-│
-├── .github/
-│   └── workflows/
-│
-├── docker-compose.yml
-├── .env.example
-├── .gitignore
-└── README.md
+â”‚
+â”œâ”€â”€ backend/
+â”‚   â”œâ”€â”€ app/
+â”‚   â”‚   â”œâ”€â”€ ai/
+â”‚   â”‚   â”œâ”€â”€ api/
+â”‚   â”‚   â”œâ”€â”€ core/
+â”‚   â”‚   â”œâ”€â”€ models/
+â”‚   â”‚   â”œâ”€â”€ schemas/
+â”‚   â”‚   â””â”€â”€ services/
+â”‚   â”‚
+â”‚   â”œâ”€â”€ alembic/
+â”‚   â”œâ”€â”€ scripts/
+â”‚   â”œâ”€â”€ tests/
+â”‚   â””â”€â”€ requirements.txt
+â”‚
+â”œâ”€â”€ frontend/
+â”‚   â”œâ”€â”€ src/
+â”‚   â”‚   â”œâ”€â”€ app/
+â”‚   â”‚   â”œâ”€â”€ components/
+â”‚   â”‚   â”œâ”€â”€ features/
+â”‚   â”‚   â”œâ”€â”€ pages/
+â”‚   â”‚   â”œâ”€â”€ services/
+â”‚   â”‚   â”œâ”€â”€ stores/
+â”‚   â”‚   â””â”€â”€ test/
+â”‚   â”‚
+â”‚   â”œâ”€â”€ public/
+â”‚   â”œâ”€â”€ package.json
+â”‚   â””â”€â”€ vite.config.ts
+â”‚
+â”œâ”€â”€ .github/
+â”‚   â””â”€â”€ workflows/
+â”‚
+â”œâ”€â”€ docker-compose.yml
+â”œâ”€â”€ .env.example
+â”œâ”€â”€ .gitignore
+â””â”€â”€ README.md
 ```
 
 ---
 
-# 🌐 Frontend Routes
+# ðŸŒ Frontend Routes
 
 ## Public
 
@@ -520,7 +520,7 @@ Administrative routes are protected through role-based authorization.
 
 ---
 
-# ⚙️ Local Development
+# âš™ï¸ Local Development
 
 ## Prerequisites
 
@@ -598,7 +598,7 @@ The Vite development server will provide the frontend locally.
 
 ---
 
-# 🔑 Environment Configuration
+# ðŸ”‘ Environment Configuration
 
 Environment variables are configured through `.env`.
 
@@ -619,7 +619,7 @@ Use `.env.example` as the template for local configuration.
 
 ---
 
-# 🗺️ Roadmap
+# ðŸ—ºï¸ Roadmap
 
 The current platform provides the foundation for a larger data-driven esports ecosystem.
 
@@ -665,37 +665,37 @@ The current platform provides the foundation for a larger data-driven esports ec
 
 ---
 
-# 🎯 Long-Term Architecture
+# ðŸŽ¯ Long-Term Architecture
 
 The long-term objective is to evolve KBR from a conventional esports website into a **data-driven and AI-enabled platform**.
 
 ```text
                      KBR PLATFORM
-                           │
-              ┌────────────┴────────────┐
-              │                         │
+                           â”‚
+              â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+              â”‚                         â”‚
           Web Platform              Data Platform
-              │                         │
+              â”‚                         â”‚
        React + FastAPI             Activity Logs
-              │                         │
-          PostgreSQL           ┌────────┴────────┐
-              │                │                 │
-              │           PostgreSQL       Elasticsearch
-              │                                  │
-              │                           Semantic Search
-              │                                  │
-              └───────────────┬──────────────────┘
-                              │
+              â”‚                         â”‚
+          PostgreSQL           â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”
+              â”‚                â”‚                 â”‚
+              â”‚           PostgreSQL       Elasticsearch
+              â”‚                                  â”‚
+              â”‚                           Semantic Search
+              â”‚                                  â”‚
+              â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                              â”‚
                              RAG
-                              │
+                              â”‚
                              LLM
-                              │
+                              â”‚
                        AI Assistant
-                              │
-                              ▼
+                              â”‚
+                              â–¼
                          Power BI
-                              │
-                              ▼
+                              â”‚
+                              â–¼
                     Business Intelligence
 ```
 
@@ -703,13 +703,13 @@ The goal is to combine **web development, backend engineering, data engineering,
 
 ---
 
-# 📄 License
+# ðŸ“„ License
 
 This project is developed for **Knights of Bizertin Rise (KBR)**.
 
 ---
 
-## 👤 Author
+## ðŸ‘¤ Author
 
 **Ghaith Saidani**
 
@@ -786,3 +786,100 @@ python -m pytest backend/tests
 The risk scores and anomaly rankings are analytical signals, not verified
 attack labels. Their accuracy should not be claimed without independently
 validated ground-truth labels and evaluation.
+
+<!-- KBR MONITORING STACK -->
+
+## Monitoring and Observability
+
+KBR includes a local monitoring and log aggregation stack managed through
+Docker Compose.
+
+### Services
+
+| Service | Purpose | Local URL |
+|---|---|---|
+| Prometheus | Collects backend metrics | http://localhost:9090 |
+| Grafana | Dashboards and visualization | http://localhost:3000 |
+| Elasticsearch | Stores application and container logs | http://localhost:9200 |
+| Fluent Bit | Collects Docker container logs and forwards them to Elasticsearch | Internal service |
+| MLflow | Machine learning experiment tracking | http://localhost:5000 |
+
+The backend exposes `/health` for health checks and `/metrics` for Prometheus
+metrics. Prometheus scrapes the backend every 15 seconds.
+
+### Grafana
+
+The existing dashboard is **KBR - Application Monitoring**. It includes:
+
+- Backend memory usage
+- HTTP request rate
+- 95th-percentile request latency
+- HTTP 5xx error rate
+
+Grafana data sources are provisioned from
+`monitoring/grafana/provisioning/datasources/datasources.yml`.
+
+The provisioned sources use the internal Docker Compose addresses:
+
+- Prometheus: `http://prometheus:9090`
+- Elasticsearch: `http://elasticsearch:9200`
+
+### Log aggregation
+
+Fluent Bit reads Docker JSON log files, enriches records with the container ID
+and application metadata, and forwards them to Elasticsearch.
+
+Configuration files:
+
+- `monitoring/fluent-bit/fluent-bit.conf`
+- `monitoring/fluent-bit/docker_metadata.lua`
+
+The Elasticsearch index pattern is `kbr-docker-*`, with `@timestamp` as the
+time field. Logs can be explored through Grafana using the Elasticsearch
+data source.
+
+### Prometheus configuration
+
+Prometheus configuration is maintained in `monitoring/prometheus.yml`.
+The current retention period is 15 days.
+
+### Start and manage the stack
+
+Start services:
+
+```powershell
+docker compose up -d
+```
+
+Check service status:
+
+```powershell
+docker compose ps
+```
+
+Inspect logs:
+
+```powershell
+docker compose logs --tail=100 backend grafana prometheus elasticsearch fluent-bit
+```
+
+Validate the Compose configuration:
+
+```powershell
+docker compose config --quiet
+```
+
+### Data persistence and security
+
+PostgreSQL, Prometheus, Grafana, Elasticsearch, and Fluent Bit state use
+named Docker volumes. Do not use `docker compose down -v` for routine
+maintenance because it removes named volumes.
+
+The current Elasticsearch configuration disables built-in security for local
+development. Do not expose this configuration directly to an untrusted
+network or use it as-is for production. Production deployment requires
+appropriate authentication, TLS, secret management, and access controls.
+
+Grafana's administrator password is configured through the `GRAFANA_ADMIN_PASSWORD`
+environment variable in the local `.env` file. Do not commit `.env` or other
+credentials to version control.

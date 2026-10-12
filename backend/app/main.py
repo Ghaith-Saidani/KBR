@@ -1,5 +1,7 @@
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 from sqlalchemy import text
 
 from backend.app.api import dev
@@ -17,23 +19,18 @@ from backend.app.api.user_activity import router as user_activity_router
 from backend.app.api.ml_risk import router as ml_risk_router
 from backend.app.core.config import get_settings
 from backend.app.core.database import engine
-
 from backend.app.middleware.activity_logging import (
     ActivityLoggingMiddleware,
 )
-
-
 from backend.app.ai.router import router as ai_router
 
 settings = get_settings()
-
 
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
     description="Backend API for Knights of Bizertin Rise",
 )
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -43,9 +40,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.add_middleware(
-    ActivityLoggingMiddleware,
-)
+app.add_middleware(ActivityLoggingMiddleware)
 
 app.include_router(auth_router)
 app.include_router(members_router)
@@ -60,15 +55,10 @@ app.include_router(contact_router)
 app.include_router(notifications_router)
 app.include_router(user_activity_router)
 app.include_router(dev.router)
+app.include_router(ai_router)
 
-app.include_router(
-    ai_router,
-)
 
-@app.get(
-    "/",
-    summary="API information",
-)
+@app.get("/", summary="API information")
 def root() -> dict[str, str]:
     return {
         "message": "KBR API is running",
@@ -76,10 +66,7 @@ def root() -> dict[str, str]:
     }
 
 
-@app.get(
-    "/health",
-    summary="Application health check",
-)
+@app.get("/health", summary="Application health check")
 def health_check() -> dict[str, str]:
     return {
         "status": "healthy",
@@ -87,10 +74,7 @@ def health_check() -> dict[str, str]:
     }
 
 
-@app.get(
-    "/health/db",
-    summary="Database health check",
-)
+@app.get("/health/db", summary="Database health check")
 def database_health_check() -> dict[str, str]:
     try:
         with engine.connect() as connection:
@@ -100,9 +84,19 @@ def database_health_check() -> dict[str, str]:
             "status": "healthy",
             "database": "connected",
         }
-
     except Exception:
         return {
             "status": "unhealthy",
             "database": "disconnected",
         }
+
+
+# Expose aggregated HTTP request metrics for Prometheus.
+# Exclude operational endpoints to reduce monitoring noise.
+Instrumentator(
+    excluded_handlers=["/health", "/health/db", "/metrics"],
+).instrument(app).expose(
+    app,
+    endpoint="/metrics",
+    include_in_schema=False,
+)
