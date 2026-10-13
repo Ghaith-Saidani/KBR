@@ -14,6 +14,9 @@ COPY backend/requirements.txt /app/backend/requirements.txt
 RUN python -m pip install --no-cache-dir -r /app/backend/requirements.txt
 
 COPY backend /app/backend
+COPY data/models /app/data/models
+COPY data/reports/anomaly_detection_report.json /app/data/reports/anomaly_detection_report.json
+COPY data/reports/risk_scoring_report.json /app/data/reports/risk_scoring_report.json
 COPY alembic.ini /app/alembic.ini
 
 EXPOSE 8000

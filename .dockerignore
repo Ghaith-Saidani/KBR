@@ -18,8 +18,14 @@ frontend/dist
 backend/.venv
 data/raw
 data/processed
-data/reports
-data/models
+# Exclude generated data by default
+data/reports/*
+data/models/*
+# Include only the artifacts required by production risk scoring
+!data/models/http_anomaly_detector.joblib
+!data/models/business_anomaly_detector.joblib
+!data/reports/anomaly_detection_report.json
+!data/reports/risk_scoring_report.json
 mlruns
 mlartifacts
 mlflow.db
