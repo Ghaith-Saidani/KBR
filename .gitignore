@@ -122,4 +122,5 @@ mlflow.db-wal
 mlartifacts/
 mlruns/
 
+backups/
 # Python bytecode and test artifacts
