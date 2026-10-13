@@ -316,9 +316,9 @@ export default function AdminDashboardPage() {
             />
 
             <ManagementCard
-              eyebrow="S?curit? / ML"
+              eyebrow="Sécurité / ML"
               title="ML Risk Analysis"
-              description="Surveillez les scores de risque, les anomalies d?tect?es, les incidents temporels et les activit?s HTTP et m?tier."
+              description="Surveillez les scores de risque, les anomalies détectées, les incidents temporels et les activités HTTP et métier."
               href="/admin/ml-risk"
               action="Ouvrir ML Risk Analysis"
             />
